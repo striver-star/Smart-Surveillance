@@ -95,6 +95,9 @@ func run(cfg *Config) int {
 	defer stop()
 	refreshMonitors := func() {
 		ms, err := listMonitors()
+		if len(cfg.Monitors) > 0 {
+			ms, err = numberMonitors(append([]Monitor(nil), cfg.Monitors...)), nil
+		}
 		if err != nil || len(ms) == 0 {
 			log.Printf("cannot list monitors (%v); keeping the previous list", err)
 			return

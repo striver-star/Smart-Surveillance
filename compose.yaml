@@ -27,8 +27,11 @@ services:
       HSS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       HSS_TZ: ${HSS_TZ}
       HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
+      HSS_WALL_TOKEN: ${HSS_WALL_TOKEN}
+      HSS_ADMIN_TOKEN: ${HSS_ADMIN_TOKEN}
     volumes:
       - api-data:/data
+      - ./dist/wall-agent:/srv/wall-agent:ro
     depends_on:
       db:
         condition: service_healthy
@@ -83,6 +86,7 @@ services:
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./web/wall-test:/srv/wall-test:ro
+      - ./dist/wall-agent:/srv/wall-agent:ro
       - caddy-data:/data
     depends_on:
       - api

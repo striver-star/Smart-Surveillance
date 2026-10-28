@@ -13,6 +13,11 @@
 		file_server
 	}
 	redir /wall-test /wall-test/
+	# Wall Agent builds, for self-update and installer download (built by services/wall-agent/build.sh)
+	handle_path /wall-agent/* {
+		root * /srv/wall-agent
+		file_server
+	}
 	handle {
 		respond "HSS platform: PoC services are running." 200
 	}

@@ -13,19 +13,20 @@ import (
 
 // Config is read from a JSON file written by the installer.
 type Config struct {
-	PlatformURL         string   `json:"platform_url"`          // e.g. https://hss.example.local
-	NodeID              string   `json:"node_id"`               // e.g. wall-pc-1
-	Token               string   `json:"token"`                 // shared wall token; HSS_WALL_TOKEN overrides
-	Browser             string   `json:"browser"`               // browser executable; empty = auto-detect
-	ExtraBrowserArgs    []string `json:"extra_browser_args"`    // added to every browser start
-	DefaultPath         string   `json:"default_path"`          // page used before the platform sends a layout
-	LocalPort           int      `json:"local_port"`            // page heartbeats arrive on 127.0.0.1:port
-	HeartbeatSeconds    int      `json:"heartbeat_seconds"`     // agent -> platform
-	PageTimeoutSeconds  int      `json:"page_timeout_seconds"`  // restart a browser after this long without a page heartbeat
-	StartupGraceSeconds int      `json:"startup_grace_seconds"` // time a new browser gets before the first heartbeat is required
-	CAFile              string   `json:"ca_file"`               // extra CA certificate (PEM) for the platform
-	InsecureTLS         bool     `json:"insecure_tls"`          // test only
-	DataDir             string   `json:"data_dir"`              // browser profiles, layout cache, log
+	PlatformURL         string    `json:"platform_url"`          // e.g. https://hss.example.local
+	NodeID              string    `json:"node_id"`               // e.g. wall-pc-1
+	Token               string    `json:"token"`                 // shared wall token; HSS_WALL_TOKEN overrides
+	Browser             string    `json:"browser"`               // browser executable; empty = auto-detect
+	ExtraBrowserArgs    []string  `json:"extra_browser_args"`    // added to every browser start
+	DefaultPath         string    `json:"default_path"`          // page used before the platform sends a layout
+	LocalPort           int       `json:"local_port"`            // page heartbeats arrive on 127.0.0.1:port
+	HeartbeatSeconds    int       `json:"heartbeat_seconds"`     // agent -> platform
+	PageTimeoutSeconds  int       `json:"page_timeout_seconds"`  // restart a browser after this long without a page heartbeat
+	StartupGraceSeconds int       `json:"startup_grace_seconds"` // time a new browser gets before the first heartbeat is required
+	CAFile              string    `json:"ca_file"`               // extra CA certificate (PEM) for the platform
+	InsecureTLS         bool      `json:"insecure_tls"`          // test only
+	DataDir             string    `json:"data_dir"`              // browser profiles, layout cache, log
+	Monitors            []Monitor `json:"monitors"`              // optional: fixed screen list instead of detection
 }
 
 var nodeIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)

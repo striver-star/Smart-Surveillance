@@ -1,0 +1,15 @@
+# systemd user service for a Linux wall PC (auto-login desktop session).
+# Install: copy the binary to /usr/local/bin/hss-wall-agent, the config to /etc/hss-wall-agent/config.json,
+# this file to ~/.config/systemd/user/, then: systemctl --user enable --now hss-wall-agent
+[Unit]
+Description=HSS Wall Agent (kiosk screens)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/hss-wall-agent
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

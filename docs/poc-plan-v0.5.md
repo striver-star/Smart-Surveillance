@@ -33,7 +33,7 @@ needs the NVR's ISAPI pass-through or Virtual Host feature; step 13 tests this.
 | 19 | Wall PC capacity | One i5 PC, one 55 inch TV, 32 then 64 tiles, Chromium kiosk | CPU < 70%, no dropped tiles for 1 hour | **Test page built** and checked in the build environment; run on the wall PCs (`docs/task-19-wall-capacity-test.md`) |
 | 20 | NVR limits | Pull 32 sub-streams + rotation main streams from one NVR | No refused connections; NVR outgoing bandwidth recorded | On site |
 | 21 | WhatsApp gateway week | Provider A on the dedicated number; email fallback | 7 days, no ban, fallback works | Needs number |
-| 22 | Wall Agent + Windows installer soak | Prototype on an existing i5 wall PC, 24 hours | Survives Windows restart and a camera outage | After 19 |
+| 22 | Wall Agent + Windows installer soak | Prototype on an existing i5 wall PC, 24 hours | Survives Windows restart and a camera outage | **Agent and installer built**; tested on Linux with two screens (crash, freeze, outage, layout change, self-update); 24-hour soak on a Windows wall PC: waiting (`docs/task-22-wall-agent.md`) |
 | 23 | Licence scan | Syft + ScanCode on code, models, datasets | No disallowed licences | Every build |
 | 24 | Go or no-go | Review results with the builder | Requirements sign-off | End of PoC |
 

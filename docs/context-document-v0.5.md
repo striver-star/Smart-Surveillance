@@ -584,17 +584,23 @@ its own approval gate.
   sites above 6 NVRs. Windows must already be licensed with the server;
   no Windows Server license is bought for the product.
 
-- **Wall Agent and Windows installer:** The installer sets up a small
-  Wall Agent as a Windows service. The agent starts the kiosk browser at
-  boot, assigns grids to each monitor, syncs the saved layout from the
-  platform, restarts the browser if it freezes, reports health and CPU
-  load to the platform, and updates itself. It supports silent
+- **Wall Agent and Windows installer (revised in task 22):** The
+  installer sets up a small Wall Agent (one Go program, no runtime
+  needed). A Windows service cannot show windows on screen (Session 0
+  isolation), so the agent runs in the auto-signed-in wall user's
+  session, started at sign-in by a scheduled task that also restarts it
+  within a minute if it stops. The agent opens a kiosk browser on each
+  monitor, shows the page the platform assigns to that monitor, restarts
+  a browser that crashes or whose page stops reporting, keeps a cached
+  layout for platform outages, reports health and CPU load to the
+  platform, and updates itself with a checksum check. It supports silent
   installation so the IT Team can deploy it to several PCs.
 
 - **Open-source tooling for the installer:** Build with NSIS (zlib
-  license), wrap the agent with WinSW (MIT) and use Chromium or Firefox
-  in kiosk mode. Google Chrome and Microsoft Edge are not used. Wall PCs
-  do not need Docker.
+  license); the agent is written in Go (BSD license); Windows Task
+  Scheduler (part of Windows) starts it. Chromium in kiosk mode on
+  multi-TV PCs (Firefox cannot be placed on a chosen monitor). Google
+  Chrome and Microsoft Edge are not used. Wall PCs do not need Docker.
 
 - **Windows hardening for walls:** Use Windows 11 Pro or Enterprise with
   automatic sign-in, a scheduled maintenance window for updates so the
@@ -781,8 +787,8 @@ language; PostgreSQL + PostGIS (also used for queues); MediaMTX or
 go2rtc; React + TypeScript + Tailwind; ONNX Runtime with TensorRT on
 NVIDIA GPUs (OpenVINO on Intel as alternative); Traccar for GPS;
 WeasyPrint for PDF; python-docx for Word; WireGuard for links to other
-subnets; Docker Engine or Podman; NSIS and WinSW for the Windows wall PC
-installer.
+subnets; Docker Engine or Podman; NSIS and a Go Wall Agent for the Windows wall
+PC installer.
 
 ## 8. Core Data Model (Initial Sketch)
 
@@ -1095,6 +1101,8 @@ backup); default WhatsApp provider (Provider A).
 | 2026-10-28 | Branding, language and timezone selectable and uploadable per tenant and user                                                          | Multi-tenant product                                 | Builder                                |
 | 2026-10-28 | Windows server installer as a backup, running the stack in WSL2 with Docker Engine                                                     | Clients with Windows-only servers                    | Builder; WSL2 design Proposed (AI)     |
 | 2026-10-28 | Sub-streams H.264; about 60 channels per GPU; gigabit network with 10 GbE at 10 NVRs                                                   | Working assumptions                                  | Builder                                |
+| 2026-10-28 | Wall Agent runs in the signed-in user's session, started and restarted by a scheduled task, instead of a WinSW Windows service           | Windows services cannot show windows (Session 0)     | Proposed (AI)                          |
+| 2026-10-28 | Wall Agent written in Go (single .exe for Windows, same code for Linux wall PCs)                                                       | No runtime to install; cross-platform                | Proposed (AI)                          |
 
 ## 15. Progress Tracker (Update After Each Session)
 
@@ -1112,12 +1120,16 @@ backup); default WhatsApp provider (Provider A).
   API), tested end to end on a sample video at 0.16 to 0.26 s from frame
   to stored event; task 19 (wall capacity test page with a verdict,
   automatic tile reconnect and downloadable results), tested with 32
-  tiles in the build environment.
+  tiles in the build environment; task 22 (Wall Agent in Go, Windows
+  installer with a scheduled task, platform heartbeats and layouts,
+  self-update), tested on Linux with two screens: crash, freeze, outage,
+  layout change and self-update all recovered by themselves.
 
 - **In progress:** Running on site: the skeleton on the real server, the
   probe against all six NVRs, task 15 on one non-AI camera, and task 19
   on the existing wall PCs (runs A to C in
-  `docs/task-19-wall-capacity-test.md`).
+  `docs/task-19-wall-capacity-test.md`), and the task 22 soak on one
+  Windows wall PC (`docs/task-22-wall-agent.md`).
 
 - **Blocked or waiting on:** Probe results from site; decisions on the
   NVR drive conflict and recognition coverage; dedicated WhatsApp
@@ -1125,15 +1137,16 @@ backup); default WhatsApp provider (Provider A).
   server quote.
 
 - **Next session goal:** Read the probe, task 15 and task 19 results;
-  confirm tiers (task 14); decide on a fourth wall PC; then build the
-  Wall Agent and Windows installer prototype (task 22) and prepare the
-  GPU benchmark (task 16).
+  confirm tiers (task 14); decide on a fourth wall PC; approve the Wall
+  Agent design change; then prepare the GPU benchmark (task 16) and the
+  WhatsApp gateway test (task 21).
 
 - **Files and repos created:** Repository
   `github.com/striver-star/Smart-Surveillance` (branch main): `compose.yaml`, `services/api`, `gateway/mediamtx.yml`,
   `proxy/Caddyfile`, `db/init`, `tools/probe` (probe and tests),
   `docs/poc-plan-v0.5.md`, `docs/stage-checklist-step0-step1.md`,
   `services/ai-worker` (task 15), `web/wall-test` (task 19),
+  `services/wall-agent` (task 22),
   `tools/fetch-models.sh`, `tools/nvr-paths.sh`, and a guide for each
   task in `docs/`.
 
@@ -1354,7 +1367,7 @@ datasets, and services billed per use or per month.
 | Authentication            | pyotp for two-factor codes; Keycloak optional                                              | MIT, Apache 2.0                                       |
 | Our license service       | libsodium or Python cryptography                                                           | ISC, Apache 2.0 or BSD                                |
 | Notifications             | Any SMTP server (for example Postfix), ntfy, WhatsApp gateway (whatsapp-web.js or Baileys) | Open source; see 5.7 for gateway risk                 |
-| Wall PC installer         | NSIS installer, WinSW service wrapper, Wall Agent (our code)                               | zlib, MIT, ours                                       |
+| Wall PC installer         | NSIS installer, Wall Agent (our code, Go), Windows Task Scheduler                           | zlib, BSD (Go), ours                                  |
 | Wall PC browser           | Chromium or Firefox in kiosk mode                                                          | BSD-style; MPL 2.0                                    |
 | Monitoring                | Prometheus; Grafana for internal IT use only                                               | Apache 2.0; AGPL                                      |
 | Backup and links          | restic or BorgBackup, rsync, WireGuard, chrony                                             | BSD, GPL (separate tools)                             |
@@ -1541,6 +1554,9 @@ confirmed the AI's pending assumptions; asked to start building.
   WSL2, and three new risks.
 - Updated the Progress Tracker for the start of building and added
   Section 23, the master task list.
+- Task 22: revised the Wall Agent design (scheduled task in the user's
+  session instead of a WinSW Windows service, agent written in Go) in
+  5.12, Section 14 and Section 19.
 
 ## 22. Glossary
 
@@ -1597,8 +1613,9 @@ confirmed the AI's pending assumptions; asked to start building.
 
 - **FOSS:** Free and open-source software
 
-- **Wall Agent:** Small open-source service on each wall PC that starts
-  the kiosk browser, syncs layouts and reports health
+- **Wall Agent:** Small open-source program on each wall PC that starts
+  the kiosk browsers, syncs layouts, restarts frozen screens, reports
+  health and updates itself
 
 - **TensorRT:** NVIDIA runtime for fast AI inference on NVIDIA GPUs
   (free to use, closed source)
@@ -1654,7 +1671,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**
 20. NVR connection and bandwidth limits. **To do**
 21. One-week WhatsApp gateway test with email fallback. **To do** (needs task 3)
-22. Wall Agent and Windows installer prototype, 24-hour soak. **To do**
+22. Wall Agent and Windows installer prototype, 24-hour soak. Agent and installer **Done** (tested on Linux); Windows soak: **Waiting**
 23. License scan of PoC code, models and datasets. **To do**
 24. PoC go or no-go and requirements sign-off. **To do**
 

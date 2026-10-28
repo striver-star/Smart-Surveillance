@@ -68,11 +68,18 @@ func browserCommand(browser string, m Monitor, pageURL, profileDir string, extra
 			"--disable-infobars",
 			"--hide-crash-restore-bubble",
 			"--autoplay-policy=no-user-gesture-required",
-			"--disable-features=Translate,MediaRouter",
+			// The wall page reports to this agent on 127.0.0.1; without this, newer Chromium asks a
+			// local-network permission question that nobody can answer on a kiosk screen.
+			"--disable-features=Translate,MediaRouter,LocalNetworkAccessChecks",
 			"--disable-background-timer-throttling",
 			"--disable-renderer-backgrounding",
 			"--disable-backgrounding-occluded-windows",
 			"--check-for-update-interval=31536000",
+			// No sign-in, sync, component downloads or other calls to outside services from the wall.
+			"--disable-background-networking",
+			"--disable-component-update",
+			"--disable-sync",
+			"--disable-default-apps",
 		}
 		if runtime.GOOS == "linux" {
 			args = append(args, "--password-store=basic")

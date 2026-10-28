@@ -16,6 +16,7 @@
     fps=25            expected camera frame rate; 0 = learn it from the streams
     minutes=60        stop and show the result after this many minutes
     label=PC1-TV1     name stored in the results file
+    wall_agent, monitor, node   added by the Wall Agent; the page then reports to it every 5 s
   Keys: H hides or shows the panel, D downloads the results.
 -->
 <style>
@@ -288,6 +289,22 @@ async function tick() {
   }
 }
 setInterval(tick, 1000);
+
+// Heartbeat to the Wall Agent on this PC, so it can restart the browser if this page stops.
+// Only a loopback agent address is accepted.
+const AGENT = q.get("wall_agent") || "";
+if (/^http:\/\/127\.0\.0\.1:\d{2,5}$/.test(AGENT)) {
+  const monitor = encodeURIComponent(q.get("monitor") || "0");
+  setInterval(() => {
+    if (finished) return;
+    const s = summary();
+    fetch(`${AGENT}/heartbeat?monitor=${monitor}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, targetAddressSpace: "loopback",
+      body: JSON.stringify({ page: "wall-test", tiles: s.tiles, playing: s.playing, avg_fps: s.avg_fps,
+                             frozen_now: s.frozen_now, reconnects: s.reconnects_total }),
+    }).catch(() => { /* agent not running: nothing to do */ });
+  }, 5000);
+}
 
 document.getElementById("download").addEventListener("click", download);
 document.addEventListener("keydown", e => {
