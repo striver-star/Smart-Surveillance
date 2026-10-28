@@ -1,7 +1,8 @@
 # HSS Platform
 
 Security Surveillance System for Hikvision NVRs and cameras (working title).
-The source of truth for requirements is the AI Collaboration Context Document (v0.5).
+The source of truth for requirements is the AI Collaboration Context Document v0.5
+(`docs/context-document-v0.5.md`; the Word version is kept alongside the project).
 
 Current stage: **Phase 0, Discovery and PoC**. See `docs/poc-plan-v0.5.md`.
 
