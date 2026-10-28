@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 probe-output/
 *.egg-info/
+models/
+demo/media/
+config/worker.json
+gateway/cameras.env

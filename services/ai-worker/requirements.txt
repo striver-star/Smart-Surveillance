@@ -1,0 +1,6 @@
+# CPU build. For NVIDIA (TensorRT/CUDA) replace onnxruntime with onnxruntime-gpu (see Dockerfile.gpu).
+onnxruntime==1.29.0
+av==19.0.2
+opencv-python-headless==5.0.0.93
+numpy==2.5.3
+httpx==0.28.1

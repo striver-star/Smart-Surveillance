@@ -1,0 +1,22 @@
+{
+  "score_threshold": 0.4,
+  "cameras": [
+    {
+      "camera_id": "demo-cam",
+      "source": "rtsp://gateway:8554/demo-cam",
+      "analysis_fps": 5,
+      "zones": [
+        {
+          "name": "Plaza (demo)",
+          "polygon": [[0.0, 0.5], [1.0, 0.5], [1.0, 1.0], [0.0, 1.0]],
+          "classes": ["human"],
+          "severity": "critical",
+          "armed": null,
+          "confirm_frames": 3,
+          "window_frames": 5,
+          "cooldown_s": 10
+        }
+      ]
+    }
+  ]
+}

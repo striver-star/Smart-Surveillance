@@ -1,16 +1,23 @@
-"""HSS platform API. Step 0: health and version endpoints only."""
+"""HSS platform API. Health, version, and event ingestion for the PoC."""
 import os
+from contextlib import asynccontextmanager
 
-import psycopg
 from fastapi import FastAPI, Response
 
-VERSION = "0.1.0"
+from . import events
+from .db import connect, migrate
 
-app = FastAPI(title="HSS Platform API", version=VERSION)
+VERSION = "0.2.0"
 
 
-def database_url() -> str:
-    return os.environ["HSS_DATABASE_URL"]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    migrate()
+    yield
+
+
+app = FastAPI(title="HSS Platform API", version=VERSION, lifespan=lifespan)
+app.include_router(events.router)
 
 
 @app.get("/version")
@@ -22,7 +29,7 @@ def version() -> dict:
 def healthz(response: Response) -> dict:
     checks = {"api": "ok"}
     try:
-        with psycopg.connect(database_url(), connect_timeout=3) as conn:
+        with connect(connect_timeout=3) as conn:
             postgis = conn.execute("SELECT postgis_version()").fetchone()[0]
         checks["database"] = "ok"
         checks["postgis"] = postgis

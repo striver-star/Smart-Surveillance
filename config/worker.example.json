@@ -1,0 +1,23 @@
+{
+  "score_threshold": 0.4,
+  "cameras": [
+    {
+      "camera_id": "nvr1-ch03",
+      "source": "rtsp://gateway:8554/nvr1-ch03",
+      "analysis_fps": 5,
+      "zones": [
+        {
+          "name": "Perimeter fence",
+          "polygon": [[0.05, 0.55], [0.95, 0.55], [0.95, 0.98], [0.05, 0.98]],
+          "classes": ["human", "vehicle"],
+          "severity": "critical",
+          "armed": [["18:00", "06:00"]],
+          "min_confidence": 0.5,
+          "confirm_frames": 3,
+          "window_frames": 5,
+          "cooldown_s": 30
+        }
+      ]
+    }
+  ]
+}

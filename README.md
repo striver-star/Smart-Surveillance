@@ -9,11 +9,15 @@ Current stage: **Phase 0, Discovery and PoC**. See `docs/poc-plan-v0.5.md`.
 | Path | What it is |
 |---|---|
 | `compose.yaml` | Step 0 skeleton: PostgreSQL + PostGIS, API, MediaMTX stream gateway, Caddy (HTTPS) |
-| `services/api/` | FastAPI service (health and version only for now) |
+| `services/api/` | FastAPI service: health, version, event ingestion and listing |
+| `services/ai-worker/` | Tier S AI worker: YOLOX person and vehicle detection with zone rules (task 15) |
+| `config/` | Worker camera and zone files (`worker.example.json`, `worker.demo.json`) |
+| `compose.demo.yaml` | Demo camera that loops a sample video |
+| `tools/fetch-models.sh` | Downloads the open-source models with checksum checks |
 | `gateway/mediamtx.yml` | Stream gateway configuration |
 | `proxy/Caddyfile` | Reverse proxy and TLS |
 | `tools/probe/` | Step 1: read-only NVR capability probe and compatibility matrix |
-| `docs/` | PoC plan and stage checklists |
+| `docs/` | Context document, PoC plan and stage checklists (`task-15-tier-s-worker.md`) |
 
 ## Step 0: start the skeleton (Linux server with Docker Engine or Podman)
 

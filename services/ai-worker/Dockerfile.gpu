@@ -1,0 +1,9 @@
+# NVIDIA build (not yet tested: needs the GPU server). The host needs the NVIDIA driver and the
+# NVIDIA Container Toolkit; CUDA and TensorRT come from NVIDIA's official image and are not redistributed by us.
+FROM nvcr.io/nvidia/tensorrt:24.08-py3
+WORKDIR /srv
+COPY requirements.txt .
+RUN sed 's/^onnxruntime==/onnxruntime-gpu==/' requirements.txt > req-gpu.txt && pip install --no-cache-dir -r req-gpu.txt
+COPY worker ./worker
+ENV HSS_AI_PROVIDERS=TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider
+CMD ["python", "-m", "worker.main"]

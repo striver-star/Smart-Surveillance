@@ -1,0 +1,18 @@
+# Demo camera for testing without site hardware: loops a sample video of people into the gateway.
+# docker compose -f compose.yaml -f compose.demo.yaml --profile ai up -d
+# The demo uses the FFmpeg inside the MediaMTX image and is not part of the product.
+services:
+  demo-camera:
+    image: bluenviron/mediamtx:1.9.3-ffmpeg
+    restart: unless-stopped
+    entrypoint: ["ffmpeg", "-hide_banner", "-loglevel", "warning", "-re", "-stream_loop", "-1",
+                 "-i", "/media/vtest.avi", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+                 "-g", "20", "-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://gateway:8554/demo-cam"]
+    volumes:
+      - ./demo/media:/media:ro
+    depends_on:
+      - gateway
+
+  ai-worker:
+    volumes:
+      - ./config/worker.demo.json:/config/worker.json:ro
