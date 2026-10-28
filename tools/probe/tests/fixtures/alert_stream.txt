@@ -1,0 +1,9 @@
+--boundary
+Content-Type: application/xml; charset="UTF-8"
+
+<EventNotificationAlert version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema"><ipAddress>10.0.0.10</ipAddress><channelID>1</channelID><dateTime>2026-10-28T17:00:01+01:00</dateTime><eventType>linedetection</eventType><eventState>active</eventState></EventNotificationAlert>
+--boundary
+Content-Type: application/xml; charset="UTF-8"
+
+<EventNotificationAlert version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema"><ipAddress>10.0.0.10</ipAddress><channelID>0</channelID><dateTime>2026-10-28T17:00:02+01:00</dateTime><eventType>videoloss</eventType><eventState>inactive</eventState></EventNotificationAlert>
+--boundary

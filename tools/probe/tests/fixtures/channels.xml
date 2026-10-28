@@ -1,0 +1,6 @@
+<InputProxyChannelList version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<InputProxyChannel><id>1</id><name>Main Gate</name><sourceInputPortDescriptor><proxyProtocol>HIKVISION</proxyProtocol><ipAddress>192.168.254.2</ipAddress><srcInputPort>1</srcInputPort></sourceInputPortDescriptor></InputProxyChannel>
+<InputProxyChannel><id>2</id><name>Car Park</name><sourceInputPortDescriptor><proxyProtocol>HIKVISION</proxyProtocol><ipAddress>192.168.254.3</ipAddress><srcInputPort>1</srcInputPort></sourceInputPortDescriptor></InputProxyChannel>
+<InputProxyChannel><id>3</id><name>Store</name><sourceInputPortDescriptor><proxyProtocol>HIKVISION</proxyProtocol><ipAddress>192.168.254.4</ipAddress><srcInputPort>1</srcInputPort></sourceInputPortDescriptor></InputProxyChannel>
+<InputProxyChannel><id>4</id><name>Fence East</name><sourceInputPortDescriptor><proxyProtocol>HIKVISION</proxyProtocol><ipAddress>192.168.254.5</ipAddress><srcInputPort>1</srcInputPort></sourceInputPortDescriptor></InputProxyChannel>
+</InputProxyChannelList>

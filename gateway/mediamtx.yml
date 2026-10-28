@@ -1,0 +1,20 @@
+# Stream gateway. Each camera stream is pulled once and fanned out to viewers.
+# Paths are added by the platform in Phase 2; one test path is shown commented out.
+logLevel: info
+api: yes
+apiAddress: :9997
+rtsp: yes
+rtmp: no
+srt: no
+rtspAddress: :8554
+hls: yes
+hlsAddress: :8888
+webrtc: yes
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+
+paths:
+  # nvr1-ch1-sub:
+  #   source: rtsp://USER:PASSWORD@NVR_IP:554/Streaming/Channels/102
+  #   sourceOnDemand: yes
+  all_others:

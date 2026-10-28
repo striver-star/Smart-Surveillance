@@ -1,0 +1,13 @@
+{$HSS_HOSTNAME} {
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+	handle /stream/* {
+		uri strip_prefix /stream
+		reverse_proxy gateway:8889
+	}
+	handle {
+		respond "HSS platform: Step 0 skeleton is running." 200
+	}
+}
