@@ -7,7 +7,13 @@
 		uri strip_prefix /stream
 		reverse_proxy gateway:8889
 	}
+	# Task 19: wall PC capacity test page
+	handle_path /wall-test/* {
+		root * /srv/wall-test
+		file_server
+	}
+	redir /wall-test /wall-test/
 	handle {
-		respond "HSS platform: Step 0 skeleton is running." 200
+		respond "HSS platform: PoC services are running." 200
 	}
 }

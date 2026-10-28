@@ -43,6 +43,9 @@ services:
     restart: unless-stopped
     volumes:
       - ./gateway/mediamtx.yml:/mediamtx.yml:ro
+    environment:
+      # LAN address of this server, so wall PCs can receive WebRTC video (ICE candidate).
+      MTX_WEBRTCADDITIONALHOSTS: ${HSS_SERVER_IP:-127.0.0.1}
     env_file:
       - path: gateway/cameras.env
         required: false
@@ -79,6 +82,7 @@ services:
       - "443:443"
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/wall-test:/srv/wall-test:ro
       - caddy-data:/data
     depends_on:
       - api

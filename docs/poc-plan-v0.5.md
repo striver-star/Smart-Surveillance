@@ -26,11 +26,11 @@ needs the NVR's ISAPI pass-through or Virtual Host feature; step 13 tests this.
 | 12 | Capability probe (Step 1) | `tools/probe` against all 6 NVRs | Matrix and summary produced for every NVR | **Built and tested on simulated data**; run on site |
 | 13 | Discovery across camera classes and firmware | Probe + manual check of one ColorVu, one AcuSense, one non-AI camera; two firmware versions; test ISAPI pass-through to PoE cameras | Each class's events arrive through the NVR; tiers confirmed | Waiting on site run |
 | 14 | Compatibility matrix | `compatibility-matrix.csv`; IT Manager fills `tier_override` | Every channel has a confirmed tier | Generator built |
-| 15 | Non-AI camera end to end through a Tier S worker | Gateway pulls the sub-stream; worker runs YOLOX/RT-DETR; normalized event reaches the API | Person and vehicle events within 3 s | Next build stage |
+| 15 | Non-AI camera end to end through a Tier S worker | Gateway pulls the sub-stream; worker runs YOLOX/RT-DETR; normalized event reaches the API | Person and vehicle events within 3 s | **Built and tested on a sample video** (0.16-0.26 s); run on a site camera (`docs/task-15-tier-s-worker.md`) |
 | 16 | GPU benchmark | Same worker on NVIDIA (TensorRT) and Intel (OpenVINO); add recognition load | Channels per GPU measured at 5 fps, with and without recognition | Needs GPU server |
 | 17 | Our worker vs Frigate | Same cameras, same hour | Choose engine on accuracy, load, licence | After 16 |
 | 18 | Face and plate trial | One entrance camera, then a sample of general cameras | True/false match and plate read rates, day and night; per-camera qualification rule agreed | Needs legal start |
-| 19 | Wall PC capacity | One i5 PC, one 55 inch TV, 32 then 64 tiles, Chromium kiosk | CPU < 70%, no dropped tiles for 1 hour | Next build stage |
+| 19 | Wall PC capacity | One i5 PC, one 55 inch TV, 32 then 64 tiles, Chromium kiosk | CPU < 70%, no dropped tiles for 1 hour | **Test page built** and checked in the build environment; run on the wall PCs (`docs/task-19-wall-capacity-test.md`) |
 | 20 | NVR limits | Pull 32 sub-streams + rotation main streams from one NVR | No refused connections; NVR outgoing bandwidth recorded | On site |
 | 21 | WhatsApp gateway week | Provider A on the dedicated number; email fallback | 7 days, no ban, fallback works | Needs number |
 | 22 | Wall Agent + Windows installer soak | Prototype on an existing i5 wall PC, 24 hours | Survives Windows restart and a camera outage | After 19 |

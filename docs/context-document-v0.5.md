@@ -1107,27 +1107,35 @@ backup); default WhatsApp provider (Provider A).
   build environment; Step 1 (read-only NVR capability probe that writes
   the compatibility matrix, a retention and bandwidth summary and the
   raw ISAPI responses), with 6 passing automated tests on simulated NVR
-  data.
+  data; task 15 (Tier S AI worker: YOLOX on ONNX Runtime, zone rules
+  with schedules, normalized events with snapshots stored through the
+  API), tested end to end on a sample video at 0.16 to 0.26 s from frame
+  to stored event; task 19 (wall capacity test page with a verdict,
+  automatic tile reconnect and downloadable results), tested with 32
+  tiles in the build environment.
 
-- **In progress:** Running Steps 0 and 1 on site: the skeleton on the
-  real server, the probe against all six NVRs.
+- **In progress:** Running on site: the skeleton on the real server, the
+  probe against all six NVRs, task 15 on one non-AI camera, and task 19
+  on the existing wall PCs (runs A to C in
+  `docs/task-19-wall-capacity-test.md`).
 
 - **Blocked or waiting on:** Probe results from site; decisions on the
   NVR drive conflict and recognition coverage; dedicated WhatsApp
   number and recipient numbers; legal reviewer for face and plate; GPU
   server quote.
 
-- **Next session goal:** Read the probe results, confirm tiers in the
-  compatibility matrix (task 14), then build task 15 (one non-AI camera
-  end to end through a Tier S worker) and the wall PC bake-off page for
-  task 19.
+- **Next session goal:** Read the probe, task 15 and task 19 results;
+  confirm tiers (task 14); decide on a fourth wall PC; then build the
+  Wall Agent and Windows installer prototype (task 22) and prepare the
+  GPU benchmark (task 16).
 
-- **Files and repos created:** Repository `hss-platform` (git, branch
-  main): `compose.yaml`, `services/api`, `gateway/mediamtx.yml`,
+- **Files and repos created:** Repository
+  `github.com/striver-star/Smart-Surveillance` (branch main): `compose.yaml`, `services/api`, `gateway/mediamtx.yml`,
   `proxy/Caddyfile`, `db/init`, `tools/probe` (probe and tests),
-  `docs/poc-plan-v0.5.md`, `docs/stage-checklist-step0-step1.md`. It
-  still needs a permanent remote (for example a self-hosted Forgejo or a
-  private GitHub repository).
+  `docs/poc-plan-v0.5.md`, `docs/stage-checklist-step0-step1.md`,
+  `services/ai-worker` (task 15), `web/wall-test` (task 19),
+  `tools/fetch-models.sh`, `tools/nvr-paths.sh`, and a guide for each
+  task in `docs/`.
 
 ## 16. Reusable Starter Prompts
 
@@ -1639,11 +1647,11 @@ Numbers stay fixed between versions so sessions can refer to them.
 12. Step 1: device capability probe. **Done** (built, 6 tests passing); run on all six NVRs: **Waiting**
 13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **To do** (needs probe results)
 14. Device compatibility matrix. Generator **Done**; confirming tiers **To do**
-15. One non-AI camera end to end through a Tier S worker. **To do** (next build stage)
+15. One non-AI camera end to end through a Tier S worker. **Done** on a sample video (0.16 to 0.26 s); run on a site camera: **Waiting**
 16. GPU benchmark on NVIDIA with Intel comparison, with and without recognition. **To do**
 17. Our worker versus Frigate. **To do**
 18. Face and plate trial: entrance camera, then sample general cameras. **To do**
-19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). **To do**
+19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**
 20. NVR connection and bandwidth limits. **To do**
 21. One-week WhatsApp gateway test with email fallback. **To do** (needs task 3)
 22. Wall Agent and Windows installer prototype, 24-hour soak. **To do**

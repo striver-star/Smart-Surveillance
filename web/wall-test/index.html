@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wall Capacity Test</title>
+<!--
+  Task 19: wall PC capacity test. Plays N camera tiles over WebRTC from the stream gateway on one
+  screen and measures whether this PC keeps up. Each tile is its own WebRTC session; the gateway
+  pulls each camera from the NVR only once.
+
+  URL parameters (all optional):
+    n=32              number of tiles (32 = one NVR grid, 64 = two grids)
+    paths=a,b,c       gateway paths to cycle through (default demo-cam)
+    cols=8            grid columns (default: chosen from n)
+    fps=25            expected camera frame rate; 0 = learn it from the streams
+    minutes=60        stop and show the result after this many minutes
+    label=PC1-TV1     name stored in the results file
+  Keys: H hides or shows the panel, D downloads the results.
+-->
+<style>
+  :root { --bg: #000; --panel: rgba(12, 14, 18, 0.88); --text: #e8eaed; --muted: #9aa0a6;
+          --ok: #34a853; --warn: #f9ab00; --bad: #ea4335; --off: #5f6368; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+               font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  #grid { display: grid; width: 100vw; height: 100vh; gap: 2px; }
+  .tile { position: relative; background: #111; overflow: hidden; border: 2px solid var(--off); }
+  .tile.playing { border-color: transparent; }
+  .tile.frozen { border-color: var(--bad); }
+  .tile.connecting { border-color: var(--warn); }
+  .tile video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .tile .tag { position: absolute; left: 4px; bottom: 3px; font-size: 11px; color: var(--muted);
+               text-shadow: 0 0 3px #000; font-variant-numeric: tabular-nums; }
+  #panel { position: fixed; top: 12px; right: 12px; width: min(380px, calc(100vw - 24px));
+           background: var(--panel); border-radius: 10px; padding: 14px 16px; backdrop-filter: blur(4px); }
+  #panel.hidden { display: none; }
+  #panel h1 { font-size: 16px; margin: 0 0 8px; }
+  #verdict { font-size: 22px; font-weight: 700; margin: 4px 0 10px; }
+  #verdict.pass { color: var(--ok); } #verdict.fail { color: var(--bad); } #verdict.wait { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 2px 0; vertical-align: top; } td:last-child { text-align: right; }
+  td.bad { color: var(--bad); } td.ok { color: var(--ok); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  button { margin-top: 10px; background: #2b2f36; color: var(--text); border: 1px solid #444;
+           border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<div id="panel">
+  <h1 id="title">Wall capacity test</h1>
+  <div id="verdict" class="wait">Starting…</div>
+  <table id="stats"></table>
+  <button id="download" type="button">Download results (D)</button>
+  <div class="hint">Watch CPU and GPU in Task Manager while this runs. H hides this panel.</div>
+</div>
+<script>
+"use strict";
+const q = new URLSearchParams(location.search);
+const N = Math.max(1, Math.min(128, parseInt(q.get("n") || "32", 10)));
+const PATHS = (q.get("paths") || "demo-cam").split(",").map(s => s.trim()).filter(Boolean);
+const COLS = parseInt(q.get("cols") || "0", 10) || Math.ceil(Math.sqrt(N * 16 / 9));
+let expectedFps = parseFloat(q.get("fps") || "0");
+const MINUTES = parseFloat(q.get("minutes") || "60");
+const LABEL = q.get("label") || "";
+const WARMUP_S = 20, FREEZE_S = 2, RECONNECT_AFTER_S = 6;
+
+const grid = document.getElementById("grid");
+grid.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+grid.style.gridTemplateRows = `repeat(${Math.ceil(N / COLS)}, 1fr)`;
+document.getElementById("title").textContent = `Wall capacity test: ${N} tiles${LABEL ? " · " + LABEL : ""}`;
+
+const started = performance.now();
+const samples = [];          // one summary per 10 s
+let longTaskMs = 0, longTasks = 0, finished = false;
+try {
+  new PerformanceObserver(list => {
+    for (const e of list.getEntries()) { longTasks++; longTaskMs += e.duration; }
+  }).observe({ type: "longtask", buffered: true });
+} catch (_) { /* not supported in this browser */ }
+
+class Tile {
+  constructor(index) {
+    this.index = index;
+    this.path = PATHS[index % PATHS.length];
+    this.el = document.createElement("div");
+    this.el.className = "tile connecting";
+    this.video = document.createElement("video");
+    this.video.muted = true; this.video.autoplay = true; this.video.playsInline = true;
+    this.tag = document.createElement("div"); this.tag.className = "tag";
+    this.el.append(this.video, this.tag);
+    grid.append(this.el);
+    this.reconnects = 0; this.freezes = 0; this.frozenFor = 0;
+    this.lastDecoded = 0; this.fps = 0; this.decoded = 0; this.dropped = 0;
+    this.decoder = ""; this.powerEfficient = null; this.res = ""; this.badSince = null;
+    this.connect();
+  }
+
+  async connect() {
+    this.close();
+    this.el.className = "tile connecting";
+    this.lastDecoded = 0; this.frozenFor = 0;
+    const pc = this.pc = new RTCPeerConnection();
+    pc.addTransceiver("video", { direction: "recvonly" });
+    pc.ontrack = ev => { this.video.srcObject = ev.streams[0] || new MediaStream([ev.track]); };
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      await new Promise(res => {
+        if (pc.iceGatheringState === "complete") return res();
+        pc.addEventListener("icegatheringstatechange", () => pc.iceGatheringState === "complete" && res());
+        setTimeout(res, 2000);
+      });
+      const r = await fetch(`/stream/${encodeURIComponent(this.path)}/whep`, {
+        method: "POST", headers: { "Content-Type": "application/sdp" }, body: pc.localDescription.sdp });
+      if (!r.ok) throw new Error(`gateway answered ${r.status}`);
+      await pc.setRemoteDescription({ type: "answer", sdp: await r.text() });
+      this.error = "";
+    } catch (e) {
+      this.error = String(e.message || e);
+    }
+  }
+
+  close() {
+    if (this.pc) { this.pc.close(); this.pc = null; }
+  }
+
+  async poll(dt) {
+    if (!this.pc) return;
+    let inbound = null;
+    try {
+      (await this.pc.getStats()).forEach(s => { if (s.type === "inbound-rtp" && s.kind === "video") inbound = s; });
+    } catch (_) { /* closed meanwhile */ }
+    const state = this.pc ? this.pc.connectionState : "closed";
+    if (inbound) {
+      const decoded = inbound.framesDecoded || 0;
+      this.fps = this.lastDecoded ? (decoded - this.lastDecoded) / dt : 0;
+      if (this.lastDecoded && decoded === this.lastDecoded) {
+        this.frozenFor += dt;
+        if (this.frozenFor >= FREEZE_S && this.frozenFor - dt < FREEZE_S) this.freezes++;
+      } else {
+        this.frozenFor = 0;
+      }
+      if (decoded && !this.firstFrameAt) { this.firstFrameAt = performance.now(); this.firstDecoded = decoded; }
+      this.lastDecoded = decoded;
+      this.decoded = decoded;
+      this.dropped = inbound.framesDropped || 0;
+      this.decoder = inbound.decoderImplementation || this.decoder;
+      if (inbound.powerEfficientDecoder !== undefined) this.powerEfficient = inbound.powerEfficientDecoder;
+      if (inbound.frameWidth) this.res = `${inbound.frameWidth}x${inbound.frameHeight}`;
+    }
+    const playing = inbound && this.fps > 0 && this.frozenFor < FREEZE_S;
+    this.el.className = "tile " + (playing ? "playing" : this.frozenFor >= FREEZE_S ? "frozen" : "connecting");
+    this.tag.textContent = `${this.index + 1} ${this.path} ${this.fps.toFixed(0)} fps${this.error ? " · " + this.error : ""}`;
+    // Self-healing, as the wall must do: reconnect a tile that has been failed or frozen too long.
+    const bad = !playing && (state === "failed" || state === "disconnected" || this.frozenFor > 0 || this.error
+                             || (performance.now() - started) / 1000 > WARMUP_S);
+    if (bad) {
+      this.badSince ??= performance.now();
+      if ((performance.now() - this.badSince) / 1000 > RECONNECT_AFTER_S) {
+        this.reconnects++; this.badSince = null; this.connect();
+      }
+    } else {
+      this.badSince = null;
+    }
+    return playing;
+  }
+}
+
+// Browsers hide which decoder WebRTC uses, so ask WebCodecs whether hardware H.264 decoding exists.
+let hwH264 = "unknown";
+(async () => {
+  if (!("VideoDecoder" in window)) return;
+  try {
+    const r = await VideoDecoder.isConfigSupported({ codec: "avc1.640028", hardwareAcceleration: "prefer-hardware" });
+    hwH264 = r.supported ? "available" : "not available";
+  } catch (_) { /* leave unknown */ }
+})();
+
+const tiles = Array.from({ length: N }, (_, i) => new Tile(i));
+let lastPoll = performance.now(), lastSample = performance.now();
+let longTaskMarker = { n: 0, ms: 0 };
+
+function fmtTime(s) { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, "0")}`; }
+
+function summary() {
+  const elapsed = (performance.now() - started) / 1000;
+  const playing = tiles.filter(t => t.el.classList.contains("playing")).length;
+  const fpsList = tiles.map(t => t.fps);
+  const avgFps = fpsList.reduce((a, b) => a + b, 0) / N;
+  const minFps = Math.min(...fpsList);
+  const decoded = tiles.reduce((a, t) => a + t.decoded, 0);
+  const dropped = tiles.reduce((a, t) => a + t.dropped, 0);
+  const decoders = [...new Set(tiles.map(t => t.decoder).filter(Boolean))].join(", ") || "unknown";
+  const hw = tiles.some(t => t.powerEfficient === true) ? "in use"
+    : tiles.some(t => t.powerEfficient === false) ? "not in use" : hwH264;
+  return {
+    elapsed_s: Math.round(elapsed), tiles: N, playing, avg_fps: +avgFps.toFixed(1), min_fps: +minFps.toFixed(1),
+    expected_fps: expectedFps, dropped_pct: decoded ? +(100 * dropped / (decoded + dropped)).toFixed(2) : 0,
+    frozen_now: tiles.filter(t => t.frozenFor >= FREEZE_S).length,
+    freezes_total: tiles.reduce((a, t) => a + t.freezes, 0),
+    reconnects_total: tiles.reduce((a, t) => a + t.reconnects, 0),
+    decoders, hardware_decode: hw,
+    long_tasks: longTasks, long_task_ms: Math.round(longTaskMs),
+    js_heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
+  };
+}
+
+function verdict(s) {
+  if (s.elapsed_s < WARMUP_S) return ["wait", `Warming up… ${WARMUP_S - s.elapsed_s} s`, []];
+  const reasons = [];
+  if (s.playing < s.tiles) reasons.push(`${s.tiles - s.playing} tile(s) not playing`);
+  if (expectedFps && s.avg_fps < 0.9 * expectedFps) reasons.push(`average ${s.avg_fps} fps is below 90% of ${expectedFps}`);
+  if (s.dropped_pct > 1) reasons.push(`${s.dropped_pct}% frames dropped`);
+  const recent = samples.slice(-6);   // last minute
+  if (recent.length && recent.at(-1).long_task_ms - recent[0].long_task_ms > 3000) reasons.push("page busy (long tasks)");
+  return reasons.length ? ["fail", "Not keeping up", reasons] : ["pass", "Keeping up", []];
+}
+
+function render(s) {
+  const [cls, text, reasons] = verdict(s);
+  const v = document.getElementById("verdict");
+  v.className = cls;
+  v.textContent = finished ? `${text} (finished)` : text;
+  const rows = [
+    ["Time", `${fmtTime(s.elapsed_s)} of ${MINUTES} min`],
+    ["Tiles playing", `${s.playing} / ${s.tiles}`, s.playing < s.tiles ? "bad" : "ok"],
+    ["Average fps", `${s.avg_fps}${expectedFps ? " of " + expectedFps : ""}`],
+    ["Lowest tile fps", s.min_fps],
+    ["Frames dropped", `${s.dropped_pct}%`, s.dropped_pct > 1 ? "bad" : ""],
+    ["Frozen now / freezes", `${s.frozen_now} / ${s.freezes_total}`, s.frozen_now ? "bad" : ""],
+    ["Reconnects", s.reconnects_total],
+    ["Decoder", s.decoders],
+    ["Hardware H.264 decoding", s.hardware_decode, /not/.test(s.hardware_decode) ? "bad" : ""],
+    ["Busy page time", `${(s.long_task_ms / 1000).toFixed(1)} s`],
+    ...reasons.map(r => ["Problem", r, "bad"]),
+  ];
+  document.getElementById("stats").replaceChildren(...rows.map(([k, val, c]) => {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"); a.textContent = k;
+    const b = document.createElement("td"); b.textContent = val; if (c) b.className = c;
+    tr.append(a, b); return tr;
+  }));
+}
+
+function results() {
+  return {
+    test: "wall-capacity", version: 1, label: LABEL, finished_at: new Date().toISOString(),
+    params: { n: N, paths: PATHS, cols: COLS, expected_fps: expectedFps, minutes: MINUTES },
+    client: { user_agent: navigator.userAgent, cpu_threads: navigator.hardwareConcurrency,
+              memory_gb: navigator.deviceMemory ?? null,
+              screen: `${screen.width}x${screen.height}@${devicePixelRatio}` },
+    final: summary(), verdict: verdict(summary()).slice(0, 1)[0], reasons: verdict(summary())[2],
+    samples,
+    tiles: tiles.map(t => ({ tile: t.index + 1, path: t.path, resolution: t.res, decoder: t.decoder,
+                             frames_decoded: t.decoded, frames_dropped: t.dropped, freezes: t.freezes,
+                             reconnects: t.reconnects })),
+  };
+}
+
+function download() {
+  const blob = new Blob([JSON.stringify(results(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `wall-test-${LABEL || "pc"}-${N}tiles-${new Date().toISOString().slice(0, 16).replace(/:/g, "")}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+window.wallTestResults = results;   // for automated runs
+
+async function tick() {
+  if (finished) return;
+  const now = performance.now();
+  const dt = (now - lastPoll) / 1000; lastPoll = now;
+  await Promise.all(tiles.map(t => t.poll(dt)));
+  const s = summary();
+  if (!expectedFps && s.elapsed_s >= 15) {
+    // Learn the camera frame rate from the steadiest tile: frames over at least 10 s, not a 1 s burst.
+    const rates = tiles.filter(t => t.firstFrameAt && now - t.firstFrameAt >= 10000)
+      .map(t => (t.decoded - t.firstDecoded) / ((now - t.firstFrameAt) / 1000));
+    if (rates.length) expectedFps = Math.round(Math.max(...rates));
+  }
+  if (now - lastSample >= 10000) { samples.push(s); lastSample = now; }
+  render(s);
+  if (s.elapsed_s >= MINUTES * 60) {
+    finished = true; samples.push(summary()); render(summary());
+    tiles.forEach(t => t.close());
+  }
+}
+setInterval(tick, 1000);
+
+document.getElementById("download").addEventListener("click", download);
+document.addEventListener("keydown", e => {
+  if (e.key === "h" || e.key === "H") document.getElementById("panel").classList.toggle("hidden");
+  if (e.key === "d" || e.key === "D") download();
+});
+</script>
+</body>
+</html>
