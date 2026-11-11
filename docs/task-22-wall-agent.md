@@ -81,9 +81,10 @@ and either run it (it asks for the platform address, a name for this PC, and the
 install silently:
 
 ```
-hss-wall-agent-setup-0.1.0.exe /S /PLATFORM=https://SERVER /NODE=wall-pc-1 /TOKEN=<wall token> /CAFILE=C:\path\hss-root-ca.crt
+hss-wall-agent-setup-0.1.1.exe /S /SERVER=10.6.83.82 /NODE=wall-pc-1 /TOKEN=<wall token> /CAFILE=C:\path\hss-root-ca.crt
 ```
 
+`/SERVER=` takes the address only, without `https://` (the installer adds it; option values cannot contain `/`).
 `/BROWSER="C:\...\chrome.exe"` sets the browser if it is not in a standard Chromium location.
 `/CAFILE` copies the platform's root certificate so the agent trusts the server; Chromium on the
 PC also needs it, so import it into Windows' "Trusted Root Certification Authorities" store

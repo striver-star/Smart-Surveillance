@@ -1,8 +1,10 @@
 ; HSS Wall Agent installer for Windows wall PCs (NSIS, zlib licence).
 ;
 ; Interactive:  hss-wall-agent-setup.exe
-; Silent:       hss-wall-agent-setup.exe /S /PLATFORM=https://hss.example.local /NODE=wall-pc-1
+; Silent:       hss-wall-agent-setup.exe /S /SERVER=10.6.83.82 /NODE=wall-pc-1
 ;                   /TOKEN=... [/BROWSER="C:\Program Files\Chromium\Application\chrome.exe"]
+; /SERVER takes the address only (no https://): option values cannot contain "/" because NSIS
+; splits the command line on it. The installer adds https:// itself.
 ;                   [/CAFILE=\\server\share\hss-root-ca.crt]
 ; The agent runs in the signed-in user's session (a Windows service cannot show windows), started
 ; at sign-in by the "HSS Wall Agent" scheduled task, which also restarts it within a minute.
@@ -39,6 +41,7 @@ Var Node
 Var Token
 Var Browser
 Var CAFile
+Var Server
 Var PlatformField
 Var NodeField
 Var TokenField
@@ -64,6 +67,10 @@ Function .onInit
   ${GetOptions} $R0 "/TOKEN=" $Token
   ${GetOptions} $R0 "/BROWSER=" $Browser
   ${GetOptions} $R0 "/CAFILE=" $CAFile
+  ${GetOptions} $R0 "/SERVER=" $Server
+  ${If} $Server != ""
+    StrCpy $Platform "https://$Server"
+  ${EndIf}
   ; Keep the settings of an earlier install when none are given.
   ${If} $Platform == ""
   ${AndIf} ${FileExists} "$INSTDIR\config.json"
@@ -77,6 +84,34 @@ Function .onInit
       SetErrorLevel 2
       Abort
     ${EndIf}
+    Call ValidatePlatform
+    ${If} $R5 != "ok"
+      SetErrorLevel 2
+      Abort
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; Sets $R5 to "ok" when $Platform looks like https://host (or http://host) with a host part.
+; Accepts a bare address too and adds https:// to it.
+Function ValidatePlatform
+  StrCpy $R5 "bad"
+  StrCpy $R3 $Platform 8
+  StrCpy $R4 $Platform 7
+  ${If} $R3 != "https://"
+  ${AndIf} $R4 != "http://"
+    StrCpy $Platform "https://$Platform"
+  ${EndIf}
+  StrCpy $R3 $Platform 8
+  StrLen $R6 $Platform
+  ${If} $R3 == "https://"
+  ${AndIf} $R6 > 8
+    StrCpy $R5 "ok"
+  ${EndIf}
+  StrCpy $R4 $Platform 7
+  ${If} $R4 == "http://"
+  ${AndIf} $R6 > 7
+    StrCpy $R5 "ok"
   ${EndIf}
 FunctionEnd
 
@@ -87,7 +122,7 @@ Function SettingsPage
   !insertmacro MUI_HEADER_TEXT "Wall settings" "Where is the platform, and what is this wall PC called?"
   nsDialogs::Create 1018
   Pop $0
-  ${NSD_CreateLabel} 0 0 100% 12u "Platform address (for example https://hss.example.local):"
+  ${NSD_CreateLabel} 0 0 100% 12u "Platform address (for example 10.6.83.82 or https://hss.example.local):"
   ${NSD_CreateText} 0 13u 100% 12u "$Platform"
   Pop $PlatformField
   ${NSD_CreateLabel} 0 32u 100% 12u "Wall PC name (letters, digits, dot, dash; for example wall-pc-1):"
@@ -107,6 +142,11 @@ Function SettingsPageLeave
   ${OrIf} $Node == ""
   ${OrIf} $Token == ""
     MessageBox MB_ICONEXCLAMATION "Please fill in all three fields."
+    Abort
+  ${EndIf}
+  Call ValidatePlatform
+  ${If} $R5 != "ok"
+    MessageBox MB_ICONEXCLAMATION "The platform address is not valid. Use the server's address, for example 10.6.83.82."
     Abort
   ${EndIf}
 FunctionEnd

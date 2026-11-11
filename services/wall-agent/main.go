@@ -44,7 +44,11 @@ func main() {
 
 	cfg, err := loadConfig(*configPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "configuration:", err)
+		// No console on Windows, so also write the reason where people will look for it.
+		if os.MkdirAll(defaultDataDir(), 0o700) == nil {
+			setupLog(filepath.Join(defaultDataDir(), "agent.log"))
+		}
+		log.Printf("configuration problem in %s: %v", *configPath, err)
 		os.Exit(2)
 	}
 	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
