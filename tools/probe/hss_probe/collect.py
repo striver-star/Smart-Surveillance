@@ -184,11 +184,17 @@ def collect(client: IsapiClient, address: str, *, listen_seconds: float = 0) -> 
 
     if listen_seconds > 0:
         counts: Counter[str] = Counter()
+        heartbeats = 0
         for i, block in enumerate(client.stream_events(listen_seconds)):
             raw[f"event_{i:04d}.xml"] = block
             etype = re.search(r"<eventType>([^<]+)</eventType>", block)
+            state = re.search(r"<eventState>([^<]+)</eventState>", block)
+            # Hikvision devices send "videoloss, inactive" every few seconds as a keep-alive.
+            if etype and etype.group(1).lower() == "videoloss" and state and state.group(1).lower() == "inactive":
+                heartbeats += 1
+                continue
             chan = re.search(r"<(?:channelID|dynChannelID)>(\d+)</", block)
             counts[f"{etype.group(1) if etype else '?'} @ ch{chan.group(1) if chan else '?'}"] += 1
-        inventory["events_heard"] = {"seconds": listen_seconds, "counts": dict(counts)}
+        inventory["events_heard"] = {"seconds": listen_seconds, "counts": dict(counts), "keepalives": heartbeats}
 
     return inventory, raw

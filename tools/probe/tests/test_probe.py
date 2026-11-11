@@ -59,7 +59,8 @@ def test_streams_and_tiers(inventory):
 
 def test_events_heard(inventory):
     inv, raw = inventory
-    assert inv["events_heard"]["counts"] == {"linedetection @ ch1": 1, "videoloss @ ch0": 1}
+    assert inv["events_heard"]["counts"] == {"linedetection @ ch1": 1}
+    assert inv["events_heard"]["keepalives"] == 1
     assert "event_0000.xml" in raw
 
 

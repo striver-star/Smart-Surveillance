@@ -112,7 +112,8 @@ def write_summary(inventories: list[dict], path: Path, *, target_days: int, band
         if "events_heard" in inv:
             ev = inv["events_heard"]
             lines.append(f"- Events heard in {ev['seconds']:g} s: " +
-                         (", ".join(f"{k} x{v}" for k, v in sorted(ev['counts'].items())) or "none"))
+                         (", ".join(f"{k} x{v}" for k, v in sorted(ev['counts'].items())) or "none") +
+                         f" (plus {ev.get('keepalives', 0)} keep-alive messages)")
         flagged = [c for c in inv["channels"] if c.get("flags")]
         if flagged:
             lines += ["", "| Ch | Name | Tier | Flags |", "|---|---|---|---|"]
