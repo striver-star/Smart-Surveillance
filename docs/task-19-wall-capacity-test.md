@@ -47,16 +47,18 @@ These numbers only prove the page works. The real answer comes from the wall PCs
    docker compose up -d
    ```
    The script prints the matching test URL with all 32 paths of that NVR.
-3. Make sure the camera sub-streams are H.264 (the probe's matrix flags any that are not).
-4. On a wall PC, open Chromium in kiosk mode on one TV, for example:
+3. Build the links page (one link per NVR, offline cameras left out):
+   `python3 tools/wall-test-links.py`, then open `https://SERVER/wall-test/links.html` on the wall PC.
+4. Make sure the camera sub-streams are H.264 (the probe's matrix flags any that are not).
+5. On a wall PC, open Chromium in kiosk mode on one TV, for example:
    ```
    chromium.exe --kiosk --user-data-dir=C:\walltest\tv1 --window-position=0,0 "https://SERVER/wall-test/?n=32&label=PC1-TV1&minutes=60&paths=nvr1-ch01,...,nvr1-ch32"
    ```
    For a second or third TV, start another window with its own `--user-data-dir`,
    `--window-position` on that TV, and the paths of another NVR. Press Alt+F4 to close a window.
-5. Open Task Manager on a laptop-free corner of the screen or over remote desktop and note CPU,
+6. Open Task Manager on a laptop-free corner of the screen or over remote desktop and note CPU,
    GPU "Video Decode" and memory every 10 minutes.
-6. After 60 minutes press D in each window and keep the JSON files.
+7. After 60 minutes press D in each window and keep the JSON files.
 
 **Runs to do, in order** (stop when one fails):
 

@@ -11,3 +11,4 @@ gateway/cameras.env
 dist/
 installer/windows/task-utf16.xml
 stream-backups/
+web/wall-test/links.html
