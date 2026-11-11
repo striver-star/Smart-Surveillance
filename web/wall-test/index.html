@@ -65,7 +65,7 @@ const COLS = parseInt(q.get("cols") || "0", 10) || Math.ceil(Math.sqrt(N * 16 / 
 let expectedFps = parseFloat(q.get("fps") || "0");
 const MINUTES = parseFloat(q.get("minutes") || "60");
 const LABEL = q.get("label") || "";
-const WARMUP_S = 20, FREEZE_S = 2, RECONNECT_AFTER_S = 6;
+const WARMUP_S = 20, FREEZE_S = 2, RECONNECT_AFTER_S = 6, RECONNECT_MAX_S = 60;
 
 const grid = document.getElementById("grid");
 grid.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
@@ -95,6 +95,7 @@ class Tile {
     this.reconnects = 0; this.freezes = 0; this.frozenFor = 0;
     this.lastDecoded = 0; this.fps = 0; this.decoded = 0; this.dropped = 0;
     this.decoder = ""; this.powerEfficient = null; this.res = ""; this.badSince = null;
+    this.retryAfter = RECONNECT_AFTER_S; this.playingSince = null;
     this.connect();
   }
 
@@ -156,13 +157,20 @@ class Tile {
     // Self-healing, as the wall must do: reconnect a tile that has been failed or frozen too long.
     const bad = !playing && (state === "failed" || state === "disconnected" || this.frozenFor > 0 || this.error
                              || (performance.now() - started) / 1000 > WARMUP_S);
+    // Back off on repeated failures, with a random spread, so an overloaded PC or server is not
+    // hit by every tile reconnecting at the same moment.
     if (bad) {
       this.badSince ??= performance.now();
-      if ((performance.now() - this.badSince) / 1000 > RECONNECT_AFTER_S) {
-        this.reconnects++; this.badSince = null; this.connect();
+      this.playingSince = null;
+      if ((performance.now() - this.badSince) / 1000 > this.retryAfter) {
+        this.reconnects++; this.badSince = null;
+        this.retryAfter = Math.min(RECONNECT_MAX_S, this.retryAfter * 2) + Math.random() * 3;
+        this.connect();
       }
     } else {
       this.badSince = null;
+      this.playingSince ??= performance.now();
+      if ((performance.now() - this.playingSince) / 1000 > 30) this.retryAfter = RECONNECT_AFTER_S;
     }
     return playing;
   }

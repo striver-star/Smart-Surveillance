@@ -13,6 +13,10 @@ webrtc: yes
 webrtcAddress: :8889
 webrtcLocalUDPAddress: :8189
 
+# Pull camera video over TCP: UDP loses packets (broken frames) when the network or server is busy.
+pathDefaults:
+  rtspTransport: tcp
+
 paths:
   # nvr1-ch1-sub:
   #   source: rtsp://USER:PASSWORD@NVR_IP:554/Streaming/Channels/102
