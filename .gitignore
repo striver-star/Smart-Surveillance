@@ -10,3 +10,4 @@ config/worker.json
 gateway/cameras.env
 dist/
 installer/windows/task-utf16.xml
+stream-backups/

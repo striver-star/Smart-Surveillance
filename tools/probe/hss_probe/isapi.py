@@ -1,4 +1,4 @@
-"""Minimal read-only ISAPI client. It only ever sends GET requests."""
+"""Minimal ISAPI client. hss-probe only calls get(); hss-streams also uses put() to change settings."""
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
@@ -52,6 +52,14 @@ class IsapiClient:
     def get(self, path: str) -> Response:
         try:
             r = self._http.get(path)
+            return Response(path, r.status_code, r.text)
+        except httpx.HTTPError as exc:
+            return Response(path, 0, f"{exc.__class__.__name__}: {exc}")
+
+    def put(self, path: str, xml: str) -> Response:
+        try:
+            r = self._http.put(path, content=xml.encode("utf-8"),
+                               headers={"Content-Type": "application/xml; charset=UTF-8"})
             return Response(path, r.status_code, r.text)
         except httpx.HTTPError as exc:
             return Response(path, 0, f"{exc.__class__.__name__}: {exc}")

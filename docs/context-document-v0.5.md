@@ -940,6 +940,28 @@ and design impact.** Update this table as items change.
 | Single client or product      | Multi-tenant with licensing: per site, perpetual, license service run by the builder (v0.5).                                                | Tenant-ready from day one; on-premises first, hosted option with site connectors (5.12). |
 | Internet reliability          | Highly reliable.                                                                                                                             | Enables free Let's Encrypt certificates, email and optional off-site backup. Still design for offline tolerance.                                                        |
 
+**Site inventory from the probe (11 November 2026):**
+
+| NVR | Model | Firmware | Cameras online | Drives | Est. days kept | Analytics |
+|---|---|---|---|---|---|---|
+| NVR4 · 10.1.3.4 | DS-7632NXI-K2/16P (2 bays) | V4.83.005 (2024) | 29 / 32 | 1 missing, 1 reports error (3.6 TB) | 3.6 | NVR AI on a few channels; rest server AI |
+| 10.1.3.5 | DS-7616NI-Q2 (2 bays) | V4.76.015 (2024) | 16 / 16 | 3.6 TB | 6.7 | 3 cameras with own AI; 13 server AI |
+| NVR_1 · 10.1.3.6 | DS-7732NI-K4/16P (4 bays) | V4.30.060 (2020) | 29 / 32 | 2.7 TB | 3.8 | server AI |
+| NVR2 · 10.1.3.7 | DS-7732NI-K4/16P (4 bays) | V4.30.061 (2021) | 30 / 32 | 1.8 TB | 1.9 | server AI |
+
+- 4 NVRs and 112 channels today (104 online); **2 or 3 more NVRs are planned
+  by the end of December 2026**, so the design and purchases target 7 NVRs.
+- No NVR keeps 30 days. Drive plan per NVR in Section 18 (v0.5 update).
+- 78 cameras send H.265 sub-streams; they are switched to H.264 with
+  `hss-streams` (`docs/stream-settings.md`).
+- Several cameras record at very low bitrates (32 to 320 kbps) and 8
+  cameras were offline; clocks are set by hand, not by NTP; the two K4
+  NVRs run 2020 and 2021 firmware.
+- About 75 to 100 cameras need server AI today: plan 2 NVIDIA GPUs,
+  confirmed by the benchmark (task 16).
+- Wall: 4 NVRs need 5 screens, which 3 wall PCs can drive; 7 NVRs need 8
+  screens, so a fourth wall PC is needed when the new NVRs arrive.
+
 **Open questions still waiting (v0.5):**
 
 - **NVR drives (Conflict):** the NVR has 2 bays. Choose between 2 larger
@@ -1103,6 +1125,10 @@ backup); default WhatsApp provider (Provider A).
 | 2026-10-28 | Sub-streams H.264; about 60 channels per GPU; gigabit network with 10 GbE at 10 NVRs                                                   | Working assumptions                                  | Builder                                |
 | 2026-10-28 | Wall Agent runs in the signed-in user's session, started and restarted by a scheduled task, instead of a WinSW Windows service           | Windows services cannot show windows (Session 0)     | Proposed (AI)                          |
 | 2026-10-28 | Wall Agent written in Go (single .exe for Windows, same code for Linux wall PCs)                                                       | No runtime to install; cross-platform                | Proposed (AI)                          |
+| 2026-11-11 | 4 NVRs today; 2 or 3 more by end of December 2026; design and purchases target 7 NVRs                                                  | Site plan                                            | Builder                                |
+| 2026-11-11 | Switch all sub-streams to H.264 with the hss-streams tool (backup and restore built in)                                               | Browsers cannot play H.265 on the wall               | Builder                                |
+| 2026-11-11 | Drive plan per NVR model from measured bitrates (Section 18); H.264 main streams moved to H.265                                       | No NVR keeps 30 days today                           | Proposed (AI)                          |
+| 2026-11-11 | Plan 2 NVIDIA GPUs for server AI                                                                                                       | About 75 to 100 cameras without usable edge AI       | Proposed (AI)                          |
 
 ## 15. Progress Tracker (Update After Each Session)
 
@@ -1123,21 +1149,28 @@ backup); default WhatsApp provider (Provider A).
   tiles in the build environment; task 22 (Wall Agent in Go, Windows
   installer with a scheduled task, platform heartbeats and layouts,
   self-update), tested on Linux with two screens: crash, freeze, outage,
-  layout change and self-update all recovered by themselves.
+  layout change and self-update all recovered by themselves; Step 0
+  running and health-checked on the real server (Ubuntu 26.10, Docker
+  29.7, Compose 2.40); probe run on site against 4 NVRs and 2 cameras;
+  `hss-streams` tool to switch stream codecs on all NVRs, with dry run,
+  backup, verification and restore (11 tests passing).
 
-- **In progress:** Running on site: the skeleton on the real server, the
-  probe against all six NVRs, task 15 on one non-AI camera, and task 19
+- **In progress:** On site: switching sub-streams to H.264 with
+  `hss-streams`, checking NVR4's failed drive, task 15 on one non-AI
+  camera, and task 19
   on the existing wall PCs (runs A to C in
   `docs/task-19-wall-capacity-test.md`), and the task 22 soak on one
   Windows wall PC (`docs/task-22-wall-agent.md`).
 
-- **Blocked or waiting on:** Probe results from site; decisions on the
-  NVR drive conflict and recognition coverage; dedicated WhatsApp
+- **Blocked or waiting on:** NVR4 drive replacement and the drive purchase
+  for all NVRs; models and dates of the 2 or 3 new NVRs; decision on
+  recognition coverage; dedicated WhatsApp
   number and recipient numbers; legal reviewer for face and plate; GPU
   server quote.
 
-- **Next session goal:** Read the probe, task 15 and task 19 results;
-  confirm tiers (task 14); decide on a fourth wall PC; approve the Wall
+- **Next session goal:** Rerun the probe after the stream change and
+  drive work; confirm tiers (task 14); plan the fourth wall PC for the
+  new NVRs; approve the Wall
   Agent design change; then prepare the GPU benchmark (task 16) and the
   WhatsApp gateway test (task 21).
 
@@ -1269,6 +1302,15 @@ below assume continuous recording with H.265.
   | 2 x 8 TB | 16 TB | about 1.3 Mbps |
   | 2 x 10 TB | 20 TB | about 1.7 Mbps |
   | 2 x 16 TB (only if the firmware accepts it) | 32 TB | about 2.7 Mbps |
+
+- **Site drive plan (11 November 2026, from probe bitrates):** the site
+  has 3 NVR models, not one. NVR_1 and NVR2 (DS-7732NI-K4, 4 bays): 4 x 8
+  TB each, with NVR2's 13 H.264 cameras switched to H.265 (needs about 25
+  TB). 10.1.3.5 (DS-7616NI-Q2, 2 bays): 2 x 8 TB after switching its 8
+  H.264 cameras (about 13 TB). NVR4 (DS-7632NXI-K2, 2 bays): needs about
+  35 TB at current settings; fit the largest drives it accepts and lower
+  2K cameras from 3 to 2 Mbps (about 25 TB). Confirm the maximum drive
+  size per model first. Plan the same exercise for each new NVR.
 
 - **Options for the builder:** (1) fit the largest drives the NVR
   firmware accepts (published figures disagree between 10, 16 and 20 TB
@@ -1647,21 +1689,25 @@ Numbers stay fixed between versions so sessions can refer to them.
 2. Choose the default WhatsApp provider. **Done** (Provider A)
 3. Get the dedicated WhatsApp number, recipient numbers and send times. **Waiting**
 4. Start the legal review of face and plate recognition (reviewer, DPIA, lawful basis, signage, limits, client sign-off). **Waiting**
-5. Hardware inventory per NVR. **In progress**: model is DS-7632NXI-K2/16P; firmware and tier mix come from the probe (task 12)
+5. Hardware inventory per NVR. **Done** (probe, 11 Nov): 4 NVRs, 3 models, 112 channels; 2 or 3 more NVRs by end of December
 6. Quotes for GPU server, drives, UPS units and any fourth wall PC. **Waiting**
-7. Wall PC details. **Answered**: 3 x Core i5, 16 GB, 55 inch Hisense TVs; Windows edition still to confirm
+7. Wall PC details. **Answered**: 3 x Core i5, 16 GB, 55 inch Hisense TVs; enough for 4 NVRs; a fourth PC is needed for 7 NVRs; Windows edition still to confirm
 8. Open questions. **Answered**, except hosting provider and our code's license
 9. Confirm the AI's assumptions. **Done**
 
-**9a.** Resolve the NVR drive conflict (2 bays, Section 18). **Conflict**
+**9a.** NVR drives. **Proposed** per-model plan in Section 18; urgent: NVR4 drive reports an error
+
+**9c.** Time sync (NTP) on all NVRs and firmware updates for the two K4 NVRs. **To do**
+
+**9d.** Fix 8 offline cameras and 6 cameras recording at 32 to 320 kbps. **To do**
 
 **9b.** Accept per-camera qualification for broad recognition and its GPU budget (5.10). **Conflict**
 
 **Stage B: Phase 0, Discovery and PoC**
 
 10. Update the PoC plan to v0.5. **Done** (`docs/poc-plan-v0.5.md`)
-11. Step 0: Docker Compose skeleton. **Done** in the build environment; repeat on the real server
-12. Step 1: device capability probe. **Done** (built, 6 tests passing); run on all six NVRs: **Waiting**
+11. Step 0: Docker Compose skeleton. **Done**, on the real server too
+12. Step 1: device capability probe. **Done** on site (4 NVRs); rerun when the new NVRs arrive. Stream tool `hss-streams` built: run on site **Waiting**
 13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **To do** (needs probe results)
 14. Device compatibility matrix. Generator **Done**; confirming tiers **To do**
 15. One non-AI camera end to end through a Tier S worker. **Done** on a sample video (0.16 to 0.26 s); run on a site camera: **Waiting**
