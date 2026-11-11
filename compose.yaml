@@ -80,6 +80,7 @@ services:
     restart: unless-stopped
     environment:
       HSS_HOSTNAME: ${HSS_HOSTNAME}
+      HSS_SERVER_IP: ${HSS_SERVER_IP:-127.0.0.1}
     ports:
       - "80:80"
       - "443:443"

@@ -1,4 +1,13 @@
+{
+	# Browsers send no server name when the address is an IP, and inside Docker the proxy
+	# cannot see which IP was used, so tell it which certificate to present by default.
+	default_sni {$HSS_SERVER_IP}
+}
+
 {$HSS_HOSTNAME} {
+	# Certificates from the proxy's own private authority (no public internet needed).
+	tls internal
+
 	handle /api/* {
 		uri strip_prefix /api
 		reverse_proxy api:8000
