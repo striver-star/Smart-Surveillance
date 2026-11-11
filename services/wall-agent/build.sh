@@ -16,6 +16,8 @@ LIN=hss-wall-agent-$VERSION-linux-amd64
 # -H windowsgui: no console window flashes up on the wall screen.
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS -H windowsgui" -o "$DIST/$WIN" .
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o "$DIST/$LIN" .
+# Same agent with a console, for troubleshooting from PowerShell (prints its log on screen).
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o "$DIST/hss-wall-agent-console.exe" .
 
 # schtasks wants the task definition in UTF-16.
 iconv -f UTF-8 -t UTF-16 installer/windows/task.xml > installer/windows/task-utf16.xml
