@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -53,7 +54,13 @@ func newPlatformClient(cfg *Config) (*platformClient, error) {
 	if cfg.CAFile != "" {
 		pem, err := os.ReadFile(cfg.CAFile)
 		if err != nil {
-			return nil, err
+			// The system's trusted certificates may already include the platform's (it is imported
+			// into Windows for the browser), so carry on rather than leave the wall dark.
+			log.Printf("cannot read ca_file (%v); using the system's trusted certificates only", err)
+			return &platformClient{cfg: cfg, http: &http.Client{
+				Timeout:   20 * time.Second,
+				Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment},
+			}}, nil
 		}
 		pool, err := x509.SystemCertPool()
 		if err != nil || pool == nil {

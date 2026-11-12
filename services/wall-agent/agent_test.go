@@ -210,3 +210,11 @@ func TestLayoutCacheRoundTrip(t *testing.T) {
 		t.Fatalf("got %+v", got)
 	}
 }
+
+func TestMissingCAFileFallsBackToSystemTrust(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.CAFile = filepath.Join(t.TempDir(), "missing.crt")
+	if _, err := newPlatformClient(cfg); err != nil {
+		t.Fatalf("missing ca_file should not stop the agent: %v", err)
+	}
+}
