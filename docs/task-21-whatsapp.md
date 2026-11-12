@@ -27,8 +27,7 @@ WhatsApp's servers cannot be reached from the build environment, so the gateway 
 (`error`). That exercised the fallback: a test report went to both recipients by e-mail with the
 PDF attached, marked as fallback; a critical alert went only to the recipient subscribed to it;
 `/api/notify/status` showed the gateway state and the masked recipients. 6 automated tests pass
-for the notification logic and 2 for the gateway. **Linking a real phone and sending on WhatsApp
-has not been tested yet**: that is the first step of the trial.
+for the notification logic and 2 for the gateway. **2026-11-12: the dedicated number is linked on site and the first test report was sent and delivered** (after two gateway fixes: stale browser lock after a rebuild, and the library's page cache that blocked `ready`). E-mail fallback is on hold; WhatsApp and push only for the trial.
 
 ## Set up on the server
 

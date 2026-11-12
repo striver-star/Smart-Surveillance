@@ -1716,7 +1716,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 18. Face and plate trial: entrance camera, then sample general cameras. **To do**
 19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**
 20. NVR connection and bandwidth limits. **To do**
-21. One-week WhatsApp gateway test with email fallback. **To do** (needs task 3)
+21. One-week WhatsApp gateway test with email fallback. **In progress**: dedicated number linked and first test report delivered 2026-11-12; 7-day trial runs to 2026-11-19 (e-mail on hold, push as backup)
 22. Wall Agent and Windows installer prototype, 24-hour soak. Agent and installer **Done** (tested on Linux); Windows soak: **Waiting**
 23. License scan of PoC code, models and datasets. **Done 2026-11-12**: 242 components, PASS after replacing PyAV (GPL x264/x265 inside its wheel) with OpenCV decoding; runs on every push (docs/task-23-licence-scan.md)
 24. PoC go or no-go and requirements sign-off. **To do**
