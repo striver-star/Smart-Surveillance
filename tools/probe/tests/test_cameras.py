@@ -129,3 +129,32 @@ def test_survey_end_to_end(tmp_path, monkeypatch):
     data = json.loads((tmp_path / "cameras.json").read_text())
     assert "_caps_text" not in json.dumps(data), "internal fields stay out of the output"
     assert (tmp_path / "raw" / "10.1.3.6" / "ch01_device_info.xml").exists()
+
+
+def test_camera_style_capability_flags_count_as_events():
+    """Cameras answer Event/capabilities with isSupportXxx flags, not an eventType list (site survey)."""
+    flags = ["isSupportMotionDetection", "isSupportLineDetection", "isSupportFieldDetection", "isSupportTamperDetection"]
+    assert cameras.events_from_flags(flags) == {"vmd", "linedetection", "fielddetection", "tamperdetection"}
+
+
+def test_site_models_classify_from_model_code():
+    light_caps = "<supplementLightMode opt=\"whiteLight,irLight,close\"/>"   # listed even without white light
+    basic = {"model": "DS-2CD1021-I", "event_types": ["vmd"], "_caps_text": "", "_light_text": light_caps}
+    assert camera_class(basic)[0] == "Basic (no AI)"
+    hybrid = {"model": "DS-2CD1043G2-LIU", "event_types": ["vmd", "linedetection"], "_caps_text": "", "_light_text": light_caps}
+    assert camera_class(hybrid)[0] == "Hybrid light + AcuSense"
+    colorvu = {"model": "DS-2CD1047G0-L", "event_types": ["vmd"], "_caps_text": "", "_light_text": ""}
+    assert camera_class(colorvu)[0] == "ColorVu (no AI)"
+    acu = {"model": "DS-2CD2143G2-IU", "event_types": ["vmd", "fielddetection"],
+           "_caps_text": "<detectionTarget opt=\"human,vehicle\"/>", "_light_text": light_caps}
+    assert camera_class(acu)[0] == "AcuSense"
+    assert cameras.ai_source({"event_types": ["fielddetection"]}, [])[0] == "E", "own AI means tier E"
+
+
+def test_unreached_camera_says_why(tmp_path, monkeypatch):
+    monkeypatch.setenv("HSS_NVR_USER", "admin")
+    monkeypatch.setenv("HSS_NVR_PASSWORD", "pw")
+    cameras.main(["--host", "10.1.3.6", "--out", str(tmp_path)], client_class=FakeClient)
+    rows = {int(r["channel"]): r for r in csv.DictReader((tmp_path / "cameras.csv").open())}
+    assert rows[4]["tier_reason"] == "not reached: wrong user or password (HTTP 401)"
+    assert "| wrong user or password (HTTP 401) | 1 |" in (tmp_path / "cameras-summary.md").read_text()

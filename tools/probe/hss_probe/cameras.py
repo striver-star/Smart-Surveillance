@@ -83,9 +83,37 @@ def model_hints(model: str) -> dict[str, str]:
     return hints
 
 
+# Camera capability flags (isSupportXxx = true in Event/Smart capabilities) -> event names.
+FLAG_EVENTS = {
+    "linedetection": "linedetection", "fielddetection": "fielddetection", "intrusiondetection": "fielddetection",
+    "regionentrance": "regionentrance", "regionexiting": "regionexiting", "loitering": "loitering",
+    "group": "group", "peoplegathering": "group", "rapidmove": "rapidmove", "fastmoving": "rapidmove",
+    "parking": "parking", "unattendedbaggage": "unattendedbaggage", "attendedbaggage": "attendedbaggage",
+    "objectremoval": "attendedbaggage", "facedetect": "facedetection", "facedetection": "facedetection",
+    "facesnap": "facesnap", "facecapture": "facesnap", "vehicledetection": "vehicledetection",
+    "humanrecognition": "humanrecognition", "motiondetection": "vmd", "vmd": "vmd",
+    "tamperdetection": "tamperdetection", "shelteralarm": "shelteralarm", "videotampering": "tamperdetection",
+    "audioexception": "audioexception", "scenechangedetection": "scenechangedetection",
+}
+
+
+def events_from_flags(flags: list[str]) -> set[str]:
+    """isSupportLineDetection -> linedetection, and so on (cameras report flags, not event lists)."""
+    out = set()
+    for f in flags:
+        name = re.sub(r"^(isSupport|isSupported|support)", "", f, flags=re.I).lower()
+        if name in FLAG_EVENTS:
+            out.add(FLAG_EVENTS[name])
+    return out
+
+
 def camera_class(cam: dict) -> tuple[str, list[str]]:
-    """Return (class, evidence). Class is one of: ColorVu + AcuSense, ColorVu, Hybrid light + AcuSense,
-    AcuSense, DeepinView, Smart (VCA, no human/vehicle filter), Basic (no AI), unknown."""
+    """Return (class, evidence).
+
+    Light type (ColorVu, Smart Hybrid Light) comes from the model code: cameras without white light
+    still list it in their image capabilities, so those can't be trusted. AcuSense comes from the
+    camera offering human/vehicle target filtering in its smart rules, or a G2+ -I model with smart events.
+    """
     evidence: list[str] = []
     model = cam.get("model", "")
     hints = model_hints(model)
@@ -94,37 +122,29 @@ def camera_class(cam: dict) -> tuple[str, list[str]]:
     smart = events & SMART_EVENTS
 
     target_filter = bool(re.search(r"detectiontarget|targettype|humanvehicle|human_vehicle|"
-                                   r"isSupportTargetDetection".lower(), caps_text))
-    light = cam.get("_light_text", "").lower()
-    colorvu_caps = "colorvu" in light or ("whitelight" in light and "irlight" not in light)
-    hybrid_caps = "whitelight" in light and "irlight" in light
-
+                                   r"issupporttargetdetection", caps_text))
     acusense = target_filter or ("acusense" in hints and bool(smart))
     if target_filter:
         evidence.append("smart rules offer human/vehicle target filtering (AcuSense)")
     elif "acusense" in hints and smart:
         evidence.append(hints["acusense"])
-    colorvu = colorvu_caps or ("colorvu" in hints and not hybrid_caps)
-    if colorvu_caps:
-        evidence.append("supplement light is white light only (ColorVu)")
-    elif "colorvu" in hints:
+    colorvu, hybrid = "colorvu" in hints, "hybrid_light" in hints
+    if colorvu:
         evidence.append(hints["colorvu"])
-    hybrid = hybrid_caps or "hybrid_light" in hints
-    if hybrid and not colorvu:
-        evidence.append("supplement light offers IR and white light (hybrid)" if hybrid_caps else hints["hybrid_light"])
+    if hybrid:
+        evidence.append(hints["hybrid_light"])
+    if smart:
+        evidence.append(f"smart events: {', '.join(sorted(smart))}")
 
     if "deepinview" in hints:
         return "DeepinView", [hints["deepinview"]] + evidence
-    if colorvu and acusense:
-        return "ColorVu + AcuSense", evidence
-    if hybrid and acusense:
-        return "Hybrid light + AcuSense", evidence
+    light = "ColorVu" if colorvu else "Hybrid light" if hybrid else ""
     if acusense:
-        return "AcuSense", evidence
-    if colorvu:
-        return "ColorVu" + (" + Smart" if smart else ""), evidence + ([f"smart events: {', '.join(sorted(smart))}"] if smart else [])
+        return (f"{light} + AcuSense" if light else "AcuSense"), evidence
     if smart:
-        return "Smart (VCA, no human/vehicle filter)", evidence + [f"smart events: {', '.join(sorted(smart))}"]
+        return (f"{light} + Smart" if light else "Smart (VCA, no human/vehicle filter)"), evidence
+    if light:
+        return f"{light} (no AI)", evidence + ([f"events: {', '.join(sorted(events))}"] if events else [])
     if events:
         return "Basic (no AI)", evidence + [f"events: {', '.join(sorted(events))}"]
     return "unknown", evidence + ["camera gave no event capabilities"]
@@ -162,6 +182,10 @@ def read_camera(client: IsapiClient) -> tuple[dict | None, dict[str, str]]:
         raw[f"{key}.xml"] = r.text if r.status else f"(no answer) {r.text}"
         roots[key] = r.xml()
         if key == "device_info" and roots[key] is None:
+            raw["_reason"] = ("wrong user or password (HTTP 401)" if r.status == 401 else
+                              "refused (HTTP 403): user lacks rights or ISAPI is off" if r.status == 403 else
+                              "no answer: camera not reachable from the server" if r.status == 0 else
+                              f"HTTP {r.status}")
             return None, raw     # not reachable, wrong password or not a camera: stop here
     dev = parse_device(roots["device_info"])
     tm = parse_time(roots["time"])
@@ -173,8 +197,10 @@ def read_camera(client: IsapiClient) -> tuple[dict | None, dict[str, str]]:
         "ip_addresses": ips,
         "time_mode": tm["mode"], "local_time": tm["local_time"],
         "clock_drift_s": clock_drift_seconds(tm["local_time"]),
-        "event_types": parse_event_types(roots["event_caps"]),
         "smart_flags": parse_supported_flags(roots["smart_caps"]),
+        "event_types": sorted(set(parse_event_types(roots["event_caps"]))
+                              | events_from_flags(parse_supported_flags(roots["event_caps"])
+                                                  + parse_supported_flags(roots["smart_caps"]))),
         "_caps_text": " ".join(raw.get(k, "") for k in ("smart_caps.xml", "field_caps.xml", "event_caps.xml")),
         "_light_text": " ".join(raw.get(k, "") for k in ("image_caps.xml", "supplement_light.xml")),
     }
@@ -219,12 +245,12 @@ def survey_nvr(nvr: str, nvr_client: IsapiClient, client_for: ClientFactory, *,
             c.close()
         return cid, cam, r, "direct" if cam else ""
 
-    results: dict[int, dict] = {cid: {"via": "", "camera": None} for cid in channels}
+    results: dict[int, dict] = {cid: {"via": "", "camera": None, "why": ""} for cid in channels}
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for cid, extra in zip(channels, pool.map(nvr_side, list(channels))):
             results[cid].update(extra)
         for cid, cam, r, via in pool.map(direct, list(channels)):
-            results[cid].update(camera=cam, via=via)
+            results[cid].update(camera=cam, via=via, why=r.pop("_reason", ""))
             raw.update({f"ch{cid:02d}_{k}": v for k, v in r.items()})
 
     # PoE cameras: try the NVR's virtual host ports and match each answer to a channel by IP.
@@ -242,10 +268,11 @@ def survey_nvr(nvr: str, nvr_client: IsapiClient, client_for: ClientFactory, *,
                 return port, *read_camera(c)
             finally:
                 c.close()
-        answered = 0
+        answered, refused = 0, 0
         with ThreadPoolExecutor(max_workers=workers) as pool:
             for port, cam, r in pool.map(via_port, ports):
                 if cam is None:
+                    refused += r.get("_reason", "").startswith(("wrong user", "refused"))
                     continue
                 answered += 1
                 cid = next((by_ip[ip] for ip in cam["ip_addresses"] if ip in by_ip), None)
@@ -257,12 +284,21 @@ def survey_nvr(nvr: str, nvr_client: IsapiClient, client_for: ClientFactory, *,
         vh_status = (f"{answered} camera(s) answered on ports {ports[0]}-{ports[-1]}" if answered else
                      "no answer on the virtual host ports: enable Virtual Host on the NVR "
                      "(Network > Advanced) to reach its PoE cameras")
+        if refused:
+            vh_status += f"; {refused} port(s) refused the password (PoE cameras may use another password)"
+        for cid in missing:
+            if results[cid]["camera"] is None:
+                results[cid]["why"] = ("PoE camera behind the NVR: " +
+                                       ("its virtual host port refused the password" if refused else
+                                        "no camera answered on the virtual host ports"))
 
     rows = []
     for cid in sorted(channels):
         ch, res = channels[cid], results[cid]
         cam = res["camera"]
         tier, tier_reason = ai_source(cam, res.get("nvr_event_types", []))
+        if not cam and res["why"] and ch.get("online"):
+            tier_reason = f"not reached: {res['why']}"
         row = {
             "nvr": nvr, "nvr_model": nvr_dev["model"], "channel": cid, "name": ch["name"],
             "camera_ip": ch["camera_ip"], "online": ch.get("online"), "reached_via": res["via"] or "not reached",
@@ -359,7 +395,10 @@ def summary(surveys: list[dict]) -> str:
         out += ["## Online but not reached", "",
                 "Usually a different camera password, a firewall, or PoE cameras without Virtual Host. "
                 "Their tier stays as the NVR probe guessed.", ""]
-        out += [f"- {r['name'] or '(unnamed)'}: NVR {r['nvr']} ch {r['channel']}, {r['camera_ip']}" for r in unreached]
+        why = Counter(r["tier_reason"].removeprefix("not reached: ") for r in unreached)
+        out += ["| Reason | Cameras |", "| --- | --- |"] + [f"| {k} | {n} |" for k, n in why.most_common()] + [""]
+        out += [f"- {r['name'] or '(unnamed)'}: NVR {r['nvr']} ch {r['channel']}, {r['camera_ip']}: "
+                f"{r['tier_reason'].removeprefix('not reached: ')}" for r in unreached]
         out.append("")
     return "\n".join(out)
 
