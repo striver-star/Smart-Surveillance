@@ -129,6 +129,10 @@ function watchPage(c) {
 function makeClient() {
   const c = new Client({
     authStrategy: new LocalAuth({ dataPath: DATA }),
+    // No local copy of the WhatsApp Web page. The library's default ("local") writes it to
+    // ./.wwebjs_cache in /srv, which the unprivileged user can't write: the write failed silently
+    // right after "authenticated", so "ready" never came. "none" also always loads the live page.
+    webVersionCache: { type: "none" },
     puppeteer: {
       executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
       headless: true,
