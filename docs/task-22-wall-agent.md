@@ -81,11 +81,11 @@ and either run it (it asks for the platform address, a name for this PC, and the
 install silently:
 
 ```
-hss-wall-agent-setup-0.1.1.exe /S /SERVER=10.6.83.82 /NODE=wall-pc-1 /TOKEN=<wall token> /CAFILE=C:\path\hss-root-ca.crt
+hss-wall-agent-setup-0.1.3.exe /S /SERVER=10.6.83.82 /NODE=wall-pc-1 /TOKEN=<wall token> /BROWSER=chromium /CAFILE=C:\path\hss-root-ca.crt
 ```
 
 `/SERVER=` takes the address only, without `https://` (the installer adds it; option values cannot contain `/`).
-`/BROWSER="C:\...\chrome.exe"` sets the browser if it is not in a standard Chromium location.
+`/BROWSER=` takes a name: `chromium`, `chrome` or `firefox`; the installer finds it in the standard places.
 `/CAFILE` copies the platform's root certificate so the agent trusts the server; Chromium on the
 PC also needs it, so import it into Windows' "Trusted Root Certification Authorities" store
 (Caddy's root certificate is in the `caddy-data` volume at `/data/caddy/pki/authorities/local/root.crt`).

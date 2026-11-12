@@ -2,7 +2,7 @@
 ;
 ; Interactive:  hss-wall-agent-setup.exe
 ; Silent:       hss-wall-agent-setup.exe /S /SERVER=10.6.83.82 /NODE=wall-pc-1
-;                   /TOKEN=... [/BROWSER="C:\Program Files\Chromium\Application\chrome.exe"]
+;                   /TOKEN=... [/BROWSER=chromium|chrome|firefox] [/CAFILE=C:\path\hss-root-ca.crt]
 ; /SERVER takes the address only (no https://): option values cannot contain "/" because NSIS
 ; splits the command line on it. The installer adds https:// itself.
 ;                   [/CAFILE=\\server\share\hss-root-ca.crt]
@@ -68,6 +68,7 @@ Function .onInit
   ${GetOptions} $R0 "/BROWSER=" $Browser
   ${GetOptions} $R0 "/CAFILE=" $CAFile
   ${GetOptions} $R0 "/SERVER=" $Server
+  Call ResolveBrowser
   ${If} $Server != ""
     StrCpy $Platform "https://$Server"
   ${EndIf}
@@ -90,6 +91,35 @@ Function .onInit
       Abort
     ${EndIf}
   ${EndIf}
+FunctionEnd
+
+;  /BROWSER takes a name (chromium, chrome, firefox), so no path with spaces or slashes has to
+; survive the command line. The path found is written with forward slashes (no JSON escaping).
+Function ResolveBrowser
+  StrCpy $R7 $Browser
+  StrCpy $Browser ""
+  ${If} $R7 == "chromium"
+    ${If} ${FileExists} "$PROGRAMFILES64\Chromium\Application\chrome.exe"
+      StrCpy $Browser "$PROGRAMFILES64\Chromium\Application\chrome.exe"
+    ${ElseIf} ${FileExists} "$LOCALAPPDATA\Chromium\Application\chrome.exe"
+      StrCpy $Browser "$LOCALAPPDATA\Chromium\Application\chrome.exe"
+    ${EndIf}
+  ${ElseIf} $R7 == "chrome"
+    ${If} ${FileExists} "$PROGRAMFILES64\Google\Chrome\Application\chrome.exe"
+      StrCpy $Browser "$PROGRAMFILES64\Google\Chrome\Application\chrome.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES32\Google\Chrome\Application\chrome.exe"
+      StrCpy $Browser "$PROGRAMFILES32\Google\Chrome\Application\chrome.exe"
+    ${ElseIf} ${FileExists} "$LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+      StrCpy $Browser "$LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+    ${EndIf}
+  ${ElseIf} $R7 == "firefox"
+    ${If} ${FileExists} "$PROGRAMFILES64\Mozilla Firefox\firefox.exe"
+      StrCpy $Browser "$PROGRAMFILES64\Mozilla Firefox\firefox.exe"
+    ${EndIf}
+  ${ElseIf} $R7 != ""
+    StrCpy $Browser $R7
+  ${EndIf}
+  ${WordReplace} "$Browser" "\" "/" "+" $Browser
 FunctionEnd
 
 ; Sets $R5 to "ok" when $Platform looks like https://host (or http://host) with a host part.
@@ -179,7 +209,12 @@ Section "Install"
     StrCpy $R2 ""
     ${If} $CAFile != ""
       CopyFiles /SILENT "$CAFile" "$INSTDIR\platform-ca.crt"
-      StrCpy $R2 "$INSTDIR\platform-ca.crt"
+      ${If} ${FileExists} "$INSTDIR\platform-ca.crt"
+        StrCpy $R2 "$INSTDIR\platform-ca.crt"
+        ${WordReplace} "$R2" "\" "/" "+" $R2
+      ${Else}
+        DetailPrint "CA file $CAFile not found; the agent will use the Windows certificate store."
+      ${EndIf}
     ${EndIf}
     !insertmacro JsonValue $Platform
     !insertmacro JsonValue $Node
