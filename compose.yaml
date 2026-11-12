@@ -29,8 +29,22 @@ services:
       HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
       HSS_WALL_TOKEN: ${HSS_WALL_TOKEN}
       HSS_ADMIN_TOKEN: ${HSS_ADMIN_TOKEN}
+      # Notifications: WhatsApp gateway (provider A), e-mail fallback, push (ntfy)
+      HSS_WA_URL: http://whatsapp:3000
+      HSS_WA_TOKEN: ${HSS_WA_TOKEN:-}
+      HSS_SMTP_HOST: ${HSS_SMTP_HOST:-}
+      HSS_SMTP_PORT: ${HSS_SMTP_PORT:-587}
+      HSS_SMTP_USER: ${HSS_SMTP_USER:-}
+      HSS_SMTP_PASSWORD: ${HSS_SMTP_PASSWORD:-}
+      HSS_SMTP_FROM: ${HSS_SMTP_FROM:-}
+      HSS_SMTP_STARTTLS: ${HSS_SMTP_STARTTLS:-true}
+      HSS_NTFY_URL: http://ntfy:80
+      HSS_NTFY_TOPIC: ${HSS_NTFY_TOPIC:-}
+      HSS_NOTIFY_DAILY_TEST: ${HSS_NOTIFY_DAILY_TEST:-}
+      HSS_RECIPIENTS: /config/recipients.json
     volumes:
       - api-data:/data
+      - ./config:/config:ro
       - ./dist/wall-agent:/srv/wall-agent:ro
     depends_on:
       db:
@@ -75,6 +89,32 @@ services:
       gateway:
         condition: service_started
 
+  whatsapp:
+    # WhatsApp gateway (provider A). Start with: docker compose --profile notify up -d
+    # Link once: docker compose logs -f whatsapp, then scan the QR code with the dedicated phone.
+    profiles: ["notify"]
+    build: ./services/whatsapp-gateway
+    restart: unless-stopped
+    environment:
+      HSS_WA_TOKEN: ${HSS_WA_TOKEN:-}
+    volumes:
+      - wa-data:/data
+    shm_size: 256m
+
+  ntfy:
+    # Self-hosted push notifications: phones subscribe in the ntfy app to http://SERVER_IP:8090/<topic>.
+    profiles: ["notify"]
+    image: binwiederhier/ntfy:v2.11.0
+    command: serve
+    restart: unless-stopped
+    environment:
+      NTFY_BASE_URL: http://${HSS_SERVER_IP:-127.0.0.1}:8090
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+    volumes:
+      - ntfy-cache:/var/cache/ntfy
+    ports:
+      - "8090:80"
+
   proxy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
@@ -94,6 +134,8 @@ services:
       - gateway
 
 volumes:
+  wa-data:
+  ntfy-cache:
   api-data:
   db-data:
   caddy-data:

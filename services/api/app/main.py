@@ -1,24 +1,28 @@
-"""HSS platform API. Health, version, and event ingestion for the PoC."""
+"""HSS platform API: health, events, wall PCs and notifications."""
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import events, wall
+from . import events, notify, wall
 from .db import connect, migrate
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     migrate()
+    watcher = asyncio.create_task(notify.background_loop())
     yield
+    watcher.cancel()
 
 
 app = FastAPI(title="HSS Platform API", version=VERSION, lifespan=lifespan)
 app.include_router(events.router)
 app.include_router(wall.router)
+app.include_router(notify.router)
 
 
 @app.get("/version")

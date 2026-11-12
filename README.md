@@ -14,13 +14,14 @@ Current stage: **Phase 0, Discovery and PoC**. See `docs/poc-plan-v0.5.md`.
 | `config/` | Worker camera and zone files (`worker.example.json`, `worker.demo.json`) |
 | `compose.demo.yaml` | Demo camera that loops a sample video |
 | `tools/fetch-models.sh` | Downloads the open-source models with checksum checks |
+| `services/whatsapp-gateway/` | WhatsApp gateway, provider A (task 21) |
 | `web/wall-test/` | Wall PC capacity test page, served at `/wall-test/` (task 19) |
 | `services/wall-agent/` | Wall Agent (Go) and its Windows installer; build with `build.sh` (task 22) |
 | `tools/nvr-paths.sh` | Writes gateway camera lines for every channel of an NVR |
 | `gateway/mediamtx.yml` | Stream gateway configuration |
 | `proxy/Caddyfile` | Reverse proxy and TLS |
 | `tools/probe/` | Step 1: read-only NVR capability probe and compatibility matrix; `hss-streams` to change stream codecs on all NVRs (`docs/stream-settings.md`) |
-| `docs/` | Context document, PoC plan and stage checklists (`task-15-tier-s-worker.md`, `task-19-wall-capacity-test.md`, `task-22-wall-agent.md`) |
+| `docs/` | Context document, PoC plan and stage checklists (`task-15-tier-s-worker.md`, `task-19-wall-capacity-test.md`, `task-22-wall-agent.md`, `task-21-whatsapp.md`) |
 
 ## Step 0: start the skeleton (Linux server with Docker Engine or Podman)
 

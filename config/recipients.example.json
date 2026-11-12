@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Management",
+    "role": "management",
+    "whatsapp": "+2348000000001",
+    "email": "management@example.com",
+    "subscriptions": ["weekly", "monthly", "test"]
+  },
+  {
+    "name": "CSO",
+    "role": "cso",
+    "whatsapp": "+2348000000002",
+    "email": "cso@example.com",
+    "subscriptions": ["daily", "critical", "test"]
+  },
+  {
+    "name": "IT Manager",
+    "role": "it",
+    "whatsapp": "+2348000000003",
+    "email": "it@example.com",
+    "subscriptions": ["daily", "device", "system", "test"]
+  }
+]

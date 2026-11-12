@@ -12,3 +12,5 @@ dist/
 installer/windows/task-utf16.xml
 stream-backups/
 web/wall-test/links.html
+config/recipients.json
+services/whatsapp-gateway/node_modules/
