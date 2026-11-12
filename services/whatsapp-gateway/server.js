@@ -8,6 +8,12 @@
 //   GET  /status                 {status, since, me, last_error}
 //   POST /send                   {to:"+234...", text, document?:{filename, mimetype, base64}} -> {id}
 //   GET  /messages/<id>          {id, ack}  ack: pending | sent | delivered | read | error
+//
+// Ready watchdog: whatsapp-web.js sometimes logs "authenticated" but never "ready" (its helper code
+// fails to load into a changed WhatsApp Web build, and the error is swallowed). The gateway logs the
+// page's errors, re-runs the injection after HSS_WA_REINJECT_S (60 s), restarts the session after
+// HSS_WA_RESTART_S (180 s), and after HSS_WA_MAX_RESTARTS (3) failed restarts stops in state "stuck"
+// so that it doesn't hammer WhatsApp; the platform then alerts the IT Manager.
 "use strict";
 const http = require("node:http");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
@@ -33,7 +39,69 @@ function normaliseNumber(raw) {
   return /^[1-9]\d{7,14}$/.test(digits) ? digits : null;
 }
 
+/**
+ * Watches the gap between "authenticated" and "ready". Timers and actions are injected for tests.
+ */
+function makeWatchdog({ reinjectAfterMs, restartAfterMs, maxRestarts, reinject, restart, giveUp,
+                        timers = { setTimeout, clearTimeout } }) {
+  let t1 = null, t2 = null, restarts = 0;
+  const clear = () => { if (t1) timers.clearTimeout(t1); if (t2) timers.clearTimeout(t2); t1 = t2 = null; };
+  return {
+    get restarts() { return restarts; },
+    get waiting() { return t2 !== null; },
+    authenticated() {
+      if (t2) return;                     // already waiting (the event often fires twice)
+      t1 = timers.setTimeout(() => { t1 = null; reinject(); }, reinjectAfterMs);
+      t2 = timers.setTimeout(() => {
+        clear();
+        restarts += 1;
+        if (restarts > maxRestarts) giveUp(restarts - 1); else restart(restarts);
+      }, restartAfterMs);
+    },
+    ready() { clear(); restarts = 0; },
+    stop: clear,
+  };
+}
+
+const pageErrors = [];                    // last few errors from the WhatsApp Web page
+function notePageError(text) {
+  const line = String(text).split("\n")[0].slice(0, 300);
+  if (pageErrors[pageErrors.length - 1] === line) return;
+  pageErrors.push(line);
+  if (pageErrors.length > 5) pageErrors.shift();
+  log(`page error: ${line}`);
+}
+
+const env = (k, d) => Number(process.env[k] || d);
+const watchdog = makeWatchdog({
+  reinjectAfterMs: env("HSS_WA_REINJECT_S", 60) * 1000,
+  restartAfterMs: env("HSS_WA_RESTART_S", 180) * 1000,
+  maxRestarts: env("HSS_WA_MAX_RESTARTS", 3),
+  reinject: async () => {
+    log("authenticated but not ready after 60 s: re-running the WhatsApp Web injection");
+    try { await client.inject(); } catch (e) { notePageError(`inject: ${(e && e.message) || e}`); }
+  },
+  restart: (n) => {
+    setState("restarting", { last_error: `authenticated but never ready (restart ${n}); ${pageErrors.slice(-1)[0] || "no page error seen"}` });
+    restart(5000);
+  },
+  giveUp: (n) => {
+    setState("stuck", { last_error: `authenticated but never ready after ${n} restarts. Last page errors: ${pageErrors.join(" | ") || "none"}. ` +
+      "Fix: update whatsapp-web.js, or re-link (see docs/task-21-whatsapp.md). Restart the container to try again." });
+    try { if (client) client.destroy(); } catch { /* gone */ }
+  },
+});
+
 let client = null;
+let watchedPage = null;
+function watchPage(c) {
+  const page = c.pupPage;
+  if (!page || page === watchedPage) return;
+  watchedPage = page;
+  page.on("pageerror", (e) => notePageError((e && e.message) || e));
+  page.on("console", (m) => { if (m.type() === "error" && watchdog.waiting) notePageError(m.text()); });
+}
+
 function makeClient() {
   const c = new Client({
     authStrategy: new LocalAuth({ dataPath: process.env.HSS_WA_DATA || "/data" }),
@@ -48,8 +116,11 @@ function makeClient() {
     const art = await QRCode.toString(qr, { type: "terminal", small: true });
     console.log("\nLink the dedicated phone: WhatsApp > Linked devices > Link a device, then scan:\n" + art);
   });
-  c.on("authenticated", () => log("authenticated"));
+  c.on("authenticated", () => { log("authenticated"); watchPage(c); watchdog.authenticated(); });
+  c.on("loading_screen", (pct) => log(`loading ${pct}%`));
+  c.on("change_state", (st) => log(`connection: ${st}`));
   c.on("auth_failure", (m) => setState("auth_failure", { last_error: String(m) }));
+  c.on("ready", () => watchdog.ready());
   c.on("ready", () => setState("ready", { me: c.info && c.info.wid ? c.info.wid.user : null, last_error: null }));
   c.on("disconnected", (reason) => {
     setState("disconnected", { last_error: String(reason) });
@@ -64,7 +135,7 @@ function makeClient() {
 
 let restarting = false;
 async function restart(delayMs) {
-  if (restarting) return;
+  if (restarting || state.status === "stuck") return;   // stuck: wait for a manual container restart
   restarting = true;
   try { if (client) await client.destroy(); } catch { /* already gone */ }
   setTimeout(() => { restarting = false; start(); }, delayMs);
@@ -153,4 +224,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { normaliseNumber, server, state, setState };
+module.exports = { normaliseNumber, server, state, setState, makeWatchdog };

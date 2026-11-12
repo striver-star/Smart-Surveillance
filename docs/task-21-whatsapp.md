@@ -81,3 +81,25 @@ every day WhatsApp failed.
 Keep the volume low and the use honest, as the plan requires: one dedicated number, a few messages
 a day, recipients who have saved the number, no marketing. The gateway is unofficial; if WhatsApp
 restricts the number, the official Cloud API (provider B) remains the paid alternative.
+
+## Troubleshooting: "authenticated" but never "ready"
+
+whatsapp-web.js sometimes links (log shows `authenticated`) but never reaches `state: ready`, usually
+when WhatsApp changes its web app. The gateway now handles this itself:
+
+1. logs the WhatsApp Web page's errors as `page error: ...` (the real cause);
+2. after 60 s re-runs the library's injection; after 180 s restarts the session;
+3. after 3 failed restarts stops in `state: stuck` (so it doesn't hammer WhatsApp), and the platform
+   alerts the IT Manager by push.
+
+If it ends in `stuck`, re-link from scratch (upstream reports say a fresh link often works when a
+restored session doesn't):
+
+```bash
+docker compose --profile notify stop whatsapp
+docker compose --profile notify run --rm --no-deps --entrypoint sh whatsapp -c 'rm -rf /data/session /data/.wwebjs_cache'
+docker compose --profile notify up -d whatsapp && docker compose logs -f whatsapp
+```
+
+On the dedicated phone, remove the old entry under WhatsApp → Linked devices, then scan the new QR code.
+If it still gets stuck, send the `page error` lines: the fix is then a whatsapp-web.js update.
