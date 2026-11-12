@@ -15,6 +15,8 @@
 // HSS_WA_RESTART_S (180 s), and after HSS_WA_MAX_RESTARTS (3) failed restarts stops in state "stuck"
 // so that it doesn't hammer WhatsApp; the platform then alerts the IT Manager.
 "use strict";
+const fs = require("node:fs");
+const path = require("node:path");
 const http = require("node:http");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const QRCode = require("qrcode");
@@ -92,6 +94,28 @@ const watchdog = makeWatchdog({
   },
 });
 
+const DATA = process.env.HSS_WA_DATA || "/data";
+
+/**
+ * Remove Chromium's profile lock files left by an earlier container. Chromium ties the lock to the
+ * host name, which changes on every rebuild, and then refuses to start ("profile appears to be in
+ * use by another Chromium process ... on another computer"). Only one gateway uses /data, and no
+ * browser is running when this is called, so the locks are always stale here.
+ */
+function clearStaleLocks(dataDir = DATA) {
+  const removed = [];
+  let dirs = [];
+  try { dirs = fs.readdirSync(dataDir).filter((d) => d.startsWith("session")).map((d) => path.join(dataDir, d)); } catch { return removed; }
+  for (const dir of dirs) {
+    for (const name of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+      const f = path.join(dir, name);
+      try { fs.lstatSync(f); fs.rmSync(f, { force: true }); removed.push(f); } catch { /* not there */ }
+    }
+  }
+  if (removed.length) log(`removed stale browser lock files: ${removed.map((f) => path.basename(f)).join(", ")}`);
+  return removed;
+}
+
 let client = null;
 let watchedPage = null;
 function watchPage(c) {
@@ -104,7 +128,7 @@ function watchPage(c) {
 
 function makeClient() {
   const c = new Client({
-    authStrategy: new LocalAuth({ dataPath: process.env.HSS_WA_DATA || "/data" }),
+    authStrategy: new LocalAuth({ dataPath: DATA }),
     puppeteer: {
       executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
       headless: true,
@@ -142,6 +166,7 @@ async function restart(delayMs) {
 }
 
 async function start() {
+  clearStaleLocks();
   client = makeClient();
   try {
     await client.initialize();
@@ -224,4 +249,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { normaliseNumber, server, state, setState, makeWatchdog };
+module.exports = { normaliseNumber, server, state, setState, makeWatchdog, clearStaleLocks };

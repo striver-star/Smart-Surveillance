@@ -57,3 +57,18 @@ test("watchdog re-injects, restarts, then gives up when ready never comes", () =
   w.authenticated(); w.ready(); advance(500);
   assert.equal(calls[calls.length - 1], "give up after 2", "no action once ready");
 });
+
+test("stale Chromium lock files from an old container are removed, the session is kept", () => {
+  const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
+  const { clearStaleLocks } = require("./server");
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), "wa-"));
+  const session = path.join(data, "session");
+  fs.mkdirSync(path.join(session, "Default"), { recursive: true });
+  fs.symlinkSync("bda2c72e92e0-14", path.join(session, "SingletonLock"));   // dangling, as Chromium leaves it
+  fs.symlinkSync("/tmp/gone/SingletonSocket", path.join(session, "SingletonSocket"));
+  fs.writeFileSync(path.join(session, "Default", "Cookies"), "keep");
+  const removed = clearStaleLocks(data);
+  assert.equal(removed.length, 2);
+  assert.ok(!fs.readdirSync(session).some((f) => f.startsWith("Singleton")));
+  assert.ok(fs.existsSync(path.join(session, "Default", "Cookies")), "the linked session stays");
+});
