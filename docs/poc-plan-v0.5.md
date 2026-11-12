@@ -24,7 +24,7 @@ needs the NVR's ISAPI pass-through or Virtual Host feature; step 13 tests this.
 |---|---|---|---|---|
 | 11 | Docker Compose skeleton (Step 0) | `compose.yaml` | All services up, `/api/healthz` OK | **Done**: tested in the build environment; repeat on the real server |
 | 12 | Capability probe (Step 1) | `tools/probe` against all 6 NVRs | Matrix and summary produced for every NVR | **Built and tested on simulated data**; run on site |
-| 13 | Discovery across camera classes and firmware | Probe + manual check of one ColorVu, one AcuSense, one non-AI camera; two firmware versions; test ISAPI pass-through to PoE cameras | Each class's events arrive through the NVR; tiers confirmed | Waiting on site run |
+| 13 | Discovery across camera classes and firmware | hss-cameras asks every camera (direct or NVR virtual host) for model, firmware, class, clock and zone access; walk test one ColorVu, one AcuSense, one non-AI camera | Each class's events arrive through the NVR; tiers confirmed | Tool ready (docs/task-13-camera-classes.md); waiting on site run |
 | 14 | Compatibility matrix | `compatibility-matrix.csv`; IT Manager fills `tier_override` | Every channel has a confirmed tier | Generator built |
 | 15 | Non-AI camera end to end through a Tier S worker | Gateway pulls the sub-stream; worker runs YOLOX/RT-DETR; normalized event reaches the API | Person and vehicle events within 3 s | **Built and tested on a sample video** (0.16-0.26 s); run on a site camera (`docs/task-15-tier-s-worker.md`) |
 | 16 | GPU benchmark | Same worker on NVIDIA (TensorRT) and Intel (OpenVINO); add recognition load | Channels per GPU measured at 5 fps, with and without recognition | Needs GPU server |

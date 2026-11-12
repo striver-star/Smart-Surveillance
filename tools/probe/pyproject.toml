@@ -11,6 +11,7 @@ test = ["pytest>=8"]
 [project.scripts]
 hss-probe = "hss_probe.cli:main"
 hss-streams = "hss_probe.streams:main"
+hss-cameras = "hss_probe.cameras:main"
 
 [build-system]
 requires = ["setuptools>=68"]

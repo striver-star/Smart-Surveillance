@@ -1708,7 +1708,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 10. Update the PoC plan to v0.5. **Done** (`docs/poc-plan-v0.5.md`)
 11. Step 0: Docker Compose skeleton. **Done**, on the real server too
 12. Step 1: device capability probe. **Done** on site (4 NVRs); rerun when the new NVRs arrive. Stream tool `hss-streams` built: run on site **Waiting**
-13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **To do** (needs probe results)
+13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **Tool ready** (hss-cameras, docs/task-13-camera-classes.md); waiting on the site run
 14. Device compatibility matrix. Generator **Done**; confirming tiers **To do**
 15. One non-AI camera end to end through a Tier S worker. **Done** on a sample video (0.16 to 0.26 s); run on a site camera: **Waiting**
 16. GPU benchmark on NVIDIA with Intel comparison, with and without recognition. **To do**
