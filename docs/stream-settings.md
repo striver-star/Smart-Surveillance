@@ -5,6 +5,10 @@ the NVR's PoE ports included). It is part of the probe package in `tools/probe`.
 
 - **Sub-streams to H.264** (`--sub-h264`): needed so the wall screens can play them in a browser.
 - **Main streams to H.265** (`--main-h265`): roughly halves storage for cameras still on H.264.
+- **Lower sub-stream frame rates** (`--sub-fps 12`): roughly halves the decoding work on wall PCs; a
+  12 fps grid tile looks almost the same. The tool picks the highest rate each camera offers at or
+  below the number given, and leaves cameras already at or below it alone. Recording (main streams)
+  is not touched.
 
 It is safe by design:
 
@@ -39,6 +43,12 @@ read -rs HSS_NVR_PASSWORD && export HSS_NVR_PASSWORD
    hss-streams --host 10.1.3.4 --host 10.1.3.5 --host 10.1.3.6 --host 10.1.3.7 --sub-h264 --apply
    ```
 4. Run the probe again; the "sub-stream is H.265" flags should be gone.
+
+Lower all sub-streams to 12 fps (preview first, then add `--apply`):
+
+```bash
+hss-streams --host 10.1.3.4 --host 10.1.3.5 --host 10.1.3.6 --host 10.1.3.7 --sub-fps 12
+```
 
 Undo a run (the folder name is printed at the end of each run):
 

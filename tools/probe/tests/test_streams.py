@@ -96,3 +96,66 @@ def test_main_h265_and_channel_filter(nvr, tmp_path):
 def test_parse_channels():
     assert streams.parse_channels("1-3,7") == {1, 2, 3, 7}
     assert streams.parse_channels(None) is None
+
+
+class FakeNVRWithFps(FakeNVR):
+    """Sub-stream frame rates: ch1 full rate (0), ch2 25 fps but cannot go below 15, ch3 already 10, ch4 offline."""
+
+    def __init__(self):
+        super().__init__()
+        self.fps = {101: 2500, 102: 0, 201: 2500, 202: 2500, 301: 2500, 302: 1000, 401: 2500, 402: 2500}
+
+    def __call__(self, req):
+        m = re.fullmatch(r"/ISAPI/ContentMgmt/StreamingProxy/channels/(\d+)(/capabilities)?", req.url.path)
+        if not m:
+            return super().__call__(req)
+        sid = int(m.group(1))
+        if m.group(2):
+            fps_opt = "2500,2000,1500" if sid == 202 else "2500,2000,1500,1200,1000,800,600,0"
+            return httpx.Response(200, text=f'<StreamingChannel {NS}><Video><videoCodecType opt="H.264,H.265">x</videoCodecType>'
+                                            f'<maxFrameRate opt="{fps_opt}">x</maxFrameRate></Video></StreamingChannel>')
+        if req.method == "PUT":
+            body = req.content.decode()
+            self.fps[sid] = int(re.search(r"<maxFrameRate>(\d+)<", body).group(1))
+            self.puts.append(sid)
+            self.streams[sid] = re.search(r"<videoCodecType>([^<]+)<", body).group(1)
+            return httpx.Response(200, text="<ResponseStatus><statusCode>1</statusCode></ResponseStatus>")
+        xml = stream_xml(sid, self.streams[sid]).replace("</Video>", f"<maxFrameRate>{self.fps[sid]}</maxFrameRate></Video>")
+        return httpx.Response(200, text=xml)
+
+
+@pytest.fixture
+def fps_nvr(monkeypatch):
+    fake = FakeNVRWithFps()
+    monkeypatch.setattr(streams, "IsapiClient",
+                        lambda base, u, p, **kw: IsapiClient(base, u, p, transport=httpx.MockTransport(fake)))
+    monkeypatch.setenv("HSS_NVR_USER", "u")
+    monkeypatch.setenv("HSS_NVR_PASSWORD", "p")
+    monkeypatch.setattr(streams.time, "sleep", lambda s: None)
+    return fake
+
+
+def test_sub_fps_lowers_only_what_needs_it(fps_nvr, tmp_path, capsys):
+    assert streams.main(["--host", "nvr", "--sub-fps", "12", "--apply", "--backup-dir", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert fps_nvr.puts == [102] and fps_nvr.fps[102] == 1200
+    assert fps_nvr.streams[102] == "H.265", "codec untouched when only --sub-fps is given"
+    assert fps_nvr.fps[101] == 2500, "main streams untouched"
+    assert "already 10 fps" in out and "offers no rate at or below 12 fps" in out and "camera offline" in out
+
+
+def test_sub_fps_and_codec_in_one_change(fps_nvr, tmp_path):
+    assert streams.main(["--host", "nvr", "--channels", "1", "--sub-h264", "--sub-fps", "12", "--apply",
+                         "--backup-dir", str(tmp_path)]) == 0
+    assert fps_nvr.puts == [102]
+    assert fps_nvr.streams[102] == "H.264" and fps_nvr.fps[102] == 1200
+    run = next(tmp_path.iterdir())
+    assert streams.main(["--restore", str(run), "--apply"]) == 0
+    assert fps_nvr.streams[102] == "H.265" and fps_nvr.fps[102] == 0
+
+
+def test_best_fps_picks_highest_allowed_not_above_target():
+    caps = '<Video><maxFrameRate opt="2500,1500,1000,600,0">x</maxFrameRate></Video>'
+    assert streams.best_fps(caps, 1200) == 1000
+    assert streams.best_fps(caps, 500) is None
+    assert streams.best_fps(None, 1200) == 1200
