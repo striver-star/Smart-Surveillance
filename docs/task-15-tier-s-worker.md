@@ -10,7 +10,7 @@ API within 3 seconds.
 |---|---|---|
 | Event schema and storage | `services/api/app/migrations/001_events.sql` | Section 8 fields; `tier`, `source_kind`, geotag column ready |
 | Event API | `services/api/app/events.py` | `POST /events` (worker token), `GET /events`, `GET /events/{id}/snapshot` |
-| AI worker | `services/ai-worker/` | YOLOX on ONNX Runtime; TensorRT/CUDA, OpenVINO or CPU; PyAV (LGPL FFmpeg) decoding |
+| AI worker | `services/ai-worker/` | YOLOX on ONNX Runtime; TensorRT/CUDA, OpenVINO or CPU; OpenCV (LGPL FFmpeg) decoding; PyAV dropped in task 23 because its wheels bundle GPL x264/x265 |
 | Zone rules | `services/ai-worker/worker/rules.py` | Polygons in 0-1 coordinates, foot-point test, schedules, 3-of-5 frame confirmation, cooldown |
 | Camera sources | `gateway/cameras.env` (from `cameras.env.example`) | Each NVR channel pulled once by the gateway |
 | Demo camera | `compose.demo.yaml` | Loops a sample video so the chain can be tested without site hardware |

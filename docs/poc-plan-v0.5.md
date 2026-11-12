@@ -34,7 +34,7 @@ needs the NVR's ISAPI pass-through or Virtual Host feature; step 13 tests this.
 | 20 | NVR limits | Pull 32 sub-streams + rotation main streams from one NVR | No refused connections; NVR outgoing bandwidth recorded | On site |
 | 21 | WhatsApp gateway week | Provider A on the dedicated number; email fallback | 7 days, no ban, fallback works | Needs number |
 | 22 | Wall Agent + Windows installer soak | Prototype on an existing i5 wall PC, 24 hours | Survives Windows restart and a camera outage | **Agent and installer built**; tested on Linux with two screens (crash, freeze, outage, layout change, self-update); 24-hour soak on a Windows wall PC: waiting (`docs/task-22-wall-agent.md`) |
-| 23 | Licence scan | Syft + ScanCode on code, models, datasets | No disallowed licences | Every build |
+| 23 | Licence scan | tools/licence-scan (package metadata, bundled native libraries, hand-checked images, models and datasets); CycloneDX SBOM | No disallowed licences | Done 2026-11-12: PASS, runs on every push |
 | 24 | Go or no-go | Review results with the builder | Requirements sign-off | End of PoC |
 
 ## Questions the PoC must answer for v0.5 decisions

@@ -37,9 +37,9 @@ def test_ignores_classes_we_do_not_track():
 
 @pytest.mark.skipif(not (MODEL.exists() and VIDEO.exists()), reason="run tools/fetch-models.sh first")
 def test_real_model_finds_people_in_sample_video():
-    import av
+    import cv2
     detector = Detector(str(MODEL))
-    with av.open(str(VIDEO)) as c:
-        frame = next(c.decode(video=0)).to_ndarray(format="bgr24")
+    ok, frame = cv2.VideoCapture(str(VIDEO)).read()
+    assert ok
     people = [d for d in detector.detect(frame) if d.object_class == "human"]
     assert len(people) >= 3

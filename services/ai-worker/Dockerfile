@@ -1,4 +1,4 @@
-# CPU and Intel build of the Tier S AI worker. FFmpeg comes inside the PyAV wheel (LGPL build).
+# CPU and Intel build of the Tier S AI worker. FFmpeg comes inside the OpenCV wheel (LGPL build); see docs/sbom.
 FROM python:3.12-slim
 WORKDIR /srv
 COPY requirements.txt .

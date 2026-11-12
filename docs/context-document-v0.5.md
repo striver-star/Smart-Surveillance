@@ -1718,7 +1718,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 20. NVR connection and bandwidth limits. **To do**
 21. One-week WhatsApp gateway test with email fallback. **To do** (needs task 3)
 22. Wall Agent and Windows installer prototype, 24-hour soak. Agent and installer **Done** (tested on Linux); Windows soak: **Waiting**
-23. License scan of PoC code, models and datasets. **To do**
+23. License scan of PoC code, models and datasets. **Done 2026-11-12**: 242 components, PASS after replacing PyAV (GPL x264/x265 inside its wheel) with OpenCV decoding; runs on every push (docs/task-23-licence-scan.md)
 24. PoC go or no-go and requirements sign-off. **To do**
 
 **Stage C: Phase 1, Foundation:** repository remote and CI; tenant-ready

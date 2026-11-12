@@ -1,0 +1,6752 @@
+{
+ "bomFormat": "CycloneDX",
+ "specVersion": "1.5",
+ "version": 1,
+ "metadata": {
+  "timestamp": "2026-11-12T00:00:00Z",
+  "component": {
+   "type": "application",
+   "name": "HSS platform (proof of concept)"
+  },
+  "tools": [
+   {
+    "name": "tools/licence-scan/scan.py"
+   }
+  ]
+ },
+ "components": [
+  {
+   "type": "library",
+   "name": "annotated-types",
+   "version": "0.8.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/annotated-types@0.8.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/annotated-types/0.8.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "anyio",
+   "version": "4.16.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/anyio@4.16.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/anyio/4.16.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "certifi",
+   "version": "2026.10.23",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MPL-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/certifi@2026.10.23",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/certifi/2026.10.23/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "click",
+   "version": "8.5.1",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/click@8.5.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/click/8.5.1/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fastapi",
+   "version": "0.115.6",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/fastapi@0.115.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/fastapi/0.115.6/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "h11",
+   "version": "0.16.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/h11@0.16.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/h11/0.16.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "httpcore",
+   "version": "1.0.9",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/httpcore@1.0.9",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/httpcore/1.0.9/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "httptools",
+   "version": "0.9.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/httptools@0.9.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/httptools/0.9.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "httpx",
+   "version": "0.28.1",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/httpx@0.28.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/httpx/0.28.1/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "idna",
+   "version": "3.20",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/idna@3.20",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/idna/3.20/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "psycopg",
+   "version": "3.2.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "LGPL-3.0-only"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/psycopg@3.2.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/psycopg/3.2.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "psycopg-binary",
+   "version": "3.2.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "LGPL-3.0-only"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/psycopg-binary@3.2.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/psycopg-binary/3.2.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pydantic",
+   "version": "2.14.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pydantic@2.14.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pydantic/2.14.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pydantic-core",
+   "version": "2.50.4",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pydantic-core@2.50.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pydantic-core/2.50.4/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "python-dotenv",
+   "version": "1.2.4",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/python-dotenv@1.2.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/python-dotenv/1.2.4/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pyyaml",
+   "version": "6.0.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pyyaml@6.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pyyaml/6.0.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "starlette",
+   "version": "0.41.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/starlette@0.41.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/starlette/0.41.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "typing-extensions",
+   "version": "4.16.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "PSF-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api, probe"
+    }
+   ],
+   "purl": "pkg:pypi/typing-extensions@4.16.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/typing-extensions/4.16.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "typing-inspection",
+   "version": "0.4.5",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/typing-inspection@0.4.5",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/typing-inspection/0.4.5/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "uvicorn",
+   "version": "0.34.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/uvicorn@0.34.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/uvicorn/0.34.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "uvloop",
+   "version": "0.23.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0 OR MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/uvloop@0.23.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/uvloop/0.23.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "watchfiles",
+   "version": "1.3.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/watchfiles@1.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/watchfiles/1.3.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "websockets",
+   "version": "17.4",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/websockets@17.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/websockets/17.4/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "flatbuffers",
+   "version": "25.12.19",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/flatbuffers@25.12.19",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/flatbuffers/25.12.19/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "numpy",
+   "version": "2.5.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/numpy@2.5.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/numpy/2.5.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "onnxruntime",
+   "version": "1.29.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/onnxruntime@1.29.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/onnxruntime/1.29.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "opencv-python-headless",
+   "version": "5.0.0.93",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/opencv-python-headless@5.0.0.93",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/opencv-python-headless/5.0.0.93/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "packaging",
+   "version": "26.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0 OR BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/packaging@26.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/packaging/26.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "protobuf",
+   "version": "7.36.2",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "purl": "pkg:pypi/protobuf@7.36.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/protobuf/7.36.2/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "FFmpeg (inside opencv-python-headless)",
+   "version": "",
+   "group": "bundled",
+   "licenses": [
+    {
+     "expression": "LGPL-2.1-or-later"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker"
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://ffmpeg.org/legal.html"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@babel/code-frame",
+   "version": "7.29.7",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40babel/code-frame@7.29.7",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@babel/code-frame/v/7.29.7"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@babel/helper-validator-identifier",
+   "version": "7.29.7",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40babel/helper-validator-identifier@7.29.7",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@babel/helper-validator-identifier/v/7.29.7"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@isaacs/cliui",
+   "version": "8.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40isaacs/cliui@8.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@isaacs/cliui/v/8.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@pkgjs/parseargs",
+   "version": "0.11.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40pkgjs/parseargs@0.11.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@pkgjs/parseargs/v/0.11.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@puppeteer/browsers",
+   "version": "2.13.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40puppeteer/browsers@2.13.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@puppeteer/browsers/v/2.13.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ansi-regex",
+   "version": "5.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ansi-regex@5.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ansi-regex/v/5.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ansi-styles",
+   "version": "4.3.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ansi-styles@4.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ansi-styles/v/4.3.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cliui",
+   "version": "8.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/cliui@8.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/cliui/v/8.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "emoji-regex",
+   "version": "8.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/emoji-regex@8.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/emoji-regex/v/8.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "string-width",
+   "version": "4.2.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/string-width@4.2.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/string-width/v/4.2.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "strip-ansi",
+   "version": "6.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/strip-ansi@6.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/strip-ansi/v/6.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "wrap-ansi",
+   "version": "7.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/wrap-ansi@7.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/wrap-ansi/v/7.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "y18n",
+   "version": "5.0.8",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/y18n@5.0.8",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/y18n/v/5.0.8"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "yargs",
+   "version": "17.7.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/yargs@17.7.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/yargs/v/17.7.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "yargs-parser",
+   "version": "21.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/yargs-parser@21.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/yargs-parser/v/21.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@tootallnate/quickjs-emscripten",
+   "version": "0.23.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40tootallnate/quickjs-emscripten@0.23.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@tootallnate/quickjs-emscripten/v/0.23.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@types/node",
+   "version": "26.6.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40types/node@26.6.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@types/node/v/26.6.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "@types/yauzl",
+   "version": "2.10.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/%40types/yauzl@2.10.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/@types/yauzl/v/2.10.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "abort-controller",
+   "version": "3.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/abort-controller@3.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/abort-controller/v/3.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "agent-base",
+   "version": "7.1.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/agent-base@7.1.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/agent-base/v/7.1.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ansi-regex",
+   "version": "6.6.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ansi-regex@6.6.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ansi-regex/v/6.6.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ansi-styles",
+   "version": "6.2.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ansi-styles@6.2.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ansi-styles/v/6.2.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "archiver",
+   "version": "7.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/archiver@7.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/archiver/v/7.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "archiver-utils",
+   "version": "5.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/archiver-utils@5.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/archiver-utils/v/5.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "argparse",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Python-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/argparse@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/argparse/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ast-types",
+   "version": "0.13.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ast-types@0.13.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ast-types/v/0.13.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "async",
+   "version": "3.2.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/async@3.2.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/async/v/3.2.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "b4a",
+   "version": "1.9.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/b4a@1.9.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/b4a/v/1.9.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "balanced-match",
+   "version": "1.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/balanced-match@1.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/balanced-match/v/1.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-buffer",
+   "version": "3.7.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-buffer@3.7.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-buffer/v/3.7.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-events",
+   "version": "2.9.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-events@2.9.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-events/v/2.9.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-fs",
+   "version": "4.8.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-fs@4.8.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-fs/v/4.8.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-path",
+   "version": "3.1.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-path@3.1.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-path/v/3.1.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-stream",
+   "version": "2.13.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-stream@2.13.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-stream/v/2.13.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bare-url",
+   "version": "2.5.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bare-url@2.5.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bare-url/v/2.5.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "base64-js",
+   "version": "1.5.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/base64-js@1.5.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/base64-js/v/1.5.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "basic-ftp",
+   "version": "5.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/basic-ftp@5.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/basic-ftp/v/5.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "bluebird",
+   "version": "3.7.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/bluebird@3.7.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/bluebird/v/3.7.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "brace-expansion",
+   "version": "2.1.8",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/brace-expansion@2.1.8",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/brace-expansion/v/2.1.8"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "buffer",
+   "version": "6.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/buffer@6.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/buffer/v/6.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "buffer-crc32",
+   "version": "1.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/buffer-crc32@1.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/buffer-crc32/v/1.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "callsites",
+   "version": "3.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/callsites@3.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/callsites/v/3.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "camelcase",
+   "version": "5.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/camelcase@5.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/camelcase/v/5.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "chromium-bidi",
+   "version": "14.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/chromium-bidi@14.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/chromium-bidi/v/14.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cliui",
+   "version": "6.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/cliui@6.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/cliui/v/6.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "wrap-ansi",
+   "version": "6.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/wrap-ansi@6.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/wrap-ansi/v/6.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "color-convert",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/color-convert@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/color-convert/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "color-name",
+   "version": "1.1.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/color-name@1.1.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/color-name/v/1.1.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "compress-commons",
+   "version": "6.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/compress-commons@6.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/compress-commons/v/6.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "core-util-is",
+   "version": "1.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/core-util-is@1.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/core-util-is/v/1.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cosmiconfig",
+   "version": "9.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/cosmiconfig@9.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/cosmiconfig/v/9.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "crc-32",
+   "version": "1.2.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/crc-32@1.2.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/crc-32/v/1.2.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "crc32-stream",
+   "version": "6.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/crc32-stream@6.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/crc32-stream/v/6.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cross-spawn",
+   "version": "7.0.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/cross-spawn@7.0.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/cross-spawn/v/7.0.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "which",
+   "version": "2.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/which@2.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/which/v/2.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "data-uri-to-buffer",
+   "version": "6.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/data-uri-to-buffer@6.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/data-uri-to-buffer/v/6.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "debug",
+   "version": "4.4.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/debug@4.4.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/debug/v/4.4.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "decamelize",
+   "version": "1.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/decamelize@1.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/decamelize/v/1.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "degenerator",
+   "version": "5.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/degenerator@5.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/degenerator/v/5.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "devtools-protocol",
+   "version": "0.0.1581282",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/devtools-protocol@0.0.1581282",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/devtools-protocol/v/0.0.1581282"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "dijkstrajs",
+   "version": "1.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/dijkstrajs@1.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/dijkstrajs/v/1.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "duplexer2",
+   "version": "0.1.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/duplexer2@0.1.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/duplexer2/v/0.1.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "readable-stream",
+   "version": "2.3.8",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/readable-stream@2.3.8",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/readable-stream/v/2.3.8"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "safe-buffer",
+   "version": "5.1.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/safe-buffer@5.1.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/safe-buffer/v/5.1.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "string_decoder",
+   "version": "1.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/string_decoder@1.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/string_decoder/v/1.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "eastasianwidth",
+   "version": "0.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/eastasianwidth@0.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/eastasianwidth/v/0.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "emoji-regex",
+   "version": "9.2.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/emoji-regex@9.2.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/emoji-regex/v/9.2.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "end-of-stream",
+   "version": "1.4.5",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/end-of-stream@1.4.5",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/end-of-stream/v/1.4.5"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "env-paths",
+   "version": "2.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/env-paths@2.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/env-paths/v/2.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "error-ex",
+   "version": "1.3.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/error-ex@1.3.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/error-ex/v/1.3.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "escalade",
+   "version": "3.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/escalade@3.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/escalade/v/3.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "escodegen",
+   "version": "2.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/escodegen@2.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/escodegen/v/2.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "esprima",
+   "version": "4.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/esprima@4.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/esprima/v/4.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "estraverse",
+   "version": "5.3.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/estraverse@5.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/estraverse/v/5.3.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "esutils",
+   "version": "2.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/esutils@2.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/esutils/v/2.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "event-target-shim",
+   "version": "5.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/event-target-shim@5.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/event-target-shim/v/5.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "events",
+   "version": "3.3.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/events@3.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/events/v/3.3.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "events-universal",
+   "version": "1.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/events-universal@1.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/events-universal/v/1.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "extract-zip",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/extract-zip@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/extract-zip/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fast-fifo",
+   "version": "1.3.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/fast-fifo@1.3.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/fast-fifo/v/1.3.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fd-slicer",
+   "version": "1.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/fd-slicer@1.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/fd-slicer/v/1.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "find-up",
+   "version": "4.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/find-up@4.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/find-up/v/4.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fluent-ffmpeg",
+   "version": "2.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/fluent-ffmpeg@2.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/fluent-ffmpeg/v/2.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "async",
+   "version": "0.2.10",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/async@0.2.10",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/async/v/0.2.10"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "foreground-child",
+   "version": "3.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/foreground-child@3.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/foreground-child/v/3.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fs-extra",
+   "version": "11.3.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/fs-extra@11.3.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/fs-extra/v/11.3.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "get-caller-file",
+   "version": "2.0.5",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/get-caller-file@2.0.5",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/get-caller-file/v/2.0.5"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "get-stream",
+   "version": "5.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/get-stream@5.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/get-stream/v/5.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "get-uri",
+   "version": "6.0.5",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/get-uri@6.0.5",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/get-uri/v/6.0.5"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "glob",
+   "version": "10.5.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/glob@10.5.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/glob/v/10.5.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "graceful-fs",
+   "version": "4.2.11",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/graceful-fs@4.2.11",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/graceful-fs/v/4.2.11"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "http-proxy-agent",
+   "version": "7.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/http-proxy-agent@7.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/http-proxy-agent/v/7.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "https-proxy-agent",
+   "version": "7.0.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/https-proxy-agent@7.0.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/https-proxy-agent/v/7.0.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ieee754",
+   "version": "1.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ieee754@1.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ieee754/v/1.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "import-fresh",
+   "version": "3.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/import-fresh@3.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/import-fresh/v/3.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "inherits",
+   "version": "2.0.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/inherits@2.0.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/inherits/v/2.0.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ip-address",
+   "version": "10.7.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ip-address@10.7.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ip-address/v/10.7.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "is-arrayish",
+   "version": "0.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/is-arrayish@0.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/is-arrayish/v/0.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "is-fullwidth-code-point",
+   "version": "3.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/is-fullwidth-code-point@3.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/is-fullwidth-code-point/v/3.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "is-stream",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/is-stream@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/is-stream/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "isarray",
+   "version": "1.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/isarray@1.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/isarray/v/1.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "isexe",
+   "version": "2.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/isexe@2.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/isexe/v/2.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "jackspeak",
+   "version": "3.4.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BlueOak-1.0.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/jackspeak@3.4.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/jackspeak/v/3.4.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "js-tokens",
+   "version": "4.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/js-tokens@4.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/js-tokens/v/4.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "js-yaml",
+   "version": "4.3.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/js-yaml@4.3.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/js-yaml/v/4.3.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "json-parse-even-better-errors",
+   "version": "2.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/json-parse-even-better-errors@2.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/json-parse-even-better-errors/v/2.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "jsonfile",
+   "version": "6.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/jsonfile@6.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/jsonfile/v/6.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lazystream",
+   "version": "1.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/lazystream@1.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/lazystream/v/1.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lines-and-columns",
+   "version": "1.2.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/lines-and-columns@1.2.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/lines-and-columns/v/1.2.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "locate-path",
+   "version": "5.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/locate-path@5.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/locate-path/v/5.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lodash",
+   "version": "4.18.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/lodash@4.18.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/lodash/v/4.18.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lru-cache",
+   "version": "10.4.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/lru-cache@10.4.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/lru-cache/v/10.4.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "mime",
+   "version": "3.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/mime@3.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/mime/v/3.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "minimatch",
+   "version": "9.0.9",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/minimatch@9.0.9",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/minimatch/v/9.0.9"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "minipass",
+   "version": "7.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BlueOak-1.0.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/minipass@7.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/minipass/v/7.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "mitt",
+   "version": "3.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/mitt@3.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/mitt/v/3.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ms",
+   "version": "2.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ms@2.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ms/v/2.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "netmask",
+   "version": "2.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/netmask@2.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/netmask/v/2.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "node-fetch",
+   "version": "2.7.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/node-fetch@2.7.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/node-fetch/v/2.7.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "node-int64",
+   "version": "0.4.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/node-int64@0.4.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/node-int64/v/0.4.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "node-webpmux",
+   "version": "3.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "LGPL-2.1-or-later"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/node-webpmux@3.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/node-webpmux/v/3.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "normalize-path",
+   "version": "3.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/normalize-path@3.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/normalize-path/v/3.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "once",
+   "version": "1.4.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/once@1.4.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/once/v/1.4.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "p-limit",
+   "version": "2.3.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/p-limit@2.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/p-limit/v/2.3.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "p-locate",
+   "version": "4.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/p-locate@4.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/p-locate/v/4.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "p-try",
+   "version": "2.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/p-try@2.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/p-try/v/2.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pac-proxy-agent",
+   "version": "7.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/pac-proxy-agent@7.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/pac-proxy-agent/v/7.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pac-resolver",
+   "version": "7.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/pac-resolver@7.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/pac-resolver/v/7.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "package-json-from-dist",
+   "version": "1.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BlueOak-1.0.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/package-json-from-dist@1.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/package-json-from-dist/v/1.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "parent-module",
+   "version": "1.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/parent-module@1.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/parent-module/v/1.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "parse-json",
+   "version": "5.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/parse-json@5.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/parse-json/v/5.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "path-exists",
+   "version": "4.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/path-exists@4.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/path-exists/v/4.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "path-key",
+   "version": "3.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/path-key@3.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/path-key/v/3.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "path-scurry",
+   "version": "1.11.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BlueOak-1.0.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/path-scurry@1.11.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/path-scurry/v/1.11.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pend",
+   "version": "1.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/pend@1.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/pend/v/1.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "picocolors",
+   "version": "1.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/picocolors@1.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/picocolors/v/1.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pngjs",
+   "version": "5.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/pngjs@5.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/pngjs/v/5.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "process",
+   "version": "0.11.10",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/process@0.11.10",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/process/v/0.11.10"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "process-nextick-args",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/process-nextick-args@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/process-nextick-args/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "progress",
+   "version": "2.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/progress@2.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/progress/v/2.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "proxy-agent",
+   "version": "6.5.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/proxy-agent@6.5.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/proxy-agent/v/6.5.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lru-cache",
+   "version": "7.18.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/lru-cache@7.18.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/lru-cache/v/7.18.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "proxy-from-env",
+   "version": "1.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/proxy-from-env@1.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/proxy-from-env/v/1.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pump",
+   "version": "3.0.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/pump@3.0.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/pump/v/3.0.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "puppeteer",
+   "version": "24.38.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/puppeteer@24.38.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/puppeteer/v/24.38.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "puppeteer-core",
+   "version": "24.38.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/puppeteer-core@24.38.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/puppeteer-core/v/24.38.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "qrcode",
+   "version": "1.5.4",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/qrcode@1.5.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/qrcode/v/1.5.4"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "readable-stream",
+   "version": "4.8.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/readable-stream@4.8.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/readable-stream/v/4.8.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "readdir-glob",
+   "version": "1.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/readdir-glob@1.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/readdir-glob/v/1.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "minimatch",
+   "version": "5.1.9",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/minimatch@5.1.9",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/minimatch/v/5.1.9"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "require-directory",
+   "version": "2.1.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/require-directory@2.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/require-directory/v/2.1.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "require-main-filename",
+   "version": "2.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/require-main-filename@2.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/require-main-filename/v/2.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "resolve-from",
+   "version": "4.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/resolve-from@4.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/resolve-from/v/4.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "safe-buffer",
+   "version": "5.2.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/safe-buffer@5.2.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/safe-buffer/v/5.2.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "semver",
+   "version": "7.8.6",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/semver@7.8.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/semver/v/7.8.6"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "set-blocking",
+   "version": "2.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/set-blocking@2.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/set-blocking/v/2.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "shebang-command",
+   "version": "2.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/shebang-command@2.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/shebang-command/v/2.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "shebang-regex",
+   "version": "3.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/shebang-regex@3.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/shebang-regex/v/3.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "signal-exit",
+   "version": "4.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/signal-exit@4.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/signal-exit/v/4.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "smart-buffer",
+   "version": "4.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/smart-buffer@4.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/smart-buffer/v/4.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "socks",
+   "version": "2.8.10",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/socks@2.8.10",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/socks/v/2.8.10"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "socks-proxy-agent",
+   "version": "8.0.5",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/socks-proxy-agent@8.0.5",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/socks-proxy-agent/v/8.0.5"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "source-map",
+   "version": "0.6.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/source-map@0.6.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/source-map/v/0.6.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "streamx",
+   "version": "2.28.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/streamx@2.28.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/streamx/v/2.28.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "string-width",
+   "version": "5.1.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/string-width@5.1.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/string-width/v/5.1.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "string_decoder",
+   "version": "1.3.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/string_decoder@1.3.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/string_decoder/v/1.3.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "strip-ansi",
+   "version": "7.2.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/strip-ansi@7.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/strip-ansi/v/7.2.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "tar-fs",
+   "version": "3.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/tar-fs@3.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/tar-fs/v/3.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "tar-stream",
+   "version": "3.2.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/tar-stream@3.2.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/tar-stream/v/3.2.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "teex",
+   "version": "1.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/teex@1.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/teex/v/1.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "text-decoder",
+   "version": "1.2.7",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/text-decoder@1.2.7",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/text-decoder/v/1.2.7"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "tr46",
+   "version": "0.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/tr46@0.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/tr46/v/0.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "tslib",
+   "version": "2.9.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "0BSD"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/tslib@2.9.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/tslib/v/2.9.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "typed-query-selector",
+   "version": "2.12.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/typed-query-selector@2.12.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/typed-query-selector/v/2.12.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "undici-types",
+   "version": "8.9.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/undici-types@8.9.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/undici-types/v/8.9.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "universalify",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/universalify@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/universalify/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "unzipper",
+   "version": "0.12.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/unzipper@0.12.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/unzipper/v/0.12.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "util-deprecate",
+   "version": "1.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/util-deprecate@1.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/util-deprecate/v/1.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "webdriver-bidi-protocol",
+   "version": "0.4.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/webdriver-bidi-protocol@0.4.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/webdriver-bidi-protocol/v/0.4.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "webidl-conversions",
+   "version": "3.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/webidl-conversions@3.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/webidl-conversions/v/3.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "whatsapp-web.js",
+   "version": "1.34.8",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/whatsapp-web.js@1.34.8",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/whatsapp-web.js/v/1.34.8"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "whatwg-url",
+   "version": "5.0.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/whatwg-url@5.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/whatwg-url/v/5.0.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "which",
+   "version": "1.3.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/which@1.3.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/which/v/1.3.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "which-module",
+   "version": "2.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/which-module@2.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/which-module/v/2.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "wrap-ansi",
+   "version": "8.1.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/wrap-ansi@8.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/wrap-ansi/v/8.1.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "wrappy",
+   "version": "1.0.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/wrappy@1.0.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/wrappy/v/1.0.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ws",
+   "version": "8.22.2",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/ws@8.22.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/ws/v/8.22.2"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "y18n",
+   "version": "4.0.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/y18n@4.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/y18n/v/4.0.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "yargs",
+   "version": "15.4.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/yargs@15.4.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/yargs/v/15.4.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "yargs-parser",
+   "version": "18.1.3",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "ISC"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/yargs-parser@18.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/yargs-parser/v/18.1.3"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "yauzl",
+   "version": "2.10.0",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/yauzl@2.10.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/yauzl/v/2.10.0"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "buffer-crc32",
+   "version": "0.2.13",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/buffer-crc32@0.2.13",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/buffer-crc32/v/0.2.13"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "zip-stream",
+   "version": "6.0.1",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/zip-stream@6.0.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/zip-stream/v/6.0.1"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "zod",
+   "version": "3.25.76",
+   "group": "npm",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "whatsapp-gateway"
+    }
+   ],
+   "purl": "pkg:npm/zod@3.25.76",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://www.npmjs.com/package/zod/v/3.25.76"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "postgis/postgis",
+   "version": "16-3.5",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "PostgreSQL AND GPL-2.0-or-later"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/postgis/docker-postgis"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "bluenviron/mediamtx",
+   "version": "1.9.3",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/bluenviron/mediamtx"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "caddy",
+   "version": "2.8.4-alpine",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/caddyserver/caddy"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "binwiederhier/ntfy",
+   "version": "v2.11.0",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/binwiederhier/ntfy"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "python",
+   "version": "3.12-slim",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "PSF-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://hub.docker.com/_/python"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "node",
+   "version": "22.12.0-bookworm-slim",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://hub.docker.com/_/node"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "chromium (Debian bookworm)",
+   "version": "distribution",
+   "group": "os-package",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://packages.debian.org/bookworm/chromium"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fonts-liberation",
+   "version": "distribution",
+   "group": "os-package",
+   "licenses": [
+    {
+     "expression": "OFL-1.1"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://packages.debian.org/bookworm/fonts-liberation"
+    }
+   ]
+  },
+  {
+   "type": "container",
+   "name": "nvcr.io/nvidia/tensorrt",
+   "version": "24.08-py3",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "Proprietary-free"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorrt"
+    }
+   ]
+  },
+  {
+   "type": "machine-learning-model",
+   "name": "YOLOX-S and YOLOX-Nano ONNX weights",
+   "version": "0.1.1rc0",
+   "group": "model",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/Megvii-BaseDetection/YOLOX"
+    }
+   ]
+  },
+  {
+   "type": "data",
+   "name": "COCO 2017 (training data of the YOLOX weights)",
+   "version": "2017",
+   "group": "dataset",
+   "licenses": [
+    {
+     "expression": "CC-BY-4.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://cocodataset.org/#termsofuse"
+    }
+   ]
+  },
+  {
+   "type": "data",
+   "name": "OpenCV sample video vtest.avi",
+   "version": "4.x",
+   "group": "media",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/opencv/opencv/tree/4.x/samples/data"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "NSIS",
+   "version": "3.x",
+   "group": "build-tool",
+   "licenses": [
+    {
+     "expression": "Zlib"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://nsis.sourceforge.io/License"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "Go toolchain and standard library",
+   "version": "1.24",
+   "group": "build-tool",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://go.dev/LICENSE"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "Hikvision NVRs, cameras and firmware",
+   "version": "site",
+   "group": "exception",
+   "licenses": [
+    {
+     "expression": "Proprietary-free"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "WhatsApp network",
+   "version": "service",
+   "group": "exception",
+   "licenses": [
+    {
+     "expression": "Proprietary-free"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "NVIDIA driver and CUDA",
+   "version": "server",
+   "group": "exception",
+   "licenses": [
+    {
+     "expression": "Proprietary-free"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "Windows on the wall PCs",
+   "version": "OEM",
+   "group": "exception",
+   "licenses": [
+    {
+     "expression": "Proprietary-free"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ]
+  }
+ ]
+}

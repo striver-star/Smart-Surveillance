@@ -2,17 +2,24 @@
 
 Decoding runs in its own thread and keeps only the latest frame, so slow inference never
 builds up a backlog: the analysed frame is at most one frame old.
+
+Decoding uses OpenCV's bundled FFmpeg, an LGPL build. PyAV was dropped in task 23: its wheels
+include the GPL encoders x264 and x265, which Section 19 does not allow inside our process.
 """
 from __future__ import annotations
 
 import logging
+import os
 import threading
-import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-import av
 import numpy as np
+
+# Pull RTSP over TCP (no lost UDP packets) and give up on a dead camera after 5 s. OpenCV reads
+# this when it opens the stream, so it must be set before the first VideoCapture.
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|timeout;5000000")
+import cv2  # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -47,28 +54,40 @@ class LatestFrameReader:
             f = self._latest
         return f if f is not None and f.seq > newer_than else None
 
+    def _open(self) -> "cv2.VideoCapture":
+        cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG, [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000,
+                                                         cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000])
+        if not cap.isOpened():
+            cap.release()
+            raise ConnectionError("could not open stream")
+        return cap
+
     def _run(self) -> None:
         backoff = 1.0
         while not self._stop.is_set():
+            cap = None
             try:
-                options = {"rtsp_transport": "tcp", "timeout": "5000000"} if self.url.startswith("rtsp") else {}
-                with av.open(self.url, options=options, timeout=10) as container:
-                    stream = container.streams.video[0]
-                    stream.thread_type = "AUTO"
-                    self.connected, backoff = True, 1.0
-                    log.info("%s: connected (%s %sx%s)", self.name, stream.codec_context.name,
-                             stream.codec_context.width, stream.codec_context.height)
-                    for frame in container.decode(stream):
-                        if self._stop.is_set():
-                            return
-                        image = frame.to_ndarray(format="bgr24")
-                        with self._lock:
-                            self._seq += 1
-                            self._latest = Frame(image, datetime.now(timezone.utc), self._seq)
-                        self.decoded_frames += 1
+                cap = self._open()
+                self.connected, backoff = True, 1.0
+                fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+                codec = "".join(chr((fourcc >> 8 * i) & 0xFF) for i in range(4)).strip("\x00 ") or "?"
+                log.info("%s: connected (%s %dx%d)", self.name, codec,
+                         int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+                while not self._stop.is_set():
+                    ok, image = cap.read()
+                    if not ok:
+                        raise ConnectionError("stream ended or timed out")
+                    with self._lock:
+                        self._seq += 1
+                        self._latest = Frame(image, datetime.now(timezone.utc), self._seq)
+                    self.decoded_frames += 1
+                return
             except Exception as exc:  # network drop, camera reboot, bad stream: reconnect
                 log.warning("%s: stream error %s: %s; retrying in %.0fs", self.name,
                             exc.__class__.__name__, exc, backoff)
+            finally:
+                if cap is not None:
+                    cap.release()
             self.connected = False
             self._stop.wait(backoff)
             backoff = min(backoff * 2, 30.0)
