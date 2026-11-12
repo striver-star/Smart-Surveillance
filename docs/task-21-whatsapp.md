@@ -37,7 +37,9 @@ has not been tested yet**: that is the first step of the trial.
    - `HSS_NTFY_TOPIC`, a hard-to-guess name such as `hss-alerts-` followed by random letters
    - `HSS_NOTIFY_DAILY_TEST=08:05` (the daily test time for the trial)
    - the SMTP settings for e-mail fallback (`HSS_SMTP_HOST`, `HSS_SMTP_PORT`, `HSS_SMTP_USER`,
-     `HSS_SMTP_PASSWORD`, `HSS_SMTP_FROM`), for example the company mail server or a mailbox's SMTP
+     `HSS_SMTP_PASSWORD`, `HSS_SMTP_FROM`), for example the company mail server or a mailbox's SMTP.
+     These are optional: leave them out to run on WhatsApp and push only (the trial does this
+     until e-mail is set up). Without e-mail, the push app is the only warning when WhatsApp drops.
 2. Create the recipients file with the real numbers (international format, `+234...`):
    ```bash
    cp config/recipients.example.json config/recipients.json && nano config/recipients.json
@@ -54,7 +56,9 @@ has not been tested yet**: that is the first step of the trial.
    ADMIN=$(grep ^HSS_ADMIN_TOKEN .env | cut -d= -f2)
    curl -sk -X POST https://localhost/api/notify/test -H "Authorization: Bearer $ADMIN" | python3 -m json.tool
    ```
-   Each recipient subscribed to `test` should get a WhatsApp message with a one-page PDF.
+   Each recipient subscribed to `test` should get a WhatsApp message with a one-page PDF. When two
+   recipients share a phone number, that phone gets one copy and the log shows the second as
+   `skipped`. The dedicated (sending) number must not be in the recipients list.
 6. Push: install the ntfy app (Android or iPhone), add server `http://SERVER_IP:8090` and subscribe
    to the topic from `HSS_NTFY_TOPIC`. Phones must be on the site network (or VPN) to receive it.
 

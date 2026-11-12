@@ -42,7 +42,7 @@ class Recipient:
 @dataclass
 class Attempt:
     channel: str
-    status: str                 # sent | failed
+    status: str                 # sent | failed | skipped (duplicate number)
     recipient: str = ""
     address: str = ""
     detail: str = ""
@@ -173,14 +173,22 @@ def dispatch(topic: str, title: str, text: str, attachment: Attachment | None, r
              wa: WhatsAppSender, email: EmailSender, push: PushSender) -> list[Attempt]:
     """Send to every recipient subscribed to `topic`: WhatsApp first, e-mail if that fails."""
     attempts: list[Attempt] = []
+    sent_to: dict[str, str] = {}               # number -> recipient, so a shared phone gets one copy
     for r in recipients:
         if topic not in r.subscriptions:
+            continue
+        number = "".join(ch for ch in r.whatsapp if ch.isdigit())
+        if number and number in sent_to:
+            attempts.append(Attempt("whatsapp", "skipped", r.name, mask(r.whatsapp),
+                                    f"same number as {sent_to[number]}, already sent"))
             continue
         delivered = False
         if r.whatsapp and wa.configured:
             a = wa.send(r, f"*{title}*\n{text}", attachment)
             attempts.append(a)
             delivered = a.status == "sent"
+            if delivered:
+                sent_to[number] = r.name
         if not delivered and r.email and email.configured:
             a = email.send(r, title, text, attachment, is_fallback=bool(r.whatsapp and wa.configured))
             attempts.append(a)
@@ -252,8 +260,9 @@ def _watch_once(last_status: str | None) -> str:
             conn.execute("INSERT INTO gateway_events (status, detail) VALUES (%s, %s)", (status, ""))
         if last_status == "ready" and status != "ready":
             attempts = dispatch("system", "WhatsApp gateway disconnected",
-                                f"The WhatsApp gateway is now '{status}'. Messages fall back to e-mail until it is "
-                                "linked again (docker compose logs -f whatsapp).", None, load_recipients(),
+                                f"The WhatsApp gateway is now '{status}'. "
+                                + ("Messages fall back to e-mail" if email.configured else "WhatsApp messages are not delivered")
+                                + " until it is linked again (docker compose logs -f whatsapp).", None, load_recipients(),
                                 wa, email, push)
             record("system", attempts)
     with connect() as conn:  # refresh receipts for WhatsApp messages from the last 48 hours

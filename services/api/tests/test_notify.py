@@ -105,3 +105,12 @@ def test_load_recipients_ignores_unknown_fields(tmp_path):
     f.write_text(json.dumps([{"name": "CSO", "whatsapp": "+234", "subscriptions": ["test"], "note": "x"}]))
     assert notify.load_recipients(f)[0].name == "CSO"
     assert notify.load_recipients(tmp_path / "missing.json") == []
+
+
+def test_shared_number_gets_one_copy_and_no_email_is_fine():
+    wa, sent = gateway()
+    gm = Recipient("GM", "management", whatsapp="+234 803 111 2222", subscriptions=["test"])
+    cso = Recipient("CSO", "cso", whatsapp="+2348031112222", subscriptions=["test"])
+    attempts = dispatch("test", "Test", "hi", None, [gm, cso], wa, EmailSender({}), no_push())
+    assert len(sent) == 1
+    assert [(a.recipient, a.status) for a in attempts] == [("GM", "sent"), ("CSO", "skipped")]
