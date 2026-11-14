@@ -31,7 +31,7 @@ needs the NVR's ISAPI pass-through or Virtual Host feature; step 13 tests this.
 | 17 | Our worker vs Frigate | Same cameras, same hour | Choose engine on accuracy, load, licence | After 16 |
 | 18 | Face and plate trial | One entrance camera, then a sample of general cameras | True/false match and plate read rates, day and night; per-camera qualification rule agreed | Needs legal start |
 | 19 | Wall PC capacity | One i5 PC, one 55 inch TV, 32 then 64 tiles, Chromium kiosk | CPU < 70%, no dropped tiles for 1 hour | **Test page built** and checked in the build environment; run on the wall PCs (`docs/task-19-wall-capacity-test.md`) |
-| 20 | NVR limits | Pull 32 sub-streams + rotation main streams from one NVR | No refused connections; NVR outgoing bandwidth recorded | On site |
+| 20 | NVR limits | Pull 32 sub-streams + rotation main streams from one NVR | No refused connections; NVR outgoing bandwidth recorded | Tool ready (hss-nvrload); waiting on site run |
 | 21 | WhatsApp gateway week | Provider A on the dedicated number; email fallback | 7 days, no ban, fallback works | Trial running 2026-11-12 to 11-19; first report delivered |
 | 22 | Wall Agent + Windows installer soak | Prototype on an existing i5 wall PC, 24 hours | Survives Windows restart and a camera outage | **Agent and installer built**; tested on Linux with two screens (crash, freeze, outage, layout change, self-update); 24-hour soak on a Windows wall PC: waiting (`docs/task-22-wall-agent.md`) |
 | 23 | Licence scan | tools/licence-scan (package metadata, bundled native libraries, hand-checked images, models and datasets); CycloneDX SBOM | No disallowed licences | Done 2026-11-12: PASS, runs on every push |

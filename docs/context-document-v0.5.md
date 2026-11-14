@@ -1687,7 +1687,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 
 1. Approve the Proposed decisions in Section 14. **Done**
 2. Choose the default WhatsApp provider. **Done** (Provider A)
-3. Get the dedicated WhatsApp number, recipient numbers and send times. **Waiting**
+3. Get the dedicated WhatsApp number, recipient numbers and send times. **Done** (number linked 2026-11-12; GM and CSO share one number; e-mail on hold)
 4. Start the legal review of face and plate recognition (reviewer, DPIA, lawful basis, signage, limits, client sign-off). **Waiting**
 5. Hardware inventory per NVR. **Done** (probe, 11 Nov): 4 NVRs, 3 models, 112 channels; 2 or 3 more NVRs by end of December
 6. Quotes for GPU server, drives, UPS units and any fourth wall PC. **Waiting**
@@ -1708,14 +1708,14 @@ Numbers stay fixed between versions so sessions can refer to them.
 10. Update the PoC plan to v0.5. **Done** (`docs/poc-plan-v0.5.md`)
 11. Step 0: Docker Compose skeleton. **Done**, on the real server too
 12. Step 1: device capability probe. **Done** on site (4 NVRs); rerun when the new NVRs arrive. Stream tool `hss-streams` built: run on site **Waiting**
-13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **Tool ready** (hss-cameras, docs/task-13-camera-classes.md); waiting on the site run
+13. Discovery across ColorVu, AcuSense, non-AI cameras and two firmware versions; test ISAPI pass-through to PoE cameras. **In progress**: first survey 2026-11-13 reached 55 of 103 online cameras (models, firmware, clocks, zone access); rerun with fixed classification and camera passwords waiting; walk test to do
 14. Device compatibility matrix. Generator **Done**; confirming tiers **To do**
 15. One non-AI camera end to end through a Tier S worker. **Done** on a sample video (0.16 to 0.26 s); run on a site camera: **Waiting**
 16. GPU benchmark on NVIDIA with Intel comparison, with and without recognition. **To do**
 17. Our worker versus Frigate. **To do**
 18. Face and plate trial: entrance camera, then sample general cameras. **To do**
 19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**
-20. NVR connection and bandwidth limits. **To do**
+20. NVR connection and bandwidth limits. **Tool ready** (hss-nvrload, docs/task-20-nvr-limits.md); waiting on the site run
 21. One-week WhatsApp gateway test with email fallback. **In progress**: dedicated number linked and first test report delivered 2026-11-12; 7-day trial runs to 2026-11-19 (e-mail on hold, push as backup)
 22. Wall Agent and Windows installer prototype, 24-hour soak. Agent and installer **Done** (tested on Linux); Windows soak: **Waiting**
 23. License scan of PoC code, models and datasets. **Done 2026-11-12**: 242 components, PASS after replacing PyAV (GPL x264/x265 inside its wheel) with OpenCV decoding; runs on every push (docs/task-23-licence-scan.md)

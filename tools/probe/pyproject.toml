@@ -12,6 +12,7 @@ test = ["pytest>=8"]
 hss-probe = "hss_probe.cli:main"
 hss-streams = "hss_probe.streams:main"
 hss-cameras = "hss_probe.cameras:main"
+hss-nvrload = "hss_probe.nvrload:main"
 
 [build-system]
 requires = ["setuptools>=68"]
