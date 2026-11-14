@@ -1,7 +1,20 @@
 # Task 20: NVR connection and bandwidth limits
 
 **Status:** tool built and tested against a real RTSP server (MediaMTX with Digest login, the
-same login method Hikvision uses): 26 probe tests pass. **Waiting on the site run.**
+same login method Hikvision uses): 26 probe tests pass. **Site runs 2026-11-14 were invalid: the PoC server was on Wi-Fi.**
+
+## Finding: the server must be wired
+
+The first two site runs topped out at 5 to 8 Mbps per NVR, with NVRs skipping up to 65% of
+video packets and pulls timing out, on all four NVR models alike. The cause was the server's
+connection: it reached the NVR network (10.1.3.x, through router 10.6.1.1) over Wi-Fi
+(`wlp3s0`, first hop 2 to 15 ms). Every camera stream comes in over that link, and every wall
+stream goes back out over it.
+
+**Requirement (PoC and production):** the server connects by cable at 1 Gbps, ideally on the
+same switch or VLAN as the NVRs (or with a 1 Gbps routed path). The earlier two-TV wall test
+(task 19) ran through the same Wi-Fi and must be repeated once the server is wired.
+`hss-nvrload` now warns when it detects a wireless route.
 
 ## Why
 

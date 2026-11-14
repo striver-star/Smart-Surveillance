@@ -119,3 +119,11 @@ def test_digest_header_matches_rfc2617_example():
     challenge = 'Digest realm="testrealm@host.com", qop="auth", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", opaque="5ccc069c403ebaf9f0171e9517f40e41"'
     h = digest_header(challenge, "Mufasa", "Circle Of Life", "GET", "/dir/index.html", nc=1, cnonce="0a4f113b")
     assert 'response="6629fae49393a05397450978507c4ef1"' in h
+
+
+def test_route_interface_reads_ip_route(monkeypatch):
+    import subprocess
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0,
+                        stdout="10.1.3.4 via 10.6.1.1 dev wlp3s0 src 10.6.83.82 uid 1000\n"))
+    iface, _ = nvrload.route_interface("10.1.3.4")
+    assert iface == "wlp3s0"

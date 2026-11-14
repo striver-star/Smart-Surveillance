@@ -1714,8 +1714,8 @@ Numbers stay fixed between versions so sessions can refer to them.
 16. GPU benchmark on NVIDIA with Intel comparison, with and without recognition. **To do**
 17. Our worker versus Frigate. **To do**
 18. Face and plate trial: entrance camera, then sample general cameras. **To do**
-19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**
-20. NVR connection and bandwidth limits. **Tool ready** (hss-nvrload, docs/task-20-nvr-limits.md); waiting on the site run
+19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**. The two-TV result (about 20% drops) was measured while the server was on Wi-Fi: repeat once it is wired
+20. NVR connection and bandwidth limits. **Tool ready** (hss-nvrload, docs/task-20-nvr-limits.md). Site runs 2026-11-14 invalid: the PoC server reached the NVRs over Wi-Fi (5 to 8 Mbps ceiling). **Server must be wired at 1 Gbps**; rerun after
 21. One-week WhatsApp gateway test with email fallback. **In progress**: dedicated number linked and first test report delivered 2026-11-12; 7-day trial runs to 2026-11-19 (e-mail on hold, push as backup)
 22. Wall Agent and Windows installer prototype, 24-hour soak. Agent and installer **Done** (tested on Linux); Windows soak: **Waiting**
 23. License scan of PoC code, models and datasets. **Done 2026-11-12**: 242 components, PASS after replacing PyAV (GPL x264/x265 inside its wheel) with OpenCV decoding; runs on every push (docs/task-23-licence-scan.md)

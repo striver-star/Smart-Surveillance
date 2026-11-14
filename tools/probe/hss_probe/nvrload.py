@@ -252,11 +252,31 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+def route_interface(host: str) -> tuple[str, bool]:
+    """(interface, is_wireless) the server uses to reach `host`; ("", False) when it can't tell."""
+    import subprocess
+    try:
+        out = subprocess.run(["ip", "route", "get", host], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return "", False
+    m = re.search(r"\bdev (\S+)", out)
+    if not m:
+        return "", False
+    iface = m.group(1)
+    return iface, Path(f"/sys/class/net/{iface}/wireless").exists() or Path(f"/sys/class/net/{iface}/phy80211").exists()
+
+
 def main(argv=None, client_class=IsapiClient, factory=RtspPull) -> int:
     args = parse_args(argv)
     if not args.host:
         print("Give at least one --host.", file=sys.stderr)
         return 2
+    iface, wireless = route_interface(args.host[0].split(":")[0])
+    if wireless:
+        print(f"WARNING: this server reaches the NVRs over Wi-Fi ({iface}). The results would measure the Wi-Fi, "
+              "not the NVRs. Connect the server by cable first.", file=sys.stderr)
+        if not args.yes and input("Run anyway? [y/N] ").strip().lower() not in ("y", "yes"):
+            return 1
     if not args.yes:
         print("This loads each NVR with many stream pulls for a few minutes. Staff watching the same NVR may "
               "see a short stutter if its limit is reached. No settings are changed.")
