@@ -1713,7 +1713,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 15. One non-AI camera end to end through a Tier S worker. **Done** on a sample video (0.16 to 0.26 s); run on a site camera: **Waiting**
 16. GPU benchmark on NVIDIA with Intel comparison, with and without recognition. **To do**
 17. Our worker versus Frigate. **To do**
-18. Face and plate trial: entrance camera, then sample general cameras. **To do**
+18. Face and plate trial: entrance camera, then sample general cameras. **Engine and trial tool built** 2026-11-14 (docs/task-18-face-plate.md): tested on sample photos and synthetic plates; staged site trial proposed, waiting on the legal gate (task 4); face-model training data waived pending the legal reviewer
 19. Wall PC capacity on an i5 PC and 55 inch TV (32 and 64 tiles, three TVs on one PC). Test page **Done**; site runs A to C: **Waiting**. The two-TV result (about 20% drops) was measured while the server was on Wi-Fi: repeat once it is wired
 20. NVR connection and bandwidth limits. **Tool ready** (hss-nvrload, docs/task-20-nvr-limits.md). Site runs 2026-11-14 invalid: the PoC server reached the NVRs over Wi-Fi (5 to 8 Mbps ceiling). **Server must be wired at 1 Gbps**; rerun after
 21. One-week WhatsApp gateway test with email fallback. **In progress**: dedicated number linked and first test report delivered 2026-11-12; 7-day trial runs to 2026-11-19 (e-mail on hold, push as backup)

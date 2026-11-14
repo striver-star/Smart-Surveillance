@@ -1,8 +1,8 @@
 # Licence scan and SBOM (task 23)
 
-Generated 2026-11-12 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
+Generated 2026-11-14 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 242 components: 232 ok, 10 conditional.
+**Result: PASS.** 248 components: 236 ok, 2 waived, 10 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -24,14 +24,16 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | npm: node-webpmux | 3.2.1 | LGPL-2.1-or-later | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
 | pypi: psycopg | 3.2.3 | LGPL-3.0-only | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
 | pypi: psycopg-binary | 3.2.3 | LGPL-3.0-only | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
+| dataset: Face recognition training sets (training data of SFace: CASIA-WebFace, VGGFace2, MS1M per the SFace paper) | various | Non-commercial | waived | Accepted for the PoC only, pending the legal reviewer (task 4): weights are Apache-2.0, datasets not redistributed or used by us. Decision owner: builder + legal reviewer before go-live; alternative is a model trained on permissively licensed or consented data. OpenCV Zoo does not state the exact training set. The candidate sets are research-only, and MS-Celeb-1M was withdrawn by Microsoft in 2019. Needs the legal reviewer's view before go-live. (checked 2026-11-14) |
+| dataset: WIDER FACE (training data of YuNet) | 2016 | Non-commercial | waived | Accepted for the PoC only, pending the legal reviewer (task 4): weights are MIT, dataset not redistributed or used by us. Decision owner: builder + legal reviewer before go-live. Released for non-commercial research. Our use is of the MIT-licensed weights only. Needs the legal reviewer's view (Section 19 excludes non-commercial datasets). (checked 2026-11-14) |
 
 ## Licences in use
 
 | Licence | Components |
 | --- | --- |
-| MIT | 146 |
+| MIT | 147 |
 | ISC | 27 |
-| Apache-2.0 | 23 |
+| Apache-2.0 | 26 |
 | BSD-3-Clause | 15 |
 | BSD-2-Clause | 6 |
 | Proprietary-free | 5 |
@@ -39,6 +41,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | LGPL-3.0-only | 2 |
 | PSF-2.0 | 2 |
 | LGPL-2.1-or-later | 2 |
+| Non-commercial | 2 |
 | MPL-2.0 | 1 |
 | Apache-2.0 OR MIT | 1 |
 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 1 |
@@ -58,6 +61,8 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | build-tool | NSIS | 3.x | Zlib | ok | Builds the Windows Wall Agent installer |
 | bundled | FFmpeg (inside opencv-python-headless) |  | LGPL-2.1-or-later | conditional | ai-worker |
 | dataset | COCO 2017 (training data of the YOLOX weights) | 2017 | CC-BY-4.0 | ok | Not shipped or used by us; listed because the model weights were trained on it |
+| dataset | Face recognition training sets (training data of SFace: CASIA-WebFace, VGGFace2, MS1M per the SFace paper) | various | Non-commercial | waived | Not shipped or used by us; the SFace weights were trained on research face datasets |
+| dataset | WIDER FACE (training data of YuNet) | 2016 | Non-commercial | waived | Not shipped or used by us; the YuNet weights were trained on it (libfacedetection.train) |
 | exception | Hikvision NVRs, cameras and firmware | site | Proprietary-free | conditional | Client-owned devices, reached only through ISAPI and RTSP |
 | exception | NVIDIA driver and CUDA | server | Proprietary-free | conditional | GPU driver on the AI server, installed from NVIDIA |
 | exception | WhatsApp network | service | Proprietary-free | conditional | External messaging network used through a linked phone |
@@ -69,8 +74,12 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | image | nvcr.io/nvidia/tensorrt | 24.08-py3 | Proprietary-free | conditional | Base image for the GPU AI worker (Dockerfile.gpu), built on the client's server |
 | image | postgis/postgis | 16-3.5 | PostgreSQL AND GPL-2.0-or-later | conditional | Database, separate container, unmodified |
 | image | python | 3.12-slim | PSF-2.0 | ok | Base image for the API and the AI worker |
+| media | OpenCV sample photos lena.jpg and messi5.jpg | 4.x | Apache-2.0 | ok | Face tests only (fetch-models.sh --demo); never shipped |
 | media | OpenCV sample video vtest.avi | 4.x | Apache-2.0 | ok | Demo and tests only (fetch-models.sh --demo), never shipped |
+| model | PaddleOCR PP-OCRv4 text detection and recognition (ONNX, from the RapidOCR 1.4.4 wheel) | v4 | Apache-2.0 | ok | Number plate reading (task 18) |
+| model | SFace face recognizer (OpenCV Zoo, face_recognition_sface_2021dec.onnx) | 2021dec | Apache-2.0 | ok | Face embeddings for watchlist matching (task 18) |
 | model | YOLOX-S and YOLOX-Nano ONNX weights | 0.1.1rc0 | Apache-2.0 | ok | Person and vehicle detection (Tier S) |
+| model | YuNet face detector (OpenCV Zoo, face_detection_yunet_2023mar.onnx) | 2023mar | MIT | ok | Face detection for watchlist recognition (task 18) |
 | npm | @babel/code-frame | 7.29.7 | MIT | ok | whatsapp-gateway |
 | npm | @babel/helper-validator-identifier | 7.29.7 | MIT | ok | whatsapp-gateway |
 | npm | @isaacs/cliui | 8.0.2 | ISC | ok | whatsapp-gateway |

@@ -32,8 +32,9 @@ jobs:
         run: |
           python -m pip install -r services/api/requirements.txt pytest
           cd services/api && python -m pytest -q
-      - name: AI worker
+      - name: AI worker (models and test media downloaded with checksums)
         run: |
+          bash tools/fetch-models.sh --demo
           python -m pip install -r services/ai-worker/requirements.txt pytest
           cd services/ai-worker && python -m pytest -q
       - name: Probe and stream tool

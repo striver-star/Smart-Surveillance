@@ -1,0 +1,5 @@
+{
+  "_comment": "Items checked by hand and accepted for now, with the reason. Each needs a decision owner.",
+  "dataset:WIDER FACE (training data of YuNet)": "Accepted for the PoC only, pending the legal reviewer (task 4): weights are MIT, dataset not redistributed or used by us. Decision owner: builder + legal reviewer before go-live.",
+  "dataset:Face recognition training sets (training data of SFace: CASIA-WebFace, VGGFace2, MS1M per the SFace paper)": "Accepted for the PoC only, pending the legal reviewer (task 4): weights are Apache-2.0, datasets not redistributed or used by us. Decision owner: builder + legal reviewer before go-live; alternative is a model trained on permissively licensed or consented data."
+}

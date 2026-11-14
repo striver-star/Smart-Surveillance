@@ -3,7 +3,7 @@
  "specVersion": "1.5",
  "version": 1,
  "metadata": {
-  "timestamp": "2026-11-12T00:00:00Z",
+  "timestamp": "2026-11-14T00:00:00Z",
   "component": {
    "type": "application",
    "name": "HSS platform (proof of concept)"
@@ -6745,6 +6745,168 @@
     {
      "name": "hss:used-by",
      "value": ""
+    }
+   ]
+  },
+  {
+   "type": "machine-learning-model",
+   "name": "YuNet face detector (OpenCV Zoo, face_detection_yunet_2023mar.onnx)",
+   "version": "2023mar",
+   "group": "model",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet"
+    }
+   ]
+  },
+  {
+   "type": "machine-learning-model",
+   "name": "SFace face recognizer (OpenCV Zoo, face_recognition_sface_2021dec.onnx)",
+   "version": "2021dec",
+   "group": "model",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface"
+    }
+   ]
+  },
+  {
+   "type": "data",
+   "name": "WIDER FACE (training data of YuNet)",
+   "version": "2016",
+   "group": "dataset",
+   "licenses": [
+    {
+     "expression": "Non-commercial"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "waived"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "http://shuoyang1213.me/WIDERFACE/"
+    }
+   ]
+  },
+  {
+   "type": "data",
+   "name": "Face recognition training sets (training data of SFace: CASIA-WebFace, VGGFace2, MS1M per the SFace paper)",
+   "version": "various",
+   "group": "dataset",
+   "licenses": [
+    {
+     "expression": "Non-commercial"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "waived"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://arxiv.org/abs/2205.12010"
+    }
+   ]
+  },
+  {
+   "type": "machine-learning-model",
+   "name": "PaddleOCR PP-OCRv4 text detection and recognition (ONNX, from the RapidOCR 1.4.4 wheel)",
+   "version": "v4",
+   "group": "model",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/PaddlePaddle/PaddleOCR"
+    }
+   ]
+  },
+  {
+   "type": "data",
+   "name": "OpenCV sample photos lena.jpg and messi5.jpg",
+   "version": "4.x",
+   "group": "media",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/opencv/opencv/tree/4.x/samples/data"
     }
    ]
   }
