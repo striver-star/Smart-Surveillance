@@ -67,6 +67,12 @@ class RtspPull:
         self.session = ""
         self.bytes = 0
         self.packets = 0
+        self.clock_rate = 90000          # video RTP clock (from the SDP; 90 kHz for H.264/H.265)
+        self.media_ticks = 0             # video time received, in RTP clock ticks (wrap-safe)
+        self._last_ts: int | None = None
+        self.video_packets = 0
+        self.lost = 0                    # video RTP packets skipped by the sender (sequence gaps)
+        self._last_seq: int | None = None
         self._buf = b""
 
     # ---------------------------------------------------------------- protocol
@@ -120,6 +126,20 @@ class RtspPull:
         size = int.from_bytes(self._buf[2:4], "big")
         while len(self._buf) < 4 + size:
             self._recv_more()
+        if self._buf[1] == 0 and size >= 12:          # RTP on the video channel: track its timestamp
+            seq = int.from_bytes(self._buf[6:8], "big")
+            if self._last_seq is not None:
+                gap = (seq - self._last_seq - 1) & 0xFFFF
+                if gap < 3000:
+                    self.lost += gap
+            self._last_seq = seq
+            self.video_packets += 1
+            ts = int.from_bytes(self._buf[8:12], "big")
+            if self._last_ts is not None:
+                step = (ts - self._last_ts) & 0xFFFFFFFF
+                if step < 0x80000000:                 # ignore the odd backwards timestamp
+                    self.media_ticks += step
+            self._last_ts = ts
         self._buf = self._buf[4 + size:]
         self.bytes += size
         self.packets += 1
@@ -157,6 +177,9 @@ class RtspPull:
         video = sdp.split("m=video", 1)
         if len(video) < 2:
             raise RtspError("no video track in the stream description")
+        rate = re.search(r"a=rtpmap:\d+ [\w.-]+/(\d+)", video[1])
+        if rate:
+            self.clock_rate = int(rate.group(1))
         control = re.search(r"a=control:(\S+)", video[1])
         track = control.group(1) if control else ""
         track_url = track if track.startswith("rtsp://") else urljoin(base, track) if track and track != "*" else self.url
@@ -183,6 +206,10 @@ class RtspPull:
             raise RtspError(f"no data for {self.timeout:.0f} s") from exc
         except OSError as exc:
             raise RtspError(f"connection error: {exc}") from exc
+
+    @property
+    def media_seconds(self) -> float:
+        return self.media_ticks / self.clock_rate
 
     def close(self) -> None:
         if self.sock is None:

@@ -48,6 +48,10 @@ class Puller(threading.Thread):
     def bytes(self) -> int:
         return self.client.bytes
 
+    def counters(self) -> tuple[int, float, int, int]:
+        c = self.client
+        return c.bytes, getattr(c, "media_seconds", 0.0), getattr(c, "video_packets", 0), getattr(c, "lost", 0)
+
     def run(self) -> None:
         try:
             self.client.open()
@@ -87,13 +91,45 @@ def streaming_sessions(client: IsapiClient) -> int | None:
     return len(re.findall(r"<StreamingSessionStatus>", r.text))
 
 
+def precheck(user: str, password: str, urls: list[tuple[str, str]], *, seconds: float = 6, batch: int = 4,
+             timeout: float = 10.0, factory=RtspPull, log=print) -> tuple[list[tuple[str, str]], dict[str, str]]:
+    """Pull each camera on its own (a few at a time) to set aside faulty cameras before the ramp."""
+    healthy, problems = [], {}
+    for i in range(0, len(urls), batch):
+        stop = threading.Event()
+        group = [Puller(u, lbl, user, password, time.monotonic() + 3600, stop, timeout, factory) for u, lbl in urls[i:i + batch]]
+        for p in group:
+            p.start()
+        time.sleep(seconds)
+        stop.set()
+        for p in group:
+            p.join(timeout=5)
+            _, media, _, _ = p.counters()
+            if p.result.error and not p.result.opened:
+                problems[p.result.label] = p.result.error
+            elif p.result.error:
+                problems[p.result.label] = p.result.error
+            elif media < 0.4 * seconds:
+                problems[p.result.label] = f"only {media:.1f} s of video in {seconds:.0f} s (camera stream not flowing)"
+            else:
+                healthy.append((p.result.url, p.result.label))
+    if problems:
+        log(f"  set aside {len(problems)} camera(s) with their own problems: " +
+            "; ".join(f"{k}: {v}" for k, v in list(problems.items())[:6]))
+    return healthy, problems
+
+
 def ramp(host: str, user: str, password: str, urls: list[tuple[str, str]], *, step: int, hold: float,
-         warmup: float = 3.0, min_ratio: float = 0.5, timeout: float = 10.0, isapi: IsapiClient | None = None,
-         factory=RtspPull, log=print) -> dict:
+         warmup: float = 3.0, keep_up: float = 0.9, max_loss: float = 0.01, timeout: float = 10.0,
+         isapi: IsapiClient | None = None, factory=RtspPull, log=print) -> dict:
+    """Add `step` pulls at a time. A step fails when the NVR refuses or drops a pull, a pull's video
+    falls behind real time (less than `keep_up` seconds of video per second), or more than
+    `max_loss` of a pull's video packets are skipped. Bitrate is reported but not judged: with VBR a
+    quiet scene sends less, which is normal."""
     stop = threading.Event()
-    end = time.monotonic() + 24 * 3600          # pulls run until we stop them
+    end = time.monotonic() + 24 * 3600
     active: list[Puller] = []
-    baseline: dict[str, float] = {}             # each pull's kbps in the step it started
+    first_rate: dict[str, float] = {}
     steps = []
     verdict = ""
     try:
@@ -105,39 +141,47 @@ def ramp(host: str, user: str, password: str, urls: list[tuple[str, str]], *, st
                 p.opened.wait(timeout + 2)
             active += new
             time.sleep(warmup)
-            before = {p.result.label: p.bytes for p in active}
+            before = {p.result.label: p.counters() for p in active}
             t0 = time.monotonic()
             time.sleep(hold)
             secs = time.monotonic() - t0
-            rates = {p.result.label: (p.bytes - before[p.result.label]) * 8 / 1000 / secs for p in active}
+            stats = {}
+            for p in active:
+                b0, m0, v0, l0 = before[p.result.label]
+                b1, m1, v1, l1 = p.counters()
+                pk = (v1 - v0) + (l1 - l0)
+                stats[p.result.label] = {"kbps": (b1 - b0) * 8 / 1000 / secs, "keep_up": (m1 - m0) / secs,
+                                         "loss": (l1 - l0) / pk if pk else 0.0}
             for p in new:
                 if p.alive_ok:
-                    baseline[p.result.label] = rates[p.result.label]
+                    first_rate[p.result.label] = stats[p.result.label]["kbps"]
+            ok_pulls = [p for p in active if p.alive_ok]
             refused = [p for p in new if not p.result.opened]
             dropped = [p for p in active if p.result.opened and p.result.error]
-            slow = [p for p in active if p.alive_ok and baseline.get(p.result.label, 0) > 0
-                    and rates[p.result.label] < min_ratio * baseline[p.result.label]]
-            ok_pulls = [p for p in active if p.alive_ok]
-            total_mbps = sum(rates[p.result.label] for p in ok_pulls) / 1000
-            worst = min((rates[p.result.label] / baseline[p.result.label] for p in ok_pulls
-                         if baseline.get(p.result.label)), default=1.0)
-            nvr_sessions = streaming_sessions(isapi) if isapi else None
+            behind = [p for p in ok_pulls if stats[p.result.label]["keep_up"] < keep_up]
+            lossy = [p for p in ok_pulls if stats[p.result.label]["loss"] > max_loss]
+            total_mbps = sum(stats[p.result.label]["kbps"] for p in ok_pulls) / 1000
+            slowest_keep = min((stats[p.result.label]["keep_up"] for p in ok_pulls), default=1.0)
+            sessions = streaming_sessions(isapi) if isapi else None
+            if sessions is not None and sessions < len(ok_pulls):
+                sessions = None                      # this firmware doesn't list RTSP sessions there
             row = {
                 "pulls_requested": len(active), "pulls_ok": len(ok_pulls), "total_mbps": round(total_mbps, 1),
-                "slowest_vs_start_pct": round(100 * worst), "nvr_sessions": nvr_sessions,
+                "slowest_keep_up_pct": round(100 * min(slowest_keep, 1.0)),
+                "max_loss_pct": round(100 * max((stats[p.result.label]["loss"] for p in ok_pulls), default=0.0), 2),
+                "nvr_sessions": sessions,
                 "refused": [f"{p.result.label}: {p.result.error}" for p in refused],
                 "dropped": [f"{p.result.label}: {p.result.error}" for p in dropped],
-                "slowed": [f"{p.result.label}: {rates[p.result.label]:.0f} of {baseline[p.result.label]:.0f} kbps"
-                           for p in slow],
+                "behind": [f"{p.result.label}: {100 * stats[p.result.label]['keep_up']:.0f}% of real time" for p in behind],
+                "lossy": [f"{p.result.label}: {100 * stats[p.result.label]['loss']:.1f}% packets skipped" for p in lossy],
             }
             steps.append(row)
-            log(f"  {len(active):3d} pulls: {len(ok_pulls)} ok, {total_mbps:6.1f} Mbps, slowest {row['slowest_vs_start_pct']}% "
-                f"of its start" + (f", NVR reports {nvr_sessions} sessions" if nvr_sessions is not None else "")
-                + (f"; refused {len(refused)}" if refused else "") + (f"; dropped {len(dropped)}" if dropped else "")
-                + (f"; slowed {len(slow)}" if slow else ""))
-            if refused or dropped or slow:
-                first = (refused or dropped)[0].result.error if (refused or dropped) else row["slowed"][0]
-                verdict = f"first trouble at {len(active)} pulls ({first})"
+            trouble = row["refused"] + row["dropped"] + row["behind"] + row["lossy"]
+            log(f"  {len(active):3d} pulls: {len(ok_pulls)} ok, {total_mbps:6.1f} Mbps, video keeps up "
+                f"{row['slowest_keep_up_pct']}% (worst), packets skipped {row['max_loss_pct']}% (worst)"
+                + (f"; {len(trouble)} problem(s)" if trouble else ""))
+            if trouble:
+                verdict = f"first trouble at {len(active)} pulls ({trouble[0]})"
                 break
         if not verdict:
             verdict = f"no limit reached: {len(urls)} pulls served (the most this test asked for)"
@@ -145,7 +189,7 @@ def ramp(host: str, user: str, password: str, urls: list[tuple[str, str]], *, st
         stop.set()
         for p in active:
             p.join(timeout=5)
-    ok_steps = [s for s in steps if not (s["refused"] or s["dropped"] or s["slowed"])]
+    ok_steps = [s for s in steps if not (s["refused"] or s["dropped"] or s["behind"] or s["lossy"])]
     best = ok_steps[-1] if ok_steps else None
     return {"host": host, "steps": steps, "verdict": verdict,
             "max_ok_pulls": best["pulls_ok"] if best else 0, "max_ok_mbps": best["total_mbps"] if best else 0.0}
@@ -154,8 +198,10 @@ def ramp(host: str, user: str, password: str, urls: list[tuple[str, str]], *, st
 def report(results: list[dict], stream: str) -> str:
     out = ["# NVR connection and bandwidth limits (task 20)", "",
            f"Measured {datetime.now().strftime('%Y-%m-%d %H:%M')} with `hss-nvrload` ({stream}-streams). "
-           "Each step adds pulls and holds them; a step fails if the NVR refuses or drops a pull, or a pull "
-           "falls below half of its starting rate.", "",
+           "Each camera is first pulled on its own; cameras with their own faults are set aside. Then pulls "
+           "are added in steps and held; a step fails if the NVR refuses or drops a pull, a pull's video falls "
+           "behind real time, or the NVR skips more than 1% of its packets. Bitrate is shown but not judged: "
+           "with VBR, quiet scenes send less.", "",
            "| NVR | Model | Online channels | Result | Most pulls without trouble | Their total |",
            "| --- | --- | --- | --- | --- | --- |"]
     for r in results:
@@ -168,12 +214,19 @@ def report(results: list[dict], stream: str) -> str:
             out.append(f"Datasheet: {dmin} Mbps incoming, {dout} Mbps outgoing. Sessions already open before the "
                        f"test (iVMS, gateway, phones): {r['sessions_before'] if r['sessions_before'] is not None else 'not reported'}.")
             out.append("")
-        out += ["| Pulls | OK | Total Mbps | Slowest vs start | NVR sessions | Problems |",
+        if r.get("error"):
+            out += [f"**Not tested:** {r['error']}", ""]
+            continue
+        if r.get("camera_problems"):
+            out += [f"Set aside before the ramp ({len(r['camera_problems'])} camera(s) with their own problems; "
+                    "they don't count against the NVR):", ""]
+            out += [f"- {k}: {v}" for k, v in r["camera_problems"].items()] + [""]
+        out += ["| Pulls | OK | Total Mbps | Video keeps up (worst) | Packets skipped (worst) | Problems |",
                 "| --- | --- | --- | --- | --- | --- |"]
         for s in r["steps"]:
-            problems = "; ".join(s["refused"] + s["dropped"] + s["slowed"])[:300] or "none"
-            out.append(f"| {s['pulls_requested']} | {s['pulls_ok']} | {s['total_mbps']} | {s['slowest_vs_start_pct']}% | "
-                       f"{s['nvr_sessions'] if s['nvr_sessions'] is not None else '-'} | {problems} |")
+            problems = "; ".join(s["refused"] + s["dropped"] + s["behind"] + s["lossy"])[:300] or "none"
+            out.append(f"| {s['pulls_requested']} | {s['pulls_ok']} | {s['total_mbps']} | {s['slowest_keep_up_pct']}% | "
+                       f"{s['max_loss_pct']}% | {problems} |")
     out += ["", "## What it means for the platform", "",
             "- The gateway pulls each camera once and shares it with every viewer, so one pull per camera is "
             "the normal load. The NVR must also serve its own iVMS and phone viewers, so keep a margin.",
@@ -193,7 +246,7 @@ def parse_args(argv=None):
     p.add_argument("--hold", type=float, default=20, help="seconds to measure each step (default 20)")
     p.add_argument("--max-pulls", type=int, default=0,
                    help="stop after this many pulls (default: one per online channel; use e.g. 64 to find the limit)")
-    p.add_argument("--min-ratio", type=float, default=0.5, help="a pull below this share of its start rate fails")
+    p.add_argument("--no-precheck", action="store_true", help="skip pulling each camera on its own first")
     p.add_argument("--yes", action="store_true", help="don't ask for confirmation")
     p.add_argument("--out", type=Path, default=Path("probe-output/nvrload"))
     return p.parse_args(argv)
@@ -221,10 +274,30 @@ def main(argv=None, client_class=IsapiClient, factory=RtspPull) -> int:
             online = sorted(c for c, ch in chans.items() if ch.get("online"))
             before = streaming_sessions(isapi)
             total = args.max_pulls or len(online)
-            print(f"{host}: {dev['model'] or '?'}, {len(online)} channels online; ramping to {total} {args.stream}-stream "
-                  f"pulls in steps of {args.step} ({args.hold:.0f} s each)", flush=True)
-            res = ramp(host, user, password, plan_urls(host.split(":")[0], online, args.stream, total, args.rtsp_port), step=args.step,
-                       hold=args.hold, min_ratio=args.min_ratio, isapi=isapi, factory=factory)
+            if not online:
+                st = isapi.get("/ISAPI/ContentMgmt/InputProxy/channels/status").status
+                why = ("could not read the channel list from the NVR "
+                       f"({'no answer' if st == 0 else f'HTTP {st}'}); check it is up and the login works")
+                print(f"{host}: {why}", flush=True)
+                results.append({"host": host, "model": dev["model"], "firmware": dev["firmware"], "online": 0,
+                                "error": why, "verdict": "not tested", "steps": [], "max_ok_pulls": 0, "max_ok_mbps": 0.0})
+                continue
+            host_ip = host.split(":")[0]
+            problems: dict[str, str] = {}
+            one_each = plan_urls(host_ip, online, args.stream, len(online), args.rtsp_port)
+            if not args.no_precheck:
+                print(f"{host}: {dev['model'] or '?'}, {len(online)} channels online; checking each camera on its own ...",
+                      flush=True)
+                healthy, problems = precheck(user, password, one_each, factory=factory)
+                good = [int(lbl[2:4]) for _, lbl in healthy]
+            else:
+                good = online
+            total = args.max_pulls or len(good)
+            print(f"  ramping to {total} {args.stream}-stream pulls of {len(good)} healthy cameras in steps of "
+                  f"{args.step} ({args.hold:.0f} s each)", flush=True)
+            res = ramp(host, user, password, plan_urls(host_ip, good, args.stream, total, args.rtsp_port),
+                       step=args.step, hold=args.hold, isapi=isapi, factory=factory)
+            res["camera_problems"] = problems
         finally:
             isapi.close()
         configured = sum((streams.get(c, {}).get(args.stream, {}).get("bitrate_kbps") or 0) for c in online) / 1000
