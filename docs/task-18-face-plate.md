@@ -99,7 +99,9 @@ Please keep the client's written OK for this stage with the trial records.
 4. Repeat after dark with `--out /data/trial/suitability-night` (and `docker rm hss-suitability` first).
 5. Send back `trial-output/suitability-day/suitability.md` and the night one. They contain only counts.
 
-## Running the trial on the server
+## Running the full trial (stages 2 and 3 only, after legal approval)
+
+Not for stage 1. On a live camera this tool refuses to start without `--approval "<legal approval reference>"`.
 
 1. Update and fetch the new models:
    ```bash

@@ -53,3 +53,8 @@ def test_no_face_template_is_ever_computed(tmp_path, monkeypatch):
     text = (tmp_path / "out" / "suitability.md").read_text()
     assert "| Door | 512x512 |" in text and "**suitable**" in text
     assert not list((tmp_path / "out").glob("*.jpg")), "no images are written"
+
+
+def test_full_trial_refuses_live_cameras_without_approval():
+    from worker import recognition_trial
+    assert recognition_trial.main(["--source", "rtsp://10.1.3.4:554/Streaming/Channels/2201", "--out", "/tmp/x"]) == 3

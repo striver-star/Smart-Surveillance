@@ -51,6 +51,11 @@ def crop_roi(image, roi):
 
 
 def run(args) -> int:
+    if not os.path.exists(args.source) and not args.approval:
+        log.error("This is the full recognition trial (stages 2 and 3: face templates and plate reading). "
+                  "On a live camera it needs --approval with the legal approval reference for that stage. "
+                  "For stage 1 (camera suitability, no identification) use: python -m worker.suitability")
+        return 3
     models = Path(args.models)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -188,6 +193,7 @@ def pct(n, d):
 def summary(args, stats, eye_sizes, reasons, nonmatch_best, matches, plates, timings, notes, watchlist) -> str:
     q = statistics.quantiles(eye_sizes, n=10) if len(eye_sizes) >= 10 else None
     lines = [f"# Recognition trial: {args.name}", "",
+             *( [f"Approval reference: {args.approval}", ""] if args.approval else [] ),
              f"{datetime.now():%Y-%m-%d %H:%M}, source `{args.source}`, {stats['frames']} frames analysed "
              f"at up to {args.fps} per second.", ""]
     if not args.no_faces:
@@ -247,6 +253,7 @@ def main(argv=None) -> int:
     p.add_argument("--no-faces", action="store_true")
     p.add_argument("--no-plates", action="store_true")
     p.add_argument("--save-matches", action="store_true", help="save a crop of each watchlist match (evidence)")
+    p.add_argument("--approval", default="", help="legal approval reference for this trial stage (needed for live cameras)")
     p.add_argument("--out", default="/data/trial")
     return run(p.parse_args(argv))
 
