@@ -2,7 +2,7 @@
 
 **Status (2026-11-14):** engine and trial tool built and tested on sample photos and synthetic
 plates (14 AI worker tests pass, licence scan passes with two waivers for the legal reviewer).
-**Site trial waiting on the legal gate (task 4)** for any step that identifies people.
+**Stage 1 (camera suitability, no identification) approved 2026-11-14; tool ready.** Stages 2 to 4 wait on the legal gate (task 4).
 
 This is engineering guidance, not legal advice. Every step marked "legal" needs the legal
 reviewer's approval first.
@@ -64,6 +64,40 @@ Suggested cameras (from the survey): MAIN GATE ENTERANCE (NVR4 ch22, DS-2CD2T43G
 2688x1520), SECURITY CHECK 1 and 2 (NVR4 ch23 and ch17), Main Gate Exit 1 and 2 (NVR_1 ch19 and
 ch2), Gate House and Gate Arrival 02 (10.1.3.5 ch6 and ch10). Recognition needs the **main
 stream**: sub-streams are too small for faces.
+
+## Stage 1 on the server: camera suitability (approved 2026-11-14)
+
+`worker.suitability` watches each camera's main stream in turn, finds faces, measures them (size,
+turn, blur, brightness) and forgets them. It also counts people in view, so "nobody passed" and
+"faces too small" can be told apart. **Nobody is identified:** no face templates are made, no
+watchlist is used, no plates are read, no images are saved (an automated test enforces this).
+Please keep the client's written OK for this stage with the trial records.
+
+1. Update, fetch the models and rebuild the AI worker:
+   ```bash
+   cd ~/Smart-Surveillance && git pull && bash tools/fetch-models.sh
+   ```
+   ```bash
+   docker compose --profile ai build ai-worker
+   ```
+2. Give the NVR login for this shell only (not saved anywhere):
+   ```bash
+   read -p "NVR user: " HSS_NVR_USER; read -s -p "NVR password: " HSS_NVR_PASSWORD; echo; export HSS_NVR_USER HSS_NVR_PASSWORD
+   ```
+3. Start the run in the background (7 entrance cameras, 20 minutes each, about 2 hours 20 minutes).
+   Start it about 7:00, so the morning arrivals are covered:
+   ```bash
+   mkdir -p trial-output && docker compose --profile ai run -d --name hss-suitability \
+     --user "$(id -u):$(id -g)" -e HSS_NVR_USER -e HSS_NVR_PASSWORD -v "$PWD/trial-output:/data/trial" \
+     ai-worker python -m worker.suitability --minutes 20 --out /data/trial/suitability-day \
+     --camera "Main gate entrance=10.1.3.4:22" --camera "Security check 1=10.1.3.4:23" \
+     --camera "Security check 2=10.1.3.4:17" --camera "Main gate exit 1=10.1.3.6:19" \
+     --camera "Main gate exit 2=10.1.3.6:2" --camera "Gate house=10.1.3.5:6" --camera "Gate arrival 02=10.1.3.5:10"
+   ```
+   Follow it with `docker logs -f hss-suitability` (Ctrl+C stops following, not the run). Results
+   so far are written after each camera, so a stopped run still leaves a report.
+4. Repeat after dark with `--out /data/trial/suitability-night` (and `docker rm hss-suitability` first).
+5. Send back `trial-output/suitability-day/suitability.md` and the night one. They contain only counts.
 
 ## Running the trial on the server
 
