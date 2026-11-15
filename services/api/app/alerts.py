@@ -98,6 +98,7 @@ class Rule(BaseModel):
     escalate_after_min: int | None = Field(default=None, ge=1, le=1440)
     cooldown_s: int = Field(default=120, ge=0, le=86400)
     notify_topic: str = Field(default="critical", pattern="^(critical|device|system)$")   # who gets WhatsApp and push
+    ptz_presets: list[str] = Field(default_factory=list, max_length=8)   # PTZ cameras to turn: ["nvr4-ch05:3"]
 
 
 def load_rules() -> list[dict]:
@@ -236,6 +237,8 @@ def on_event(event: dict) -> str | None:
         add_timeline(conn, alert_id, "raised", f"Raised by rule '{rule['name']}'")
     alert = get_alert(alert_id)
     broker.publish({"kind": "new", "alert": alert})
+    if rule.get("ptz_presets"):
+        threading.Thread(target=_ptz_for_alert, args=(rule["ptz_presets"], alert_id), daemon=True).start()
     channels = set(rule.get("channels", []))
     if channels & {"push", "whatsapp"}:
         threading.Thread(target=_notify, args=(alert, channels, rule.get("notify_topic") or "critical"), daemon=True).start()
@@ -247,6 +250,18 @@ def on_event(event: dict) -> str | None:
         except Exception:
             log.exception("requesting a clip for alert %s failed", alert_id)
     return str(alert_id)
+
+
+def _ptz_for_alert(targets: list[str], alert_id) -> None:
+    try:
+        from .ptz import run_rule_presets
+        done = run_rule_presets(targets, str(alert_id))
+        if done:
+            with connect() as conn:
+                add_timeline(conn, alert_id, "ptz", "PTZ: " + "; ".join(done))
+            broker.publish({"kind": "updated", "alert": get_alert(alert_id)})
+    except Exception:
+        log.exception("PTZ presets for alert %s failed", alert_id)
 
 
 def _alert_text(a: dict, prefix: str = "") -> tuple[str, str]:

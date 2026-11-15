@@ -392,6 +392,60 @@ function eventDrawer(e) {
   document.body.append(scrim);
 }
 
+/* ---------------- PTZ control ---------------- */
+const ptzCache = {};
+async function ptzPanel(cameraId, label) {
+  let info = ptzCache[cameraId];
+  if (!info) {
+    try { info = await api(`/ptz/${encodeURIComponent(cameraId)}`); } catch (ex) { info = { supported: false, why: ex.message }; }
+    if (info.supported || info.why === undefined) ptzCache[cameraId] = info;
+  }
+  if (!info.supported) return h("div", { class: "faint ptz-none" }, `${label}: no PTZ`, info.why && !/added in Devices/.test(info.why) ? ` (${info.why})` : "");
+  let speed = Number(localStorage.getItem("hss.ptz.speed") || 50), timer = null, moving = false;
+  const msg = h("div", { class: "faint", style: "font-size:12px;min-height:16px" }, info.held_by ? `${info.held_by} is steering it` : "");
+  const send = async (pan, tilt, zoom) => {
+    try { await api(`/ptz/${encodeURIComponent(cameraId)}/move`, { method: "POST", body: { pan: Math.round(pan * speed), tilt: Math.round(tilt * speed), zoom: Math.round(zoom * speed) } }); msg.textContent = ""; }
+    catch (ex) { msg.textContent = ex.message; end(false); }
+  };
+  const start = (pan, tilt, zoom) => { if (moving) return; moving = true; send(pan, tilt, zoom); timer = setInterval(() => send(pan, tilt, zoom), 500); };
+  const end = (tell = true) => {
+    if (!moving) return; moving = false; clearInterval(timer);
+    if (tell) api(`/ptz/${encodeURIComponent(cameraId)}/stop`, { method: "POST", body: {} }).catch(() => {});
+  };
+  state.cleanup.push(() => end());
+  const hold = (label, title, pan, tilt, zoom) => h("button", { class: "ptz-btn", title, "aria-label": title,
+    onpointerdown: e => { e.preventDefault(); e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); start(pan, tilt, zoom); },
+    onpointerup: () => end(), onpointercancel: () => end(), onlostpointercapture: () => end(),
+    onkeydown: e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(pan, tilt, zoom); } },
+    onkeyup: e => { if (e.key === " " || e.key === "Enter") end(); } }, label);
+  const pad = h("div", { class: "ptz-pad" },
+    hold("↖", "Up and left", -1, 1, 0), hold("↑", "Up", 0, 1, 0), hold("↗", "Up and right", 1, 1, 0),
+    hold("←", "Left", -1, 0, 0), h("span", { class: "ptz-dot" }), hold("→", "Right", 1, 0, 0),
+    hold("↙", "Down and left", -1, -1, 0), hold("↓", "Down", 0, -1, 0), hold("↘", "Down and right", 1, -1, 0));
+  const zoom = h("div", { class: "ptz-zoom" }, hold("−", "Zoom out", 0, 0, -1), h("span", { class: "faint" }, "zoom"), hold("+", "Zoom in", 0, 0, 1));
+  const sp = h("input", { type: "range", min: 10, max: 100, step: 10, value: speed, "aria-label": "Speed", oninput: e => { speed = Number(e.target.value); try { localStorage.setItem("hss.ptz.speed", speed); } catch (_) {} } });
+  const presetSel = h("select", { class: "input", "aria-label": "Preset" }, info.presets.length ? info.presets.map(p => h("option", { value: p.id }, `${p.id}. ${p.name}`)) : h("option", { value: "" }, "No presets yet"));
+  const goBtn = h("button", { class: "btn small", disabled: !info.presets.length, onclick: async () => {
+    try { await api(`/ptz/${encodeURIComponent(cameraId)}/presets/${presetSel.value}/goto`, { method: "POST", body: {} }); msg.textContent = "Going to the preset"; } catch (ex) { msg.textContent = ex.message; }
+  } }, "Go");
+  const save = info.can_save_presets ? h("button", { class: "btn small", title: "Save the camera's current view as a preset", onclick: () => {
+    const num = h("input", { class: "input", id: "pz-num", type: "number", min: 1, max: 300, value: (info.presets.reduce((m, p) => Math.max(m, p.id), 0) || 0) + 1 });
+    const name = h("input", { class: "input", id: "pz-name", maxlength: 32, placeholder: "e.g. Fence east" });
+    const err = h("div", { class: "error", hidden: true });
+    modal(`Save a preset on ${label}`, h("div", {}, err, h("p", { class: "muted", style: "margin:0 0 12px" }, "Saves where the camera points now. A number already in use is replaced."),
+      h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "pz-num" }, "Number"), num), h("div", { class: "field" }, h("label", { for: "pz-name" }, "Name"), name))),
+      close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+        try { const r = await api(`/ptz/${encodeURIComponent(cameraId)}/presets/${Number(num.value)}`, { method: "PUT", body: { name: name.value.trim() || `Preset ${num.value}` } });
+          info.presets = r.presets; ptzCache[cameraId] = info; close.remove(); toast("Preset saved");
+          presetSel.replaceChildren(...info.presets.map(p => h("option", { value: p.id }, `${p.id}. ${p.name}`))); goBtn.disabled = !info.presets.length;
+        } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
+  } }, "Save view") : null;
+  return h("div", { class: "ptz" }, h("div", { class: "ptz-title" }, "PTZ · ", label), h("div", { class: "ptz-row" }, pad, zoom),
+    h("label", { class: "ptz-speed" }, h("span", { class: "faint" }, "Speed"), sp),
+    h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg);
+}
+
 /* ---------------- live view ---------------- */
 async function viewLive(c) {
   let paths;
@@ -401,6 +455,12 @@ async function viewLive(c) {
   chosen = chosen.filter(p => paths.some(x => x.path === p));
   const players = [];
   const labelOf = Object.fromEntries(paths.map(p => [p.path, p.label && p.label !== p.path ? p.label : ""]));
+  let selected = null;
+  const ptzBox = h("div", { class: "ptz-box" });
+  const showPtz = async path => {
+    ptzBox.replaceChildren(h("div", { class: "faint", style: "font-size:12.5px;padding:6px 8px" }, `${labelOf[path] || path}: checking PTZ…`));
+    ptzBox.replaceChildren(await ptzPanel(path, labelOf[path] || path));
+  };
   state.cleanup.push(() => players.forEach(p => p.close()));
   const tiles = h("div", { class: "tiles" });
   const camList = h("div", { class: "cams" });
@@ -415,7 +475,9 @@ async function viewLive(c) {
       const video = h("video", { muted: true, autoplay: true, playsinline: true });
       video.muted = true;
       const st = h("span", { class: "state" }, "connecting");
-      const tile = h("div", { class: "tile", ondblclick: () => tile.requestFullscreen && tile.requestFullscreen(), title: "Double-click for full screen" },
+      const tile = h("div", { class: `tile ${selected === path ? "selected" : ""}`, ondblclick: () => tile.requestFullscreen && tile.requestFullscreen(),
+        onclick: () => { selected = path; tiles.querySelectorAll(".tile").forEach(t => t.classList.toggle("selected", t === tile)); showPtz(path); },
+        title: "Click to select (PTZ controls on the left); double-click for full screen" },
         video, h("span", { class: "label" }, h("span", { class: "dot" }), labelOf[path] || path), st);
       tiles.append(tile);
       players.push(new LivePlayer(video, path, (s, info) => {
@@ -441,7 +503,7 @@ async function viewLive(c) {
   c.append(h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Layout"), seg, h("div", { style: "flex:1" }),
       h("span", { class: "muted" }, "Sub-streams; double-click a tile for full screen")),
     h("div", { class: "live" },
-      h("section", { class: "card", style: "padding:8px" }, h("input", { class: "input", type: "search", placeholder: "Find a camera", oninput: e => drawCams(e.target.value.toLowerCase()) }), camList),
+      h("section", { class: "card", style: "padding:8px" }, h("input", { class: "input", type: "search", placeholder: "Find a camera", oninput: e => drawCams(e.target.value.toLowerCase()) }), camList, ptzBox),
       tiles));
   drawCams(""); drawTiles();
 }
@@ -1200,13 +1262,15 @@ async function viewMap(c) {
   }
 
   function cameraPanel(cam) {
+    const ptzSlot = h("div", {});
+    ptzPanel(cam.camera_id, cam.name).then(el => ptzSlot.replaceChildren(el));
     const video = h("video", { muted: true, autoplay: true, playsinline: true, class: "map-video" });
     video.muted = true;
     const st = h("div", { class: "faint", style: "font-size:12px" }, "connecting");
     const player = new LivePlayer(video, cam.camera_id, (s, info) => { st.textContent = s === "playing" ? `live ${info || ""}` : s === "error" ? info : s; });
     state.cleanup.push(() => player.close());
     side.replaceChildren(h("button", { class: "btn small", onclick: () => { player.close(); drawSide(); } }, "‹ Back"), h("h3", {}, cam.name),
-      h("div", { class: "faint mono" }, cam.camera_id), video, st,
+      h("div", { class: "faint mono" }, cam.camera_id), video, st, ptzSlot,
       h("div", { class: "kv", style: "margin-top:8px" }, h("div", {}, "Status"), h("div", {}, cam.online ? "online" : cam.online === false ? "offline" : "unknown"),
         h("div", {}, "AI tier"), h("div", {}, cam.tier || "?"), cam.alert ? h("div", {}, "Alert") : null, cam.alert ? h("div", {}, h("a", { href: "#/alerts" }, `open ${cam.alert} alert`)) : null));
   }
@@ -1648,7 +1712,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -1830,7 +1894,8 @@ async function rulesEditor() {
         field("Event types", txt("types", "all, or e.g. intrusion")), field("Objects", txt("objects", "all, or human, vehicle")),
         field("Armed", armed),
         field("Raise to", f("raise_to", h("select", { class: "input" }, [["", "keep"], ["warning", "Warning"], ["critical", "Critical"]].map(([v, l]) => h("option", { value: v, selected: (r.raise_to || "") === v }, l))))),
-        field("Escalate after (min)", esc), field("Cooldown (s)", cool)),
+        field("Escalate after (min)", esc), field("Cooldown (s)", cool),
+        field("Turn PTZ cameras to", txt("ptz_presets", "none, or e.g. nvr4-ch05:3"))),
       h("div", { class: "toolbar", style: "margin-top:10px" }, h("span", { class: "muted" }, "Channels"), chans));
   }));
   draw();

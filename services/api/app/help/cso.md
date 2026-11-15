@@ -8,7 +8,10 @@ Rules are checked top to bottom; the first that matches decides. Each rule sets:
 - which events (severity, cameras, zones, event types, person or vehicle);
 - when it's armed (for example 18:00 to 06:00 at the fence);
 - channels (screen, sound, push, WhatsApp) and escalation (minutes before it goes up a level);
-- a cool-down, so repeats at one place fold into the open alert.
+- a cool-down, so repeats at one place fold into the open alert;
+- PTZ cameras to turn to a preset when it fires (for example `nvr4-ch05:3`: the yard PTZ looks at the fence).
+
+Save PTZ presets from Live view (select the camera, aim it, **Save view**). You and administrators can take over a PTZ camera that someone else is steering.
 
 Start strict at night and at the perimeter, lighter in busy daytime areas. Review the weekly report's **repeat alerts**, and the alerts closed as false alarms, and adjust.
 
