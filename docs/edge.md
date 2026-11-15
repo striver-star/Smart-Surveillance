@@ -27,7 +27,7 @@ recovers, a note is added to its open alert.
 
 1. **A dedicated NVR user** on each NVR (not the admin): Configuration → System → User Management →
    Add, user type Operator, with remote rights *Remote Live View*, *Remote Playback*, *Remote
-   Parameters Settings (read)*, *Remote Log Search* and, for PTZ cameras, *Remote PTZ Control*, for all channels. Use the same name and
+   Parameters Settings (read)*, *Remote Log Search*, for PTZ cameras *Remote PTZ Control*, and for sirens and lights on the NVR's alarm outputs *Remote Notify Surveillance Center / Trigger Alarm Output*, for all channels. Use the same name and
    password on all NVRs.
 2. **Turn on "Notify Surveillance Center"** for each event the platform should receive. Hikvision
    only sends an event to outside software when this is ticked, per channel and per event:

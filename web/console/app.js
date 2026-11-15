@@ -570,6 +570,19 @@ async function viewLive(c) {
   const labelOf = Object.fromEntries(paths.map(p => [p.path, p.label && p.label !== p.path ? p.label : ""]));
   let selected = null;
   const ptzBox = h("div", { class: "ptz-box" });
+  const outBox = h("div", { class: "out-box" });
+  const drawOutputs = async () => {
+    let outs = [];
+    try { outs = (await api("/outputs")).filter(o => o.enabled); } catch (_) { /* older API */ }
+    outBox.replaceChildren(...(outs.length ? [h("div", { class: "ptz-title" }, "Sirens and lights"), ...outs.map(o => h("div", { class: "out-row" },
+      h("span", { class: `dot ${o.on ? "bad" : ""}` }), h("span", { class: "grow" }, o.name),
+      h("button", { class: `btn small ${o.on ? "" : "danger"}`, onclick: async () => {
+        try { await api(`/outputs/${o.id}/switch`, { method: "POST", body: { on: !o.on } }); drawOutputs(); } catch (ex) { toast(ex.message); }
+      } }, o.on ? "Off" : "On")))] : []));
+  };
+  drawOutputs();
+  const outTimer = setInterval(() => document.body.contains(outBox) ? drawOutputs() : clearInterval(outTimer), 10000);
+  state.cleanup.push(() => clearInterval(outTimer));
   const showPtz = async path => {
     ptzBox.replaceChildren(h("div", { class: "faint", style: "font-size:12.5px;padding:6px 8px" }, `${labelOf[path] || path}: checking PTZ…`));
     ptzBox.replaceChildren(await ptzPanel(path, labelOf[path] || path));
@@ -616,7 +629,7 @@ async function viewLive(c) {
   c.append(h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Layout"), seg, h("div", { style: "flex:1" }),
       h("span", { class: "muted" }, "Sub-streams; double-click a tile for full screen")),
     h("div", { class: "live" },
-      h("section", { class: "card", style: "padding:8px" }, h("input", { class: "input", type: "search", placeholder: "Find a camera", oninput: e => drawCams(e.target.value.toLowerCase()) }), camList, ptzBox),
+      h("section", { class: "card", style: "padding:8px" }, h("input", { class: "input", type: "search", placeholder: "Find a camera", oninput: e => drawCams(e.target.value.toLowerCase()) }), camList, ptzBox, outBox),
       tiles));
   drawCams(""); drawTiles();
 }
@@ -668,7 +681,75 @@ async function viewDevices(c) {
     dev.live_checked_at ? null : h("div", { class: "note" }, "Showing the latest probe files. Start the edge service (docs/edge.md) for live status checked every minute."),
     dev.nvrs.length ? box : h("div", { class: "empty" }, isAdmin ? "No NVRs yet. Use Add NVR to connect the first one." : "No NVRs have been added yet."));
   draw();
+  if (["admin", "cso", "operator"].includes(role)) c.append(await outputsCard(dev, isAdmin, canTier));
   if (want) setTimeout(() => { const el = document.getElementById(`nvr-${want}`); if (el) el.scrollIntoView({ behavior: "smooth" }); }, 50);
+}
+
+/* ---------------- sirens, lights and relays ---------------- */
+async function outputsCard(dev, isAdmin, canTest) {
+  const list = await api("/outputs");
+  const regs = dev.nvrs.filter(n => n.registered);
+  const body = h("div", {});
+  const until = o => o.on ? (o.on_until ? `on, off at ${new Date(o.on_until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "on until switched off") : "off";
+  const draw = items => body.replaceChildren(items.length ? h("div", { class: "table-wrap" }, h("table", {},
+    h("thead", {}, h("tr", {}, ["Output", "Switched by", "Turns off after", "State", ""].map(t => h("th", {}, t)))),
+    h("tbody", {}, items.map(o => h("tr", {},
+      h("td", {}, h("div", { style: "font-weight:600" }, o.name, o.enabled ? null : h("span", { class: "badge", style: "margin-left:6px" }, "paused"))),
+      h("td", { class: "muted" }, o.kind === "nvr_relay" ? `${o.nvr_alias} alarm output ${o.port}` : "network address"),
+      h("td", {}, o.duration_s ? `${o.duration_s} s` : "stays on"),
+      h("td", {}, h("span", { class: `badge ${o.on ? "bad" : ""}` }, until(o)), o.on && o.on_by ? h("div", { class: "faint", style: "font-size:12px" }, o.on_by) : null),
+      h("td", { style: "text-align:right;white-space:nowrap" },
+        h("button", { class: `btn small ${o.on ? "" : "danger"}`, onclick: async () => {
+          try { await api(`/outputs/${o.id}/switch`, { method: "POST", body: { on: !o.on } }); toast(`${o.name} ${o.on ? "off" : "on"}`); draw(await api("/outputs")); } catch (ex) { toast(ex.message); }
+        } }, o.on ? "Switch off" : "Switch on"), " ",
+        canTest ? h("button", { class: "btn small", title: "On for 3 seconds", onclick: async () => {
+          try { await api(`/outputs/${o.id}/test`, { method: "POST", body: {} }); toast(`${o.name}: on for 3 seconds`); } catch (ex) { toast(ex.message); }
+        } }, "Test") : null, " ",
+        isAdmin ? h("button", { class: "btn small", onclick: () => outputForm(o, regs) }, "Edit") : null)))))) :
+    h("div", { class: "empty" }, isAdmin ? "No outputs yet. Add a siren, strobe or floodlight wired to an NVR alarm output, or a network relay." : "No outputs have been added."));
+  draw(list);
+  return card("Sirens, lights and relays", isAdmin ? h("button", { class: "btn small primary", onclick: () => outputForm(null, regs) }, "Add output") : null,
+    h("p", { class: "muted", style: "margin-top:0" }, "Alert rules switch these on (Settings › Alert rules › Switch on). Acknowledging the alert silences them."), body);
+}
+
+function outputForm(o, regs) {
+  const editing = !!o;
+  o = o || { name: "", kind: "nvr_relay", nvr_alias: regs[0] ? regs[0].alias : "", port: 1, url_on: "", url_off: "", method: "GET", username: "", duration_s: 60, enabled: true };
+  const inp = (id, v, a = {}) => h("input", { class: "input", id, value: v ?? "", autocomplete: "off", ...a });
+  const f = { name: inp("o-name", o.name, { placeholder: "e.g. Gate siren, Fence floodlight" }),
+    kind: h("select", { class: "input", id: "o-kind" }, h("option", { value: "nvr_relay", selected: o.kind === "nvr_relay" }, "NVR alarm output (wired relay)"), h("option", { value: "http", selected: o.kind === "http" }, "Network device (web address)")),
+    nvr: h("select", { class: "input", id: "o-nvr" }, regs.map(n => h("option", { value: n.alias, selected: n.alias === o.nvr_alias }, `${n.name} (${n.alias})`))),
+    port: inp("o-port", o.port, { type: "number", min: 1, max: 64 }),
+    on: inp("o-on", o.url_on, { placeholder: "http://10.1.9.5/relay/0?turn=on" }), off: inp("o-off", o.url_off, { placeholder: "optional: http://10.1.9.5/relay/0?turn=off" }),
+    method: h("select", { class: "input", id: "o-method" }, ["GET", "POST", "PUT"].map(m => h("option", { selected: m === o.method }, m))),
+    user: inp("o-user", o.username), pass: inp("o-pass", "", { type: "password", autocomplete: "new-password", placeholder: editing && o.has_password ? "Leave empty to keep" : "" }),
+    dur: inp("o-dur", o.duration_s, { type: "number", min: 0, max: 3600 }), enabled: h("input", { type: "checkbox", id: "o-en", checked: o.enabled }) };
+  const field = (l, el, hint) => h("div", { class: "field" }, h("label", { for: el.id }, l), el, hint ? h("div", { class: "faint", style: "font-size:12px" }, hint) : null);
+  const portsHint = h("div", { class: "faint", style: "font-size:12px" });
+  const relayBox = h("div", {}, h("div", { class: "field-row" }, field("NVR", f.nvr), field("Alarm output number", f.port)), portsHint,
+    h("button", { class: "btn small", style: "margin-bottom:12px", onclick: async () => {
+      portsHint.textContent = "Reading the NVR…";
+      try { const r = await api(`/outputs/nvr/${f.nvr.value}/ports`, { method: "POST", body: {} }); portsHint.textContent = r.ports.length ? `This NVR has alarm outputs ${r.ports.join(", ")}.` : "This NVR reports no alarm outputs."; }
+      catch (ex) { portsHint.textContent = ex.message; }
+    } }, "Read the NVR's outputs"));
+  const httpBox = h("div", {}, field("Address to switch on", f.on), field("Address to switch off", f.off, "Leave empty if the device switches itself off"),
+    h("div", { class: "field-row" }, field("Method", f.method), field("User (if needed)", f.user)), field("Password", f.pass));
+  const sync = () => { relayBox.hidden = f.kind.value !== "nvr_relay"; httpBox.hidden = f.kind.value !== "http"; };
+  f.kind.addEventListener("change", sync); sync();
+  const err = h("div", { class: "error", hidden: true });
+  modal(editing ? `Edit ${o.name}` : "Add an output", h("div", {}, err, field("Name", f.name, "Rules use this name"), field("Type", f.kind), relayBox, httpBox,
+    field("Turns off after (seconds)", f.dur, "0 = stays on until someone switches it off or acknowledges the alert"),
+    h("label", { class: "check" }, f.enabled, "In use (untick to pause it)")),
+    close => [
+      editing ? h("button", { class: "btn danger", style: "margin-right:auto", onclick: async () => { if (!confirm(`Delete ${o.name}?`)) return; await api(`/outputs/${o.id}`, { method: "DELETE" }); close.remove(); render(); } }, "Delete") : null,
+      h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        const b = { name: f.name.value.trim(), kind: f.kind.value, nvr_alias: f.kind.value === "nvr_relay" ? f.nvr.value : null, port: f.kind.value === "nvr_relay" ? Number(f.port.value) : null,
+          url_on: f.kind.value === "http" ? f.on.value.trim() : null, url_off: f.kind.value === "http" ? f.off.value.trim() || null : null, method: f.method.value,
+          username: f.user.value.trim(), password: f.pass.value, duration_s: Number(f.dur.value) || 0, enabled: f.enabled.checked };
+        try { await api(editing ? `/outputs/${o.id}` : "/outputs", { method: editing ? "PUT" : "POST", body: b }); close.remove(); toast("Saved"); render(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
 }
 
 function nvrForm(n, editing) {
@@ -1826,7 +1907,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2097,7 +2178,8 @@ async function rulesEditor() {
         field("Armed", armed),
         field("Raise to", f("raise_to", h("select", { class: "input" }, [["", "keep"], ["warning", "Warning"], ["critical", "Critical"]].map(([v, l]) => h("option", { value: v, selected: (r.raise_to || "") === v }, l))))),
         field("Escalate after (min)", esc), field("Cooldown (s)", cool),
-        field("Turn PTZ cameras to", txt("ptz_presets", "none, or e.g. nvr4-ch05:3"))),
+        field("Turn PTZ cameras to", txt("ptz_presets", "none, or e.g. nvr4-ch05:3")),
+        field("Switch on", txt("outputs", "none, or e.g. Gate siren, Fence floodlight"))),
       h("div", { class: "toolbar", style: "margin-top:10px" }, h("span", { class: "muted" }, "Channels"), chans));
   }));
   draw();

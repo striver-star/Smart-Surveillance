@@ -9,6 +9,7 @@ Rules are checked top to bottom; the first that matches decides. Each rule sets:
 - when it's armed (for example 18:00 to 06:00 at the fence);
 - channels (screen, sound, push, WhatsApp) and escalation (minutes before it goes up a level);
 - a cool-down, so repeats at one place fold into the open alert;
+- sirens, strobes and floodlights to switch on (**Switch on**, by the output's name; acknowledging silences them);
 - PTZ cameras to turn to a preset when it fires (for example `nvr4-ch05:3`: the yard PTZ looks at the fence).
 
 Save PTZ presets from Live view (select the camera, aim it, **Save view**). You and administrators can take over a PTZ camera that someone else is steering.

@@ -332,3 +332,9 @@ a.setup-banner .bar { margin-top: 8px; }
 .pb-labels { position: relative; height: 16px; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .pb-labels span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .pb-labels span:first-child { transform: none; } .pb-labels span:last-child { transform: translateX(-100%); }
+
+/* Sirens and lights */
+.out-box { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; }
+.out-box:empty { display: none; }
+.out-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 0 4px; }
+.out-row .grow { flex: 1; min-width: 0; }

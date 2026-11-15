@@ -99,6 +99,7 @@ class Rule(BaseModel):
     cooldown_s: int = Field(default=120, ge=0, le=86400)
     notify_topic: str = Field(default="critical", pattern="^(critical|device|system)$")   # who gets WhatsApp and push
     ptz_presets: list[str] = Field(default_factory=list, max_length=8)   # PTZ cameras to turn: ["nvr4-ch05:3"]
+    outputs: list[str] = Field(default_factory=list, max_length=8)       # sirens, lights, relays to switch on (by name)
 
 
 def load_rules() -> list[dict]:
@@ -239,6 +240,8 @@ def on_event(event: dict) -> str | None:
     broker.publish({"kind": "new", "alert": alert})
     if rule.get("ptz_presets"):
         threading.Thread(target=_ptz_for_alert, args=(rule["ptz_presets"], alert_id), daemon=True).start()
+    if rule.get("outputs"):
+        threading.Thread(target=_outputs_for_alert, args=(rule["outputs"], alert_id), daemon=True).start()
     channels = set(rule.get("channels", []))
     if channels & {"push", "whatsapp"}:
         threading.Thread(target=_notify, args=(alert, channels, rule.get("notify_topic") or "critical"), daemon=True).start()
@@ -250,6 +253,18 @@ def on_event(event: dict) -> str | None:
         except Exception:
             log.exception("requesting a clip for alert %s failed", alert_id)
     return str(alert_id)
+
+
+def _outputs_for_alert(names: list[str], alert_id) -> None:
+    try:
+        from .outputs import run_rule_outputs
+        done = run_rule_outputs(names, str(alert_id))
+        if done:
+            with connect() as conn:
+                add_timeline(conn, alert_id, "outputs", "Switched on: " + "; ".join(done))
+            broker.publish({"kind": "updated", "alert": get_alert(alert_id)})
+    except Exception:
+        log.exception("outputs for alert %s failed", alert_id)
 
 
 def _ptz_for_alert(targets: list[str], alert_id) -> None:
@@ -479,6 +494,15 @@ def alert_action(alert_id: uuid.UUID, body: ActionIn, request: Request, user: di
             seal(alert_id, who, reason="Closed as a real incident" + (f": {body.text}" if body.text else ""), ip=client_ip(request))
         except Exception:
             logging.getLogger("alerts").exception("sealing evidence for alert %s failed", alert_id)
+    if body.action in ("acknowledge", "close"):
+        try:                       # acknowledging (or closing) silences the sirens and lights this alert started
+            from .outputs import silence_alert
+            silenced = silence_alert(str(alert_id))
+            if silenced:
+                with connect() as conn:
+                    add_timeline(conn, alert_id, "outputs", "Silenced: " + ", ".join(silenced), who)
+        except Exception:
+            logging.getLogger("alerts").exception("silencing outputs for alert %s failed", alert_id)
     audit(f"alert_{body.action}", user_id=user["id"], username=who, ip=client_ip(request), alert=str(alert_id),
           **({"reason": body.reason} if body.reason else {}), **({"assignee": body.assignee} if body.assignee else {}))
     updated = get_alert(alert_id)
