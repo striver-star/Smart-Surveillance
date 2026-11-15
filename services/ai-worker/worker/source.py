@@ -40,6 +40,7 @@ class LatestFrameReader:
         self._seq = 0
         self.connected = False
         self.decoded_frames = 0
+        self.reconnects = 0
         self._thread = threading.Thread(target=self._run, name=f"reader-{name}", daemon=True)
 
     def start(self) -> "LatestFrameReader":
@@ -83,6 +84,7 @@ class LatestFrameReader:
                     self.decoded_frames += 1
                 return
             except Exception as exc:  # network drop, camera reboot, bad stream: reconnect
+                self.reconnects += 1
                 log.warning("%s: stream error %s: %s; retrying in %.0fs", self.name,
                             exc.__class__.__name__, exc, backoff)
             finally:

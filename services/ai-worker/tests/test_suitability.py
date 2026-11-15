@@ -75,3 +75,38 @@ def test_legal_gate_answers():
     assert not legal_gate.check(["face", "plate"], api_url="http://api", token="t", transport=api(plate_only))[0]
     assert not legal_gate.check(["plate"], api_url="http://api", token="wrong", transport=api(plate_only))[0]
     assert not legal_gate.check(["plate"], api_url="http://api", token="")[0]
+
+
+def test_live_stream_survives_drops(monkeypatch):
+    """A gap in the picture is counted and reconnected, not the end of the camera's test."""
+    import time as _t
+    import numpy as np
+    from worker import source, suitability
+
+    class FakeReader:
+        def __init__(self, url, name):
+            self.t0, self.seq, self.reconnects = _t.monotonic(), 0, 0
+
+        def start(self):
+            return self
+
+        def stop(self):
+            pass
+
+        def latest(self, newer_than=-1):
+            el = _t.monotonic() - self.t0
+            if 0.6 < el < 3.2:                      # a 2.6 s drop in the middle
+                self.reconnects = 1
+                return None
+            self.seq += 1
+            return source.Frame(np.zeros((90, 160, 3), np.uint8), None, self.seq) if self.seq > newer_than else None
+
+    class NoFaces:
+        def detect(self, frame):
+            return []
+
+    monkeypatch.setattr(source, "LatestFrameReader", FakeReader)
+    r = suitability.watch_live(NoFaces(), "rtsp://nvr/1", minutes=4.5 / 60, fps=10, people=None)
+    assert "error" not in r and r["frames"] > 10
+    assert r["reconnects"] == 1 and 2 <= r["lost_s"] <= 4
+    assert suitability.stream_text(r).startswith("1 drop")
