@@ -1473,7 +1473,13 @@ function twoFactorBox(me) {
         h("div", { style: "display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start" },
           h("img", { class: "qr", src: `data:image/svg+xml;base64,${btoa(s.qr_svg)}`, alt: "QR code for your authenticator app" }),
           h("div", { style: "flex:1;min-width:200px;display:grid;gap:10px" },
-            h("div", {}, "1. Scan the code with your authenticator app, or type this key:"), h("div", { class: "secret" }, s.secret.replace(/(.{4})/g, "$1 ").trim()),
+            h("div", {}, "1. Scan the code with your authenticator app (Google Authenticator, Microsoft Authenticator, Authy or similar) on your phone. On this phone itself, use Open in authenticator app, or copy the key and add it in the app by hand (time-based)."),
+            h("div", { class: "secret" }, s.secret.replace(/(.{4})/g, "$1 ").trim()),
+            h("div", { class: "toolbar" },
+              h("a", { class: "btn small", href: s.uri }, "Open in authenticator app"),
+              h("button", { class: "btn small", onclick: async () => {
+                try { await navigator.clipboard.writeText(s.secret); toast("Key copied"); } catch (_) { toast("Select the key and copy it"); }
+              } }, "Copy key")),
             h("div", {}, "2. Enter the 6-digit code it shows:"), err, code,
             h("button", { class: "btn primary", onclick: async () => {
               try { await api("/auth/2fa/enable", { method: "POST", body: { code: code.value } }); toast("Two-factor is on"); render(); }
