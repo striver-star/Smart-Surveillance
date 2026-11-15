@@ -111,7 +111,7 @@ def live_paths(_: dict = Depends(require("admin", "cso", "operator"))) -> list[d
             r.raise_for_status()
             names |= {i["name"] for i in r.json().get("items", []) if i.get("name")}
     except httpx.HTTPStatusError as exc:
-        hint = (" (the gateway refused the request: restart it with 'docker compose up -d gateway' so it loads "
+        hint = (" (the gateway refused the request: recreate it with 'docker compose up -d --force-recreate gateway' so it loads "
                 "gateway/mediamtx.yml)" if exc.response.status_code in (401, 403) else "")
         raise HTTPException(status_code=502, detail=f"gateway answered {exc.response.status_code}{hint}") from exc
     except (httpx.HTTPError, ValueError) as exc:
