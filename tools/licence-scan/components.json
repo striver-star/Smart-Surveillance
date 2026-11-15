@@ -230,6 +230,16 @@
       "source": "https://github.com/opencv/opencv/tree/4.x/samples/data",
       "checked": "2026-11-14",
       "note": "Part of the OpenCV repository; the photos' own rights are not separately stated, so they are used for local tests only."
+    },
+    {
+      "kind": "os-package",
+      "name": "ffmpeg (Debian bookworm, in the edge service image)",
+      "version": "distribution",
+      "licence": "GPL-2.0-or-later",
+      "use": "Separate program run by the edge service to copy NVR recordings into MP4 clips (no re-encoding); not linked into our code",
+      "source": "https://packages.debian.org/bookworm/ffmpeg",
+      "checked": "2026-11-15",
+      "note": "Debian builds FFmpeg with GPL components; allowed because it runs as a separate, unmodified program (Section 19)."
     }
   ]
 }

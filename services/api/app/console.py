@@ -164,8 +164,54 @@ def load_devices() -> dict:
                            "status": d.get("status")} for d in disks],
                 "disk_problem": any((d.get("status") or "ok").lower() not in ("ok", "normal", "notexist", "idle") for d in disks),
             })
-    return {"source": "probe files", "probed_at": _mtime(inv_path), "cameras_surveyed_at": _mtime(cam_path),
+    live_at = merge_live(nvrs)
+    return {"source": "live" if live_at else "probe files", "live_checked_at": live_at,
+            "probed_at": _mtime(inv_path), "cameras_surveyed_at": _mtime(cam_path),
             "nvrs": nvrs}
+
+
+def merge_live(nvrs: list[dict]) -> str | None:
+    """Overlay the edge service's live health (checked every minute) on the probe data.
+    NVRs the probe never saw are added from the live data. Returns the latest check time, if any."""
+    try:
+        from .devices import live_health
+        live = live_health()
+    except Exception:          # the table may not exist yet on a fresh database
+        return None
+    if not live:
+        return None
+    known = {n["address"]: n for n in nvrs}
+    for addr, h in live.items():
+        n = known.get(addr)
+        if n is None:
+            n = {"address": addr, "name": h.get("name") or addr, "model": h.get("model", ""), "firmware": h.get("firmware", ""),
+                 "time_mode": h.get("time_mode", ""), "channels": [], "disks": []}
+            nvrs.append(n)
+            known[addr] = n
+        n["reachable"] = h["reachable"]
+        n["live_checked_at"] = h["checked_at"].isoformat()
+        if h.get("name"):
+            n["name"] = h["name"]
+        for k in ("model", "firmware", "time_mode"):
+            if h.get(k):
+                n[k] = h[k]
+        by_id = {c["channel"]: c for c in n["channels"]}
+        for c in h.get("channels", []):
+            ch = by_id.get(c["id"])
+            if ch is None:
+                ch = {"channel": c["id"], "name": c.get("name") or f"Channel {c['id']}", "ip": c.get("ip", ""), "tier": "?",
+                      "model": "", "firmware": "", "class": "", "clock_drift_s": None, "stream": "", "flags": []}
+                n["channels"].append(ch)
+            ch["online"] = None if not h["reachable"] else c.get("online")
+            if c.get("name"):
+                ch["name"] = c["name"]
+        n["channels"].sort(key=lambda c: c["channel"])
+        if h.get("disks"):
+            n["disks"] = [{"name": d.get("name"), "capacity_gb": d.get("capacity_gb"), "status": d.get("status")} for d in h["disks"]]
+        n["online"] = sum(1 for c in n["channels"] if c["online"])
+        n["total"] = len(n["channels"])
+        n["disk_problem"] = any((d.get("status") or "ok").lower() not in ("ok", "normal", "notexist", "idle") for d in n["disks"])
+    return max(h["checked_at"] for h in live.values()).isoformat()
 
 
 @router.get("/devices")
@@ -195,5 +241,6 @@ def overview(user: dict = Depends(require(*ANY_ROLE))) -> dict:
         "devices": {"nvrs": len(dev["nvrs"]), "cameras": sum(n["total"] for n in dev["nvrs"]),
                     "online": sum(n["online"] for n in dev["nvrs"]),
                     "nvr_disk_problems": [n["name"] for n in dev["nvrs"] if n["disk_problem"]],
-                    "probed_at": dev["probed_at"]},
+                    "probed_at": dev["probed_at"], "live_checked_at": dev.get("live_checked_at"),
+                    "unreachable": [n["name"] for n in dev["nvrs"] if n.get("reachable") is False]},
     }

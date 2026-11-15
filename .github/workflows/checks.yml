@@ -37,6 +37,10 @@ jobs:
           bash tools/fetch-models.sh --demo
           python -m pip install -r services/ai-worker/requirements.txt pytest
           cd services/ai-worker && python -m pytest -q
+      - name: Edge service
+        run: |
+          python -m pip install -r services/edge/requirements.txt pytest
+          cd services/edge && python -m pytest -q
       - name: Probe and stream tool
         run: |
           python -m pip install -e "tools/probe[test]"

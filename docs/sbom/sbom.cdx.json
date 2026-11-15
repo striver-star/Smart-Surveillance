@@ -60,7 +60,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/anyio@4.16.0",
@@ -88,7 +88,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/certifi@2026.10.23",
@@ -284,7 +284,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/h11@0.16.0",
@@ -312,7 +312,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/httpcore@1.0.9",
@@ -368,7 +368,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/httpx@0.28.1",
@@ -396,7 +396,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/idna@3.20",
@@ -928,7 +928,7 @@
     },
     {
      "name": "hss:used-by",
-     "value": "ai-worker, api, probe"
+     "value": "ai-worker, api, edge, probe"
     }
    ],
    "purl": "pkg:pypi/typing-extensions@4.16.0",
@@ -7299,6 +7299,33 @@
     {
      "type": "website",
      "url": "https://github.com/opencv/opencv/tree/4.x/samples/data"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "ffmpeg (Debian bookworm, in the edge service image)",
+   "version": "distribution",
+   "group": "os-package",
+   "licenses": [
+    {
+     "expression": "GPL-2.0-or-later"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "conditional"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://packages.debian.org/bookworm/ffmpeg"
     }
    ]
   }

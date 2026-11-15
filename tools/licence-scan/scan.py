@@ -40,6 +40,7 @@ PY_PROJECTS = {
     "api": "services/api/requirements.txt",
     "ai-worker": "services/ai-worker/requirements.txt",
     "probe": "tools/probe/pyproject.toml",
+    "edge": "services/edge/requirements.txt",
 }
 NODE_PROJECTS = {"whatsapp-gateway": "services/whatsapp-gateway"}
 GO_PROJECTS = {"wall-agent": "services/wall-agent"}

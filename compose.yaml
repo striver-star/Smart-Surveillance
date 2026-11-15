@@ -97,6 +97,24 @@ services:
       gateway:
         condition: service_started
 
+  edge:
+    # NVR events, device health every minute and clips (Phase 3 part B). Start with: --profile edge
+    profiles: ["edge"]
+    build: ./services/edge
+    restart: unless-stopped
+    environment:
+      HSS_API_URL: http://api:8000
+      HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
+      HSS_TZ: ${HSS_TZ:-Africa/Lagos}
+      HSS_NVRS: ${HSS_NVRS:-}
+      HSS_NVR_USER: ${HSS_NVR_USER:-}
+      HSS_NVR_PASSWORD: ${HSS_NVR_PASSWORD:-}
+      HSS_EDGE_IGNORE: ${HSS_EDGE_IGNORE:-vmd,motiondetection}
+    volumes:
+      - edge-data:/data
+    depends_on:
+      - api
+
   whatsapp:
     # WhatsApp gateway (provider A). Start with: docker compose --profile notify up -d
     # Link once: docker compose logs -f whatsapp, then scan the QR code with the dedicated phone.
@@ -143,6 +161,7 @@ services:
       - gateway
 
 volumes:
+  edge-data:
   wa-data:
   ntfy-cache:
   api-data:

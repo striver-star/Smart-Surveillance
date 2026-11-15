@@ -42,3 +42,26 @@ def test_camera_patterns_are_case_insensitive():
     r = Rule(name="NVR4 only", min_severity="warning", cameras=["NVR4-*"]).model_dump()
     assert match_rule([r], {**EV, "severity": "warning"}, at(9))["name"] == "NVR4 only"
     assert match_rule([r], {**EV, "camera_id": "nvr5-ch01", "severity": "warning"}, at(9)) is None
+
+
+from app.devices import alias, transitions  # noqa: E402
+
+BASE = {"reachable": True, "name": "NVR4", "channels": [{"id": 1, "name": "GATE", "online": True}, {"id": 2, "name": "FENCE", "online": False}],
+        "disks": [{"name": "hdd1", "status": "ok"}]}
+
+
+def test_device_transitions():
+    assert alias("10.1.3.4") == "nvr4"
+    assert transitions(None, BASE, "nvr4") == [], "first report sets the baseline"
+    assert transitions(BASE, BASE, "nvr4") == [], "no change, no event"
+    cam_off = {**BASE, "channels": [{"id": 1, "name": "GATE", "online": False}, {"id": 2, "name": "FENCE", "online": True}]}
+    assert [(e["type"], e["camera_id"]) for e in transitions(BASE, cam_off, "nvr4")] == [("camera_offline", "nvr4-ch01"), ("camera_online", "nvr4-ch02")]
+    bad = {**BASE, "disks": [{"name": "hdd1", "status": "error"}]}
+    assert [(e["type"], e["severity"]) for e in transitions(BASE, bad, "nvr4")] == [("drive_fault", "critical")]
+    assert [e["type"] for e in transitions(bad, BASE, "nvr4")] == ["drive_ok"]
+    down = {"reachable": False, "channels": [], "disks": []}
+    assert [e["type"] for e in transitions(BASE, down, "nvr4")] == ["nvr_offline"]
+    stored_down = {**BASE, "reachable": False}                    # last good data is kept while down
+    back = {**cam_off}
+    assert [e["type"] for e in transitions(stored_down, back, "nvr4")] == ["nvr_online", "camera_offline", "camera_online"]
+    assert transitions(stored_down, down, "nvr4") == [], "still down: no repeat"

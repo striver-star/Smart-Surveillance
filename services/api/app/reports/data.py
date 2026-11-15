@@ -189,7 +189,7 @@ def camera_names(devices: dict) -> dict[str, str]:
     """Gateway path names (nvr<last IP octet>-ch<NN>) to camera names from the probe."""
     out = {}
     for n in devices.get("nvrs", []):
-        m = re.search(r"\.(\d+)$", n.get("address", ""))
+        m = re.search(r"\.(\d+)$", n.get("address", "").split(":")[0])
         if not m:
             continue
         for c in n["channels"]:

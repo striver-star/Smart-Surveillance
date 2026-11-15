@@ -21,6 +21,8 @@ const $ = sel => document.querySelector(sel);
 // Element.replaceChildren prints null as the text "null"; skip empty placeholders like h() does.
 const _replace = Element.prototype.replaceChildren;
 Element.prototype.replaceChildren = function (...kids) { return _replace.apply(this, kids.flat(9).filter(k => k !== null && k !== undefined && k !== false)); };
+const _append = Element.prototype.append;
+Element.prototype.append = function (...kids) { return _append.apply(this, kids.flat(9).filter(k => k !== null && k !== undefined && k !== false)); };
 class ApiError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 async function api(path, opts = {}) {
   const r = await fetch(`/api${path}`, {
@@ -272,7 +274,8 @@ async function viewOverview(c) {
       alertsAllowed() ? kpi("Open alerts", h("a", { href: "#/alerts", style: `color:${state.openAlerts ? "var(--bad)" : "var(--ok)"};text-decoration:none` }, state.openAlerts ?? "—"),
         state.openAlerts ? "Waiting for acknowledgement" : "Nothing waiting") : null,
       kpi("Cameras online", d.cameras ? h("span", {}, d.online, h("small", {}, ` / ${d.cameras}`)) : "—",
-        d.probed_at ? `${d.nvrs} NVRs · probed ${ago(d.probed_at)}` : "No probe data yet", d.cameras ? pct : null),
+        d.live_checked_at ? `${d.nvrs} NVRs · checked ${ago(d.live_checked_at)}${d.unreachable.length ? ` · ${d.unreachable.join(", ")} not answering` : ""}`
+          : d.probed_at ? `${d.nvrs} NVRs · probed ${ago(d.probed_at)}` : "No device data yet", d.cameras ? pct : null),
       kpi("Events, last 24 h", ev.critical + ev.warning + ev.info, h("span", {},
         h("span", { class: "badge bad" }, `${ev.critical} critical`), " ", h("span", { class: "badge warn" }, `${ev.warning} warning`))),
       kpi("Video wall PCs", h("span", {}, o.walls.online, h("small", {}, ` / ${o.walls.total} online`)), o.walls.total ? "Heartbeat every 15 s" : "No wall PCs registered"),
@@ -301,10 +304,11 @@ function eventList(events) {
       h("div", { class: "muted", style: "font-size:12.5px" }, `${e.camera_id}${e.zone ? ` · ${e.zone}` : ""}`)),
     h("div", { class: "faint", style: "font-size:12px;text-align:right" }, ago(e.occurred_at)))));
 }
-const label = s => (s || "").replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+const label = s => (s || "").replace(/_/g, " ").replace(/^./, c => c.toUpperCase()).replace(/\bnvr\b/gi, "NVR");
 function attentionList(dev) {
   const items = [];
   for (const n of dev.nvrs) {
+    if (n.reachable === false) items.push(["bad", `${n.name}: not answering`, `Last checked ${ago(n.live_checked_at)}`]);
     if (n.disk_problem) items.push(["bad", `${n.name}: drive fault`, n.disks.filter(d => !["ok", "normal", "notexist", "idle"].includes((d.status || "").toLowerCase())).map(d => `${d.name} ${d.status}`).join(", ")]);
     const off = n.channels.filter(c => c.online === false);
     if (off.length) items.push(["warn", `${n.name}: ${off.length} camera${off.length > 1 ? "s" : ""} offline`, off.slice(0, 4).map(c => c.name).join(", ") + (off.length > 4 ? "…" : "")]);
@@ -436,7 +440,9 @@ async function viewDevices(c) {
     return h("section", { class: "card", id: `nvr-${n.address}` },
       h("div", { class: "head" }, h("h2", {}, n.name), h("span", { class: "muted mono" }, n.address),
         h("span", { class: "badge" }, n.model), h("span", { class: "badge" }, n.firmware),
-        n.disk_problem ? h("span", { class: "badge bad" }, "drive fault") : null, h("div", { class: "spacer" }),
+        n.disk_problem ? h("span", { class: "badge bad" }, "drive fault") : null,
+        n.reachable === false ? h("span", { class: "badge bad" }, "not answering") : n.live_checked_at ? h("span", { class: "badge ok", title: `Checked ${fmtTime(n.live_checked_at)}` }, "live") : null,
+        h("div", { class: "spacer" }),
         h("span", { class: "muted" }, `${n.online}/${n.total} online`)),
       h("div", { class: "table-wrap" }, h("table", {},
         h("thead", {}, h("tr", {}, ["Ch", "Camera", "IP", "Status", "Model", "Class", "AI tier", "Stream", "Clock"].map(t => h("th", {}, t)))),
@@ -451,8 +457,9 @@ async function viewDevices(c) {
   c.append(h("div", { class: "toolbar" },
     h("input", { class: "input", type: "search", placeholder: "Find a camera, IP, model or class", oninput: e => { q = e.target.value.toLowerCase(); draw(); } }),
     h("div", { style: "flex:1" }),
-    h("span", { class: "muted" }, dev.probed_at ? `From the probe of ${fmtTime(dev.probed_at)}${dev.cameras_surveyed_at ? ` and the camera survey of ${fmtTime(dev.cameras_surveyed_at)}` : ""}` : "No probe data on the server yet")),
-    h("div", { class: "note" }, "This page reads the latest probe files on the server. Live device health (checked every minute) arrives in Phase 3."),
+    h("span", { class: "muted" }, dev.live_checked_at ? `Live status, checked ${ago(dev.live_checked_at)}; models and classes from the camera survey`
+      : dev.probed_at ? `From the probe of ${fmtTime(dev.probed_at)}${dev.cameras_surveyed_at ? ` and the camera survey of ${fmtTime(dev.cameras_surveyed_at)}` : ""}` : "No device data on the server yet")),
+    dev.live_checked_at ? null : h("div", { class: "note" }, "Showing the latest probe files. Start the edge service (docs/edge.md) for live status checked every minute."),
     box);
   draw();
   if (want) setTimeout(() => { const el = document.getElementById(`nvr-${want}`); if (el) el.scrollIntoView({ behavior: "smooth" }); }, 50);
@@ -665,7 +672,7 @@ function popAlert(a) {
   const card = h("div", { class: `alert-pop ${a.severity}` },
     a.snapshot_url ? h("img", { src: a.snapshot_url, alt: "" }) : null,
     h("div", { class: "grow" }, h("div", { class: "title" }, `${label(a.type)}${a.object_class ? ` · ${a.object_class}` : ""}`),
-      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || a.camera_id} · ${new Date(a.occurred_at).toLocaleTimeString()}`),
+      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || a.camera_name || a.camera_id} · ${new Date(a.occurred_at).toLocaleTimeString()}`),
       h("div", { class: "toolbar", style: "margin-top:6px" },
         h("button", { class: "btn small primary", onclick: () => { card.remove(); alertDrawer(a.id); } }, "Open"),
         h("button", { class: "btn small", onclick: () => card.remove() }, "Dismiss"))),
@@ -731,10 +738,22 @@ function alertRow(a) {
     a.snapshot_url ? h("img", { class: "thumb", src: a.snapshot_url, alt: "", loading: "lazy" }) : h("div", { class: "thumb" }),
     h("div", { class: "grow" },
       h("div", { class: "title" }, `${label(a.type)}${a.object_class ? ` · ${a.object_class}` : ""}`),
-      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || "No zone"} · ${a.camera_id}${a.assigned_to ? ` · assigned to ${a.assigned_to}` : ""}`)),
+      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || a.camera_name || "No zone"} · ${a.camera_id}${a.assigned_to ? ` · assigned to ${a.assigned_to}` : ""}`)),
     a.escalation_level ? h("span", { class: "badge bad", title: "Not acknowledged in time" }, `escalated ×${a.escalation_level}`) : null,
     h("span", { class: `badge ${STATUS_BADGE[a.status]}` }, a.status),
     h("span", { class: "faint", style: "font-size:12px;min-width:80px;text-align:right", "data-at": a.created_at }, ago(a.created_at)));
+}
+
+function clipBox(a, id, redraw) {
+  const c = (a.clips || []).slice(-1)[0];
+  if (c && c.status === "done") return h("div", {}, h("video", { class: "snapshot", src: c.url, controls: true, preload: "metadata", playsinline: true }),
+    h("div", { class: "faint mono", style: "font-size:11px;margin-top:4px;word-break:break-all" }, `Clip ${new Date(c.starts_at).toLocaleTimeString()}–${new Date(c.ends_at).toLocaleTimeString()} · SHA-256 ${c.sha256}`));
+  if (c && (c.status === "queued" || c.status === "working")) return h("div", { class: "note" }, `Clip from the NVR recording is being prepared (${c.status})${c.detail ? ` — last try: ${c.detail}` : ""}. It appears here when ready.`);
+  const ask = h("button", { class: "btn small", onclick: async () => {
+    try { await api(`/alerts/${id}/clip`, { method: "POST", body: {} }); toast("Clip requested"); redraw(await api(`/alerts/${id}`)); } catch (ex) { toast(ex.message); }
+  } }, "Get clip from the NVR");
+  if (c && c.status === "failed") return h("div", { class: "toolbar" }, h("span", { class: "muted" }, `No clip: ${c.detail}`), ask);
+  return /^nvr\d+-ch\d+$/.test(a.camera_id) ? h("div", { class: "toolbar" }, ask) : null;
 }
 
 async function alertDrawer(id) {
@@ -757,8 +776,9 @@ async function alertDrawer(id) {
       h("div", { class: "toolbar" }, h("span", { class: `badge ${SEV_BADGE[a.severity]}` }, a.severity), h("span", { class: `badge ${STATUS_BADGE[a.status]}` }, a.status),
         h("h2", {}, label(a.type)), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: () => scrim.remove() }, "Close")),
       a.snapshot_url ? h("img", { class: "snapshot", src: a.snapshot_url, alt: `Snapshot from ${a.camera_id}` }) : h("div", { class: "empty card" }, "No snapshot."),
+      clipBox(a, id, draw),
       h("div", { class: "kv" },
-        h("div", {}, "Where"), h("div", {}, `${a.zone || "No zone"} · ${a.camera_id}`),
+        h("div", {}, "Where"), h("div", {}, [a.zone, a.camera_name, a.camera_id].filter(Boolean).join(" · ")),
         h("div", {}, "When"), h("div", {}, fmtTime(a.occurred_at)),
         h("div", {}, "What"), h("div", {}, `${label(a.type)}${a.object_class ? `, ${a.object_class}` : ""}${a.confidence ? `, ${Math.round(a.confidence * 100)}%` : ""}`),
         h("div", {}, "Rule"), h("div", {}, a.rule),

@@ -2,7 +2,7 @@
 
 Generated 2026-11-15 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 262 components: 250 ok, 2 waived, 10 conditional.
+**Result: PASS.** 263 components: 250 ok, 2 waived, 11 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -22,6 +22,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | image: nvcr.io/nvidia/tensorrt | 24.08-py3 | Proprietary-free | conditional | A declared exception in Section 19 (free of charge, closed source, not redistributed). NVIDIA Deep Learning Container licence. Declared exception (Section 19): pull from NVIDIA on the server; never push the built image to a public registry or ship it to clients. Re-check NVIDIA's terms before any hosted release. (checked 2026-11-12) |
 | image: postgis/postgis | 16-3.5 | PostgreSQL AND GPL-2.0-or-later | conditional | Only as a separate, unmodified service or OS package, never linked into our code. PostgreSQL is under the PostgreSQL licence; PostGIS is GPL-2.0-or-later and runs unmodified as part of the database server. Our code talks to it over the network only. (checked 2026-11-12) |
 | npm: node-webpmux | 3.2.1 | LGPL-2.1-or-later | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
+| os-package: ffmpeg (Debian bookworm, in the edge service image) | distribution | GPL-2.0-or-later | conditional | Only as a separate, unmodified service or OS package, never linked into our code. Debian builds FFmpeg with GPL components; allowed because it runs as a separate, unmodified program (Section 19). (checked 2026-11-15) |
 | pypi: psycopg | 3.2.3 | LGPL-3.0-only | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
 | pypi: psycopg-binary | 3.2.3 | LGPL-3.0-only | conditional | Allowed as an unmodified, dynamically linked library or separate process. |
 | dataset: Face recognition training sets (training data of SFace: CASIA-WebFace, VGGFace2, MS1M per the SFace paper) | various | Non-commercial | waived | Accepted for the PoC only, pending the legal reviewer (task 4): weights are Apache-2.0, datasets not redistributed or used by us. Decision owner: builder + legal reviewer before go-live; alternative is a model trained on permissively licensed or consented data. OpenCV Zoo does not state the exact training set. The candidate sets are research-only, and MS-Celeb-1M was withdrawn by Microsoft in 2019. Needs the legal reviewer's view before go-live. (checked 2026-11-14) |
@@ -53,6 +54,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | OFL-1.1 | 1 |
 | CC-BY-4.0 | 1 |
 | Zlib | 1 |
+| GPL-2.0-or-later | 1 |
 
 ## All components
 
@@ -276,10 +278,11 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | npm | zip-stream | 6.0.1 | MIT | ok | whatsapp-gateway |
 | npm | zod | 3.25.76 | MIT | ok | whatsapp-gateway |
 | os-package | chromium (Debian bookworm) | distribution | BSD-3-Clause | ok | Headless browser run by whatsapp-web.js, separate process |
+| os-package | ffmpeg (Debian bookworm, in the edge service image) | distribution | GPL-2.0-or-later | conditional | Separate program run by the edge service to copy NVR recordings into MP4 clips (no re-encoding); not linked into our code |
 | os-package | fonts-liberation | distribution | OFL-1.1 | ok | Fonts for headless Chromium |
 | pypi | annotated-types | 0.8.0 | MIT | ok | api |
-| pypi | anyio | 4.16.0 | MIT | ok | ai-worker, api, probe |
-| pypi | certifi | 2026.10.23 | MPL-2.0 | ok | ai-worker, api, probe |
+| pypi | anyio | 4.16.0 | MIT | ok | ai-worker, api, edge, probe |
+| pypi | certifi | 2026.10.23 | MPL-2.0 | ok | ai-worker, api, edge, probe |
 | pypi | charset-normalizer | 3.5.2 | MIT | ok | api |
 | pypi | click | 8.5.1 | BSD-3-Clause | ok | api |
 | pypi | contourpy | 1.4.0 | BSD-3-Clause | ok | api |
@@ -287,11 +290,11 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | fastapi | 0.115.6 | MIT | ok | api |
 | pypi | flatbuffers | 25.12.19 | Apache-2.0 | ok | ai-worker |
 | pypi | fonttools | 4.68.0 | MIT | ok | api |
-| pypi | h11 | 0.16.0 | MIT | ok | ai-worker, api, probe |
-| pypi | httpcore | 1.0.9 | BSD-3-Clause | ok | ai-worker, api, probe |
+| pypi | h11 | 0.16.0 | MIT | ok | ai-worker, api, edge, probe |
+| pypi | httpcore | 1.0.9 | BSD-3-Clause | ok | ai-worker, api, edge, probe |
 | pypi | httptools | 0.9.0 | MIT | ok | api |
-| pypi | httpx | 0.28.1 | BSD-3-Clause | ok | ai-worker, api, probe |
-| pypi | idna | 3.20 | BSD-3-Clause | ok | ai-worker, api, probe |
+| pypi | httpx | 0.28.1 | BSD-3-Clause | ok | ai-worker, api, edge, probe |
+| pypi | idna | 3.20 | BSD-3-Clause | ok | ai-worker, api, edge, probe |
 | pypi | kiwisolver | 1.5.1 | BSD-3-Clause | ok | api |
 | pypi | lxml | 6.1.3 | BSD-3-Clause | ok | api |
 | pypi | matplotlib | 3.11.2 | PSF-2.0 | ok | api |
@@ -313,7 +316,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | reportlab | 5.1.0 | BSD-3-Clause | ok | api |
 | pypi | segno | 1.6.6 | BSD-3-Clause | ok | api |
 | pypi | starlette | 0.41.3 | BSD-3-Clause | ok | api |
-| pypi | typing-extensions | 4.16.0 | PSF-2.0 | ok | ai-worker, api, probe |
+| pypi | typing-extensions | 4.16.0 | PSF-2.0 | ok | ai-worker, api, edge, probe |
 | pypi | typing-inspection | 0.4.5 | MIT | ok | api |
 | pypi | tzdata | 2026.6 | Apache-2.0 | ok | api |
 | pypi | uvicorn | 0.34.0 | BSD-3-Clause | ok | api |

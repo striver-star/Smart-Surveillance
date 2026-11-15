@@ -44,13 +44,17 @@ CHANNELS = ("screen", "sound", "push", "whatsapp")
 MAX_ESCALATIONS = 3
 CLOSE_REASONS = ("real_incident", "false_alarm", "test", "duplicate", "other")
 
+DEVICE_TYPES = ["nvr_offline", "camera_offline", "drive_fault"]
 DEFAULT_RULES = [
+    {"name": "Device faults", "enabled": True, "min_severity": "warning", "cameras": [], "zones": [], "types": DEVICE_TYPES,
+     "objects": [], "armed": [], "raise_to": None, "channels": ["screen", "push", "whatsapp"], "escalate_after_min": None,
+     "cooldown_s": 0, "notify_topic": "device"},
     {"name": "Critical events", "enabled": True, "min_severity": "critical", "cameras": [], "zones": [], "types": [],
      "objects": [], "armed": [], "raise_to": None, "channels": ["screen", "sound", "push", "whatsapp"],
-     "escalate_after_min": 10, "cooldown_s": 120},
+     "escalate_after_min": 10, "cooldown_s": 120, "notify_topic": "critical"},
     {"name": "Warnings", "enabled": True, "min_severity": "warning", "cameras": [], "zones": [], "types": [],
      "objects": [], "armed": [], "raise_to": None, "channels": ["screen", "sound"], "escalate_after_min": None,
-     "cooldown_s": 120},
+     "cooldown_s": 120, "notify_topic": "critical"},
 ]
 
 
@@ -93,12 +97,24 @@ class Rule(BaseModel):
     channels: list[str] = Field(default_factory=lambda: ["screen", "sound"])
     escalate_after_min: int | None = Field(default=None, ge=1, le=1440)
     cooldown_s: int = Field(default=120, ge=0, le=86400)
+    notify_topic: str = Field(default="critical", pattern="^(critical|device|system)$")   # who gets WhatsApp and push
 
 
 def load_rules() -> list[dict]:
     with connect() as conn:
         row = conn.execute("SELECT value FROM settings WHERE key = 'alert_rules'").fetchone()
-    return row[0] if row else DEFAULT_RULES
+        if not row:
+            return DEFAULT_RULES
+        rules = row[0]
+        # Rules saved before device health existed: add the "Device faults" rule once, at the top,
+        # so device problems reach the IT Manager rather than the security alerts. Never re-added
+        # if someone removes it later.
+        if not conn.execute("SELECT 1 FROM settings WHERE key = 'alert_rules_device_added'").fetchone():
+            if not any(set(r.get("types", [])) & set(DEVICE_TYPES) for r in rules):
+                rules = [DEFAULT_RULES[0]] + rules
+                conn.execute("UPDATE settings SET value = %s WHERE key = 'alert_rules'", (Jsonb(rules),))
+            conn.execute("INSERT INTO settings (key, value) VALUES ('alert_rules_device_added', 'true') ON CONFLICT DO NOTHING")
+        return rules
 
 
 def _any(patterns: list[str], value: str | None) -> bool:
@@ -138,9 +154,27 @@ ALERT_COLS = ("a.id, a.event_id, a.rule, a.severity, a.status, a.assigned_to, a.
               "e.camera_id, e.zone, e.type, e.object_class, e.confidence, e.occurred_at, e.snapshot_ref, e.tier, e.source_kind")
 
 
+_names_cache: dict = {"at": 0.0, "names": {}}
+
+
+def camera_label(camera_id: str) -> str | None:
+    """Camera name from the probe and live device data (cached for a minute)."""
+    import time as _t
+    if _t.monotonic() - _names_cache["at"] > 60:
+        try:
+            from .console import load_devices
+            from .reports.data import camera_names
+            _names_cache["names"] = camera_names(load_devices())
+        except Exception:
+            _names_cache["names"] = {}
+        _names_cache["at"] = _t.monotonic()
+    return _names_cache["names"].get(camera_id)
+
+
 def _alert_row(r) -> dict:
     keys = [c.split(".")[1] for c in ALERT_COLS.replace(" ", "").split(",")]
     a = dict(zip(keys, r))
+    a["camera_name"] = camera_label(a["camera_id"])
     a["id"], a["event_id"] = str(a["id"]), str(a["event_id"])
     a["snapshot_url"] = f"/api/events/{a['event_id']}/snapshot" if a.pop("snapshot_ref") else None
     return a
@@ -200,13 +234,20 @@ def on_event(event: dict) -> str | None:
     broker.publish({"kind": "new", "alert": alert})
     channels = set(rule.get("channels", []))
     if channels & {"push", "whatsapp"}:
-        threading.Thread(target=_notify, args=(alert, channels, "critical"), daemon=True).start()
+        threading.Thread(target=_notify, args=(alert, channels, rule.get("notify_topic") or "critical"), daemon=True).start()
+    if severity == "critical" and event["type"] not in DEVICE_TYPES:
+        from .clips import request_clip
+        try:
+            if request_clip(alert_id, event["id"], event["camera_id"], event["occurred_at"], "rule"):
+                broker.publish({"kind": "updated", "alert": get_alert(alert_id)})
+        except Exception:
+            log.exception("requesting a clip for alert %s failed", alert_id)
     return str(alert_id)
 
 
 def _alert_text(a: dict, prefix: str = "") -> tuple[str, str]:
     when = a["occurred_at"].astimezone(tz())
-    title = f"{prefix}{a['severity'].upper()}: {a['type'].replace('_', ' ')} at {a['zone'] or a['camera_id']}"
+    title = f"{prefix}{a['severity'].upper()}: {a['type'].replace('_', ' ')} at {a['zone'] or a.get('camera_name') or a['camera_id']}"
     body = (f"{when:%a %d %b %H:%M:%S} · camera {a['camera_id']}"
             + (f" · {a['object_class']}" if a.get("object_class") else "")
             + (f" · {round(100 * a['confidence'])}%" if a.get("confidence") else "")
@@ -363,6 +404,8 @@ def alert_detail(alert_id: uuid.UUID, _: dict = Depends(require(*WATCHERS, allow
     with connect() as conn:
         a["timeline"] = [{"at": t, "username": u, "kind": k, "text": x} for t, u, k, x in conn.execute(
             "SELECT at, username, kind, text FROM alert_timeline WHERE alert_id = %s ORDER BY at, id", (alert_id,)).fetchall()]
+    from .clips import clips_for
+    a["clips"] = clips_for(alert_id)
     return a
 
 
@@ -440,6 +483,10 @@ def evidence(alert_id: uuid.UUID, request: Request, user: dict = Depends(require
         snap = Path(os.environ.get("HSS_DATA_DIR", "/data")) / event["snapshot_ref"]
         if snap.exists():
             files["snapshot.jpg"] = snap.read_bytes()
+    from .clips import clip_file
+    clip = clip_file(alert_id)
+    if clip:
+        files["clip.mp4"] = clip[0].read_bytes()
     exported_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     manifest = {"alert": str(alert_id), "exported_at": exported_at, "exported_by": user["username"],
                 "files": {n: hashlib.sha256(b).hexdigest() for n, b in files.items()},
