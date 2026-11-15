@@ -326,3 +326,91 @@ async def background_loop() -> None:
         except Exception as exc:
             log.warning("retention: %s", exc)
         await asyncio.sleep(24 * 3600)
+
+
+# ------------------------------------------------------------------ getting started (Phase 9 onboarding)
+
+def onboarding_steps() -> list[dict]:
+    """First-run checklist. Each step is worked out from the live system, so it ticks itself off."""
+    def q(sql, *args):
+        try:
+            with connect() as conn:
+                return conn.execute(sql, args).fetchone()[0]
+        except Exception:
+            return None
+
+    def step(sid, title, done, why, link, *, optional=False, detail=""):
+        return {"id": sid, "title": title, "done": bool(done), "why": why, "link": link, "optional": optional, "detail": detail}
+
+    brand = q("SELECT value->>'site_name' FROM settings WHERE key = 'branding'")
+    nvrs = q("SELECT count(*) FROM nvrs") or 0
+    roles = {r: q("SELECT count(*) FROM users WHERE role = %s AND NOT disabled", r) or 0 for r in ("admin", "cso", "operator", "management")}
+    admins_2fa = q("SELECT count(*) FROM users WHERE role IN ('admin', 'cso') AND NOT disabled AND totp_enabled") or 0
+    no_2fa = q("SELECT count(*) FROM users WHERE role IN ('admin', 'cso') AND NOT disabled AND NOT totp_enabled") or 0
+    health = q("SELECT count(*) FROM device_health WHERE checked_at > now() - interval '10 minutes'") or 0
+    checked = q("SELECT count(*) FROM nvrs WHERE info ? 'event_checked_at'") or 0
+    real_alerts = q("SELECT count(*) FROM alerts a JOIN events e ON e.id = a.event_id WHERE e.source_kind IN ('nvr', 'edge') "
+                    "AND e.type NOT IN ('nvr_offline', 'nvr_online', 'camera_offline', 'camera_online', 'drive_fault', 'drive_ok')") or 0
+    screens = q("SELECT count(*) FROM wall_screens") or 0
+    assigned = q("SELECT count(*) FROM wall_layouts WHERE path LIKE '/wall/?s=%%'") or 0
+    wa = q("SELECT status FROM gateway_events ORDER BY at DESC LIMIT 1")
+    try:
+        from .notify import load_recipients
+        recipients = len(load_recipients())
+    except Exception:
+        recipients = 0
+    plans = q("SELECT count(*) FROM site_plans WHERE jsonb_array_length(refs) = 2") or 0
+    units = q("SELECT count(*) FROM tracked_units") or 0
+    backup = last_report("backup", "ok")
+    restore = last_report("restore_test", "ok")
+    lic = licence.status()["state"]
+    try:
+        from .legal import status as legal_status
+        legal = legal_status()
+    except Exception:
+        legal = {}
+    fails = sum(1 for c in run_checks() if c["status"] == "fail")
+    return [
+        step("branding", "Name and logo", brand and brand != "HSS Security Platform",
+             "The site name and logo appear on the sign-in page, the console and every report.", "#/settings", detail=brand or ""),
+        step("accounts", "People and roles", roles["cso"] and roles["operator"],
+             "Each person signs in with their own account: the CSO, the control-room operators, management.", "#/users",
+             detail=", ".join(f"{n} {r}" for r, n in roles.items() if n)),
+        step("2fa", "Two-factor for administrators and the CSO", admins_2fa and not no_2fa,
+             "Their accounts can change everything; a password alone is not enough.", "#/settings",
+             detail=f"{no_2fa} still without it" if no_2fa else ""),
+        step("nvrs", "Add the NVRs", nvrs, "Each NVR's login is tested and stored encrypted; its cameras appear in live view.", "#/devices",
+             detail=f"{nvrs} added" if nvrs else ""),
+        step("edge", "Edge service watching the NVRs", health,
+             "Live device health, NVR events and clips. Start it with the edge profile (docs/edge.md).", "#/devices"),
+        step("event-setup", "Check event settings and walk test", checked and real_alerts,
+             "Tick Notify Surveillance Center on the NVRs, then walk past the cameras: real events must raise alerts.", "#/event-setup",
+             detail=f"settings read on {checked} NVR(s); {real_alerts} alerts from real camera events"),
+        step("walls", "Video wall screens", screens and assigned,
+             "One screen per NVR or a rotation, assigned to each TV of the wall PCs.", "#/walls",
+             detail=f"{screens} screens, {assigned} TVs assigned"),
+        step("whatsapp", "WhatsApp and recipients", wa == "ready" and recipients,
+             "Alerts and reports reach the GM, CSO and IT Manager on WhatsApp.", "#/notify",
+             detail=f"gateway {wa or 'not seen'}, {recipients} recipient(s)"),
+        step("reports", "Scheduled reports", bool(os.environ.get("HSS_REPORT_TIME")),
+             "Daily, weekly and monthly reports go out on their own (HSS_REPORT_TIME in .env).", "#/reports",
+             detail=os.environ.get("HSS_REPORT_TIME", "")),
+        step("map", "Site map", plans, "The plan tied to GPS, cameras placed, zones drawn.", "#/map", optional=True),
+        step("gps", "Guard phones", units, "Guards' phones report through Traccar Client; zones and patrols raise alerts.", "#/map", optional=True,
+             detail=f"{units} added" if units else ""),
+        step("backups", "Backups and a restore test", backup and restore,
+             "Daily encrypted backups and a passed restore test (installed by install.sh; docs/backup.md).", "#/security",
+             detail=("last backup " + backup["at"].strftime("%d %b")) if backup else ""),
+        step("licence", "Licence", lic in ("licensed", "not_set_up"), "Load this installation's licence file.", "#/settings", detail=lic),
+        step("face-plate", "Face and plate recognition", legal.get("face") or legal.get("plate"),
+             "Only after the legal review, DPIA, signs and notices are in place.", "#/face-plate", optional=True),
+        step("security", "Security page all green", fails == 0, "Every failed check fixed.", "#/security",
+             detail=f"{fails} failed check(s)" if fails else ""),
+    ]
+
+
+@router.get("/onboarding")
+def onboarding(_: dict = Depends(require("admin", "cso"))) -> dict:
+    steps = onboarding_steps()
+    required = [s for s in steps if not s["optional"]]
+    return {"steps": steps, "done": sum(s["done"] for s in required), "total": len(required)}

@@ -81,6 +81,8 @@ const I = {
   vault: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M12 9.5V8M7 20v1M17 20v1"/></svg>',
   setup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M12 8v5M12 16h.01"/></svg>',
+  start: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>',
+  help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -97,6 +99,7 @@ const state = { user: null, branding: { site_name: "Security Console", accent: "
 const PAGES = [
   { group: "Monitor" },
   { id: "overview", title: "Overview", icon: "overview", roles: ["admin", "cso", "operator", "management"], view: viewOverview },
+  { id: "start", title: "Getting started", icon: "start", roles: ["admin", "cso"], view: viewStart },
   { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
@@ -113,11 +116,12 @@ const PAGES = [
   { id: "users", title: "Users", icon: "users", roles: ["admin"], view: viewUsers },
   { id: "security", title: "Security", icon: "shield", roles: ["admin", "cso"], view: viewSecurity },
   { id: "audit", title: "Audit log", icon: "audit", roles: ["admin"], view: viewAudit },
+  { id: "help", title: "Help", icon: "help", roles: ["admin", "cso", "operator", "management"], view: viewHelp },
   { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management"], view: viewSettings },
 ];
 const allowed = p => p.view && p.roles.includes(state.user.role);
 function currentPage() {
-  const id = location.hash.replace(/^#\/?/, "") || "overview";
+  const id = location.hash.replace(/^#\/?/, "").split("?")[0] || "overview";
   return PAGES.find(p => p.id === id && allowed(p)) || PAGES.find(p => p.id === "overview");
 }
 window.addEventListener("hashchange", () => render());
@@ -274,10 +278,15 @@ async function viewOverview(c) {
   if (alertsAllowed()) await refreshAlertCount();
   const o = await api("/overview");
   const canEvents = ["admin", "cso", "operator"].includes(state.user.role);
+  let setup = null;
+  if (["admin", "cso"].includes(state.user.role)) { try { setup = await api("/system/onboarding"); } catch (_) { /* older API */ } }
   const [events, devices] = await Promise.all([canEvents ? api("/events?limit=8") : [], api("/devices")]);
   const d = o.devices, pct = d.cameras ? Math.round(100 * d.online / d.cameras) : 0;
   const ev = o.events_24h;
   c.replaceChildren(
+    setup && setup.done < setup.total ? h("a", { class: "setup-banner", href: "#/start" },
+      h("strong", {}, `Setup: ${setup.done} of ${setup.total} done`), h("span", { class: "muted" }, " · next: ", (setup.steps.find(x => !x.done && !x.optional) || {}).title || ""),
+      h("div", { class: "bar" }, h("span", { style: `width:${Math.round(100 * setup.done / setup.total)}%` }))) : null,
     h("div", { class: "grid kpis" },
       alertsAllowed() ? kpi("Open alerts", h("a", { href: "#/alerts", style: `color:${state.openAlerts ? "var(--bad)" : "var(--ok)"};text-decoration:none` }, state.openAlerts ?? "—"),
         state.openAlerts ? "Waiting for acknowledgement" : "Nothing waiting") : null,
@@ -707,9 +716,15 @@ function renderMd(md) {
     }
     if ((m = l.match(/^(\d+\.|-)\s+/))) {
       const ordered = m[1] !== "-", items = [];
-      while (i < lines.length && lines[i].match(ordered ? /^\d+\.\s+/ : /^-\s+/)) { items.push(lines[i].replace(/^(\d+\.|-)\s+/, "")); i++; }
+      while (i < lines.length) {
+        const ln = lines[i];
+        if (ln.match(ordered ? /^\d+\.\s+/ : /^-\s+/)) items.push({ text: ln.replace(/^(\d+\.|-)\s+/, "").replace(/^\[ \]\s*/, "☐ ").replace(/^\[x\]\s*/i, "☑ "), sub: [] });
+        else if (items.length && ln.match(/^\s{2,}(-|\d+\.)\s+/)) items[items.length - 1].sub.push(ln.replace(/^\s+(-|\d+\.)\s+/, ""));
+        else break;
+        i++;
+      }
       i--;
-      out.push(h(ordered ? "ol" : "ul", {}, items.map(t => h("li", {}, inlineMd(t)))));
+      out.push(h(ordered ? "ol" : "ul", {}, items.map(t => h("li", {}, inlineMd(t.text), t.sub.length ? h("ul", {}, t.sub.map(x => h("li", {}, inlineMd(x)))) : null))));
       continue;
     }
     const para = [l];
@@ -1641,6 +1656,41 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- getting started and help (Phase 9) ---------------- */
+async function viewStart(c) {
+  const d = await api("/system/onboarding");
+  const step = (x, i) => h("div", { class: `start-step ${x.done ? "done" : ""}` },
+    h("span", { class: "start-num" }, x.done ? "✓" : i + 1),
+    h("div", { class: "grow", style: "min-width:0" },
+      h("div", { style: "font-weight:650" }, x.title, x.optional ? h("span", { class: "badge", style: "margin-left:8px" }, "optional") : null),
+      h("div", { class: "muted", style: "font-size:13px;white-space:normal" }, x.why),
+      x.detail ? h("div", { class: "faint", style: "font-size:12.5px" }, x.detail) : null),
+    h("a", { class: `btn small ${x.done ? "" : "primary"}`, href: x.link }, x.done ? "View" : "Open"));
+  const req = d.steps.filter(x => !x.optional), opt = d.steps.filter(x => x.optional);
+  c.append(h("section", { class: "card" },
+    h("div", { class: "head" }, h("h2", {}, d.done === d.total ? "Setup complete" : `${d.done} of ${d.total} steps done`), h("div", { class: "spacer" }),
+      h("button", { class: "btn small", onclick: () => render() }, "Check again")),
+    h("div", { class: "bar", style: "margin:0 0 14px" }, h("span", { style: `width:${Math.round(100 * d.done / d.total)}%` })),
+    h("p", { class: "muted", style: "margin-top:0" }, "Each step ticks itself off when the system sees it done. Work down the list; the Help page has a guide for each role."),
+    h("div", { class: "start-list" }, req.map(step))),
+    card("Optional", null, h("div", { class: "start-list" }, opt.map((x, i) => step(x, req.length + i)))));
+}
+
+async function viewHelp(c) {
+  const guides = await api("/help");
+  let cur = new URLSearchParams(location.hash.split("?")[1] || "").get("g") || (guides.find(g => g.mine) || guides[0] || {}).id;
+  const body = h("article", { class: "legal-doc", style: "max-height:none" });
+  const tabs = h("div", { class: "seg", role: "group", "aria-label": "Guides" });
+  const show = async id => {
+    cur = id;
+    tabs.replaceChildren(...guides.map(g => h("button", { class: g.id === cur ? "on" : null, onclick: () => show(g.id) }, g.title)));
+    const g = await api(`/help/${id}`);
+    body.replaceChildren(...renderMd(g.text));
+  };
+  c.append(h("div", { class: "toolbar" }, tabs), h("section", { class: "card" }, body));
+  if (cur) await show(cur);
 }
 
 /* ---------------- security self-check (Phase 8) ---------------- */

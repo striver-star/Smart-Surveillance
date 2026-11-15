@@ -1802,7 +1802,15 @@ row-level security (with the hosted option).
 image and Compose package; Windows server backup installer (WSL2);
 Windows wall installer; documentation and training; onboarding wizard;
 hosted option with site connectors; pilot go-live. Gate: client
-acceptance.
+acceptance. **Built 2026-11-15** (docs/deployment.md, docs/training.md,
+docs/acceptance-test.md, docs/go-live.md): install.sh (checks, Docker, .env with random secrets, first
+administrator, backups and cron, firewall; --upgrade with a backup first; --offline from a release
+bundle), tools/package/make-release.sh (offline bundle with saved images and checksums), VM and
+Windows/WSL2 guidance, Getting started page that ticks itself off from the live system, role guides in
+the console (operator, CSO, administrator, management), training plan with competency checks,
+20-item acceptance test with sign-off, go-live and rollback plan. **Not yet run on a fresh server**:
+install.sh needs a first run on a clean Ubuntu machine. Deferred: hosted option and site connectors
+(after the pilot).
 
 **Stage L: Phase 10, Growth (release 2.0):** remaining Section 5.8
 items. Gate: prioritization session.
