@@ -110,6 +110,10 @@ def live_paths(_: dict = Depends(require("admin", "cso", "operator"))) -> list[d
             r = httpx.get(f"{url}{endpoint}", params={"itemsPerPage": 1000}, timeout=5)
             r.raise_for_status()
             names |= {i["name"] for i in r.json().get("items", []) if i.get("name")}
+    except httpx.HTTPStatusError as exc:
+        hint = (" (the gateway refused the request: restart it with 'docker compose up -d gateway' so it loads "
+                "gateway/mediamtx.yml)" if exc.response.status_code in (401, 403) else "")
+        raise HTTPException(status_code=502, detail=f"gateway answered {exc.response.status_code}{hint}") from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"gateway not reachable: {exc.__class__.__name__}") from exc
     # Skip catch-all and regular-expression path entries (all, all_others, ~...).

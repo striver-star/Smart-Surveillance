@@ -49,9 +49,11 @@ function toast(msg) {
   document.body.append(t); setTimeout(() => t.remove(), 3500);
 }
 function modal(title, body, actions) {
-  const scrim = h("div", { class: "modal-scrim", onclick: e => { if (e.target === scrim) scrim.remove(); } },
-    h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title },
-      h("h2", {}, title), body, h("div", { class: "toolbar", style: "justify-content:flex-end" }, actions(scrim))));
+  const buttons = h("div", { class: "toolbar", style: "justify-content:flex-end" });
+  const scrim = h("div", { class: "modal-scrim" },
+    h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title }, h("h2", {}, title), body, buttons));
+  scrim.addEventListener("click", e => { if (e.target === scrim) scrim.remove(); });
+  buttons.append(...actions(scrim));          // the buttons get the finished dialog, so they can close it
   document.body.append(scrim);
   const first = scrim.querySelector("input, select, button"); if (first) first.focus();
   return scrim;
