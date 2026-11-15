@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import auth, console, events, notify, wall
+from . import alerts, auth, console, events, notify, wall
 from .reports import service as reports
 from .db import connect, migrate
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 
 @asynccontextmanager
@@ -17,14 +17,17 @@ async def lifespan(app: FastAPI):
     migrate()
     watcher = asyncio.create_task(notify.background_loop())
     scheduler = asyncio.create_task(reports.background_loop())
+    escalator = asyncio.create_task(alerts.background_loop())
     yield
     watcher.cancel()
     scheduler.cancel()
+    escalator.cancel()
 
 
 app = FastAPI(title="HSS Platform API", version=VERSION, lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(console.router)
+app.include_router(alerts.router)
 app.include_router(reports.router)
 app.include_router(events.router)
 app.include_router(wall.router)

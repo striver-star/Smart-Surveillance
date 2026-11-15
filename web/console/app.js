@@ -18,6 +18,9 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 const $ = sel => document.querySelector(sel);
+// Element.replaceChildren prints null as the text "null"; skip empty placeholders like h() does.
+const _replace = Element.prototype.replaceChildren;
+Element.prototype.replaceChildren = function (...kids) { return _replace.apply(this, kids.flat(9).filter(k => k !== null && k !== undefined && k !== false)); };
 class ApiError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 async function api(path, opts = {}) {
   const r = await fetch(`/api${path}`, {
@@ -45,8 +48,10 @@ const delay = ms => { const s = ms / 1000; return s < 60 ? `${s.toFixed(1)} s` :
 const initials = u => (u.display_name || u.username || "?").split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
 const ROLE_NAMES = { admin: "Administrator", cso: "Chief Security Officer", operator: "Operator", management: "Management" };
 function toast(msg) {
+  let box = document.getElementById("toasts");
+  if (!box) { box = h("div", { id: "toasts", class: "toasts", "aria-live": "polite" }); document.body.append(box); }
   const t = h("div", { class: "toast", role: "status" }, msg);
-  document.body.append(t); setTimeout(() => t.remove(), 3500);
+  box.append(t); setTimeout(() => t.remove(), 3500);
 }
 function modal(title, body, actions) {
   const buttons = h("div", { class: "toolbar", style: "justify-content:flex-end" });
@@ -73,6 +78,9 @@ const I = {
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9.5 17H2.5z"/><path d="M12 10v4M12 17.5h.01"/></svg>',
+  sound: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>',
+  mute: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   menu: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
   logout: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
 };
@@ -83,6 +91,7 @@ const state = { user: null, branding: { site_name: "Security Console", accent: "
 const PAGES = [
   { group: "Monitor" },
   { id: "overview", title: "Overview", icon: "overview", roles: ["admin", "cso", "operator", "management"], view: viewOverview },
+  { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap, preview: true },
@@ -199,6 +208,7 @@ function viewForcedPassword() {
 }
 
 async function logout() {
+  stopAlertStream();
   try { await api("/auth/logout", { method: "POST" }); } catch (_) { /* already gone */ }
   state.user = null; location.hash = ""; render();
 }
@@ -211,7 +221,8 @@ function viewShell(page) {
     if (p.group) { if (!p.roles || p.roles.includes(u.role)) nav.append(h("div", { class: "group" }, p.group)); continue; }
     if (!allowed(p)) continue;
     nav.append(h("a", { href: `#/${p.id}`, class: p === page ? "active" : null, "aria-current": p === page ? "page" : null },
-      icon(p.icon), p.title, p.preview ? h("span", { class: "tag" }, "preview") : null));
+      icon(p.icon), p.title, p.preview ? h("span", { class: "tag" }, "preview") : null,
+      p.id === "alerts" ? h("span", { class: "count", id: "alert-count", hidden: !state.openAlerts }, state.openAlerts || "") : null));
   }
   const clock = h("span", { class: "clock" });
   const tick = () => { clock.textContent = new Date().toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
@@ -227,10 +238,11 @@ function viewShell(page) {
       h("header", { class: "top" },
         h("button", { class: "btn small menu-btn", "aria-label": "Menu", html: I.menu, onclick: () => shell.classList.toggle("open") }),
         h("h1", {}, page.title), page.preview ? h("span", { class: "badge preview" }, "Preview") : null,
-        h("div", { class: "spacer" }), statusPills, clock),
+        h("div", { class: "spacer" }), statusPills, alertsAllowed() ? soundButton() : null, clock),
       content));
   nav.addEventListener("click", () => shell.classList.remove("open"));
   loadStatusPills(statusPills);
+  startAlertStream();
   Promise.resolve(page.view(content)).catch(e => content.replaceChildren(h("div", { class: "error" }, `Couldn't load this page: ${e.message}`)));
   return shell;
 }
@@ -249,6 +261,7 @@ async function loadStatusPills(box) {
 /* ---------------- overview ---------------- */
 async function viewOverview(c) {
   c.append(h("div", { class: "muted" }, "Loading…"));
+  if (alertsAllowed()) await refreshAlertCount();
   const o = await api("/overview");
   const canEvents = ["admin", "cso", "operator"].includes(state.user.role);
   const [events, devices] = await Promise.all([canEvents ? api("/events?limit=8") : [], api("/devices")]);
@@ -256,6 +269,8 @@ async function viewOverview(c) {
   const ev = o.events_24h;
   c.replaceChildren(
     h("div", { class: "grid kpis" },
+      alertsAllowed() ? kpi("Open alerts", h("a", { href: "#/alerts", style: `color:${state.openAlerts ? "var(--bad)" : "var(--ok)"};text-decoration:none` }, state.openAlerts ?? "—"),
+        state.openAlerts ? "Waiting for acknowledgement" : "Nothing waiting") : null,
       kpi("Cameras online", d.cameras ? h("span", {}, d.online, h("small", {}, ` / ${d.cameras}`)) : "—",
         d.probed_at ? `${d.nvrs} NVRs · probed ${ago(d.probed_at)}` : "No probe data yet", d.cameras ? pct : null),
       kpi("Events, last 24 h", ev.critical + ev.warning + ev.info, h("span", {},
@@ -350,10 +365,9 @@ function eventDrawer(e) {
         h("div", {}, "Source"), h("div", {}, `${e.source_kind} (tier ${e.tier})${e.source_ref ? `, ${e.source_ref}` : ""}`),
         h("div", {}, "Happened"), h("div", {}, fmtTime(e.occurred_at)), h("div", {}, "Reached platform"), h("div", {}, `${delay(e.latency_ms)} later`)),
       h("div", { class: "toolbar" },
-        h("button", { class: "btn primary", disabled: true, title: "Acknowledge and escalate arrive with alerts (Phase 3)" }, "Acknowledge"),
-        h("button", { class: "btn", disabled: true, title: "Clips arrive with the evidence vault (Phase 3)" }, "Open clip"),
+        h("button", { class: "btn primary", onclick: () => { scrim.remove(); location.hash = "#/alerts"; } }, "Go to alerts"),
         h("button", { class: "btn", onclick: () => { scrim.remove(); location.hash = "#/live"; } }, "Go to live view")),
-      h("p", { class: "faint", style: "font-size:12px;margin:0" }, "Acknowledge, escalation and clips come with the alerts phase.")));
+      h("p", { class: "faint", style: "font-size:12px;margin:0" }, "Events that match an alert rule become alerts; acknowledge and close them on the Alerts page. Video clips come with Phase 3 part B.")));
   document.body.append(scrim);
 }
 
@@ -614,6 +628,166 @@ function reportDrawer(r, canSend, reload) {
   document.body.append(scrim);
 }
 
+/* ---------------- alerts: live connection, banners, sound ---------------- */
+const SEV_BADGE = { critical: "bad", warning: "warn", info: "info" };
+const STATUS_BADGE = { open: "bad", acknowledged: "warn", closed: "ok" };
+const CLOSE_REASONS = { real_incident: "Real incident", false_alarm: "False alarm", test: "Test", duplicate: "Duplicate", other: "Other" };
+const alertsAllowed = () => state.user && ["admin", "cso", "operator"].includes(state.user.role);
+const prefs = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) { /* private mode */ } } };
+
+async function refreshAlertCount() {
+  if (!alertsAllowed()) return;
+  try {
+    const r = await api("/alerts?status=open&limit=1");
+    state.openAlerts = r.counts.open;
+    const el = document.getElementById("alert-count");
+    if (el) { el.textContent = state.openAlerts || ""; el.hidden = !state.openAlerts; }
+  } catch (_) { /* next update will retry */ }
+}
+
+function startAlertStream() {
+  if (!alertsAllowed() || state.sse) return;
+  refreshAlertCount();
+  const es = state.sse = new EventSource("/api/alerts/stream");
+  es.addEventListener("alert", ev => {
+    const msg = JSON.parse(ev.data);
+    if (msg.kind === "new") { popAlert(msg.alert); playAlertSound(msg.alert.severity); }
+    refreshAlertCount();
+    window.dispatchEvent(new CustomEvent("hss-alert", { detail: msg }));
+  });
+  es.onerror = () => { if (es.readyState === EventSource.CLOSED) { state.sse = null; setTimeout(startAlertStream, 5000); } };
+}
+function stopAlertStream() { if (state.sse) { state.sse.close(); state.sse = null; } }
+
+function popAlert(a) {
+  let stack = document.getElementById("alert-stack");
+  if (!stack) { stack = h("div", { id: "alert-stack", class: "alert-stack", role: "alert" }); document.body.append(stack); }
+  const card = h("div", { class: `alert-pop ${a.severity}` },
+    a.snapshot_url ? h("img", { src: a.snapshot_url, alt: "" }) : null,
+    h("div", { class: "grow" }, h("div", { class: "title" }, `${label(a.type)}${a.object_class ? ` · ${a.object_class}` : ""}`),
+      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || a.camera_id} · ${new Date(a.occurred_at).toLocaleTimeString()}`),
+      h("div", { class: "toolbar", style: "margin-top:6px" },
+        h("button", { class: "btn small primary", onclick: () => { card.remove(); alertDrawer(a.id); } }, "Open"),
+        h("button", { class: "btn small", onclick: () => card.remove() }, "Dismiss"))),
+    h("span", { class: `badge ${SEV_BADGE[a.severity]}` }, a.severity));
+  stack.prepend(card);
+  while (stack.children.length > 4) stack.lastChild.remove();
+  if (a.severity !== "critical") setTimeout(() => card.remove(), 15000);    // critical banners stay until handled
+}
+
+let audioCtx = null;
+function soundOn() { return prefs.get("hss.sound", "on") === "on"; }
+function playAlertSound(severity) {
+  if (!soundOn()) return;
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const beeps = severity === "critical" ? [0, 0.28, 0.56] : [0];
+    for (const t0 of beeps) {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = severity === "critical" ? 880 : 660;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime + t0);
+      g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t0 + 0.22);
+      o.connect(g).connect(audioCtx.destination); o.start(audioCtx.currentTime + t0); o.stop(audioCtx.currentTime + t0 + 0.25);
+    }
+  } catch (_) { /* no audio on this device */ }
+}
+// Browsers only allow sound after the user has clicked something on the page.
+document.addEventListener("click", () => { if (soundOn() && audioCtx === null) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { /* none */ } } }, { once: true });
+function soundButton() {
+  const b = h("button", { class: "btn small", "aria-label": "Alert sound", title: "Alert sound on or off" });
+  const draw = () => { b.innerHTML = soundOn() ? I.sound : I.mute; b.title = soundOn() ? "Alert sound is on" : "Alert sound is off"; };
+  b.addEventListener("click", () => { prefs.set("hss.sound", soundOn() ? "off" : "on"); draw(); if (soundOn()) playAlertSound("warning"); });
+  draw();
+  return b;
+}
+
+/* ---------------- alerts page ---------------- */
+async function viewAlerts(c) {
+  let status = "active";
+  const box = h("div", {});
+  const counts = h("span", { class: "muted" });
+  const load = async () => {
+    const r = await api(`/alerts?status=${status}&limit=200`);
+    counts.textContent = `${r.counts.open} open · ${r.counts.acknowledged} acknowledged · ${r.counts.closed} closed`;
+    box.replaceChildren(r.alerts.length ? h("div", { class: "list" }, r.alerts.map(alertRow))
+      : h("div", { class: "empty" }, status === "active" ? "No open alerts. New ones appear here the moment they're raised." : "No alerts here."));
+  };
+  const onLive = () => load();
+  window.addEventListener("hss-alert", onLive);
+  state.cleanup.push(() => window.removeEventListener("hss-alert", onLive));
+  const ages = setInterval(() => box.querySelectorAll("[data-at]").forEach(el => { el.textContent = ago(el.dataset.at); }), 15000);
+  state.cleanup.push(() => clearInterval(ages));
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Status" }, [["active", "Needs action"], ["open", "Open"], ["acknowledged", "Acknowledged"], ["closed", "Closed"], ["all", "All"]].map(([k, l]) =>
+    h("button", { class: k === status ? "on" : null, onclick: e => { status = k; seg.querySelectorAll("button").forEach(x => x.classList.remove("on")); e.target.classList.add("on"); load(); } }, l)));
+  c.append(h("div", { class: "toolbar" }, seg, h("div", { style: "flex:1" }), counts),
+    h("section", { class: "card", style: "padding:4px 12px" }, box));
+  await load();
+}
+function alertRow(a) {
+  return h("div", { class: "item", style: "cursor:pointer", onclick: () => alertDrawer(a.id) },
+    h("span", { class: `sev ${a.severity}` }),
+    a.snapshot_url ? h("img", { class: "thumb", src: a.snapshot_url, alt: "", loading: "lazy" }) : h("div", { class: "thumb" }),
+    h("div", { class: "grow" },
+      h("div", { class: "title" }, `${label(a.type)}${a.object_class ? ` · ${a.object_class}` : ""}`),
+      h("div", { class: "muted", style: "font-size:12.5px" }, `${a.zone || "No zone"} · ${a.camera_id}${a.assigned_to ? ` · assigned to ${a.assigned_to}` : ""}`)),
+    a.escalation_level ? h("span", { class: "badge bad", title: "Not acknowledged in time" }, `escalated ×${a.escalation_level}`) : null,
+    h("span", { class: `badge ${STATUS_BADGE[a.status]}` }, a.status),
+    h("span", { class: "faint", style: "font-size:12px;min-width:80px;text-align:right", "data-at": a.created_at }, ago(a.created_at)));
+}
+
+async function alertDrawer(id) {
+  closeOverlays();
+  const scrim = h("div", { class: "scrim", onclick: ev => { if (ev.target === scrim) scrim.remove(); } });
+  const drawer = h("div", { class: "drawer", role: "dialog", "aria-label": "Alert" }, h("div", { class: "muted" }, "Loading…"));
+  scrim.append(drawer); document.body.append(scrim);
+  const canManage = ["admin", "cso"].includes(state.user.role);
+  const people = await api("/alerts/assignees").catch(() => []);
+  const draw = a => {
+    const act = async (body, msg) => {
+      try { const r = await api(`/alerts/${id}/action`, { method: "POST", body }); toast(msg); draw(r); }
+      catch (ex) { toast(ex.message); }
+    };
+    const comment = h("textarea", { class: "input", rows: 2, placeholder: "Add a note (what you did, what you saw)", maxlength: 2000 });
+    const reason = h("select", { class: "input", style: "width:auto" }, Object.entries(CLOSE_REASONS).map(([k, v]) => h("option", { value: k }, v)));
+    const who = h("select", { class: "input", style: "width:auto", disabled: !canManage },
+      people.map(p => h("option", { value: p.username, selected: p.username === (a.assigned_to || state.user.username) }, `${p.display_name} (${p.role})`)));
+    drawer.replaceChildren(
+      h("div", { class: "toolbar" }, h("span", { class: `badge ${SEV_BADGE[a.severity]}` }, a.severity), h("span", { class: `badge ${STATUS_BADGE[a.status]}` }, a.status),
+        h("h2", {}, label(a.type)), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: () => scrim.remove() }, "Close")),
+      a.snapshot_url ? h("img", { class: "snapshot", src: a.snapshot_url, alt: `Snapshot from ${a.camera_id}` }) : h("div", { class: "empty card" }, "No snapshot."),
+      h("div", { class: "kv" },
+        h("div", {}, "Where"), h("div", {}, `${a.zone || "No zone"} · ${a.camera_id}`),
+        h("div", {}, "When"), h("div", {}, fmtTime(a.occurred_at)),
+        h("div", {}, "What"), h("div", {}, `${label(a.type)}${a.object_class ? `, ${a.object_class}` : ""}${a.confidence ? `, ${Math.round(a.confidence * 100)}%` : ""}`),
+        h("div", {}, "Rule"), h("div", {}, a.rule),
+        h("div", {}, "Assigned to"), h("div", {}, a.assigned_to || "nobody yet"),
+        a.repeats ? h("div", {}, "Repeats") : null, a.repeats ? h("div", {}, `${a.repeats} more event${a.repeats > 1 ? "s" : ""} at the same place`) : null,
+        a.escalation_level ? h("div", {}, "Escalated") : null, a.escalation_level ? h("div", { style: "color:var(--bad)" }, `${a.escalation_level} time${a.escalation_level > 1 ? "s" : ""}`) : null,
+        a.close_reason ? h("div", {}, "Closed as") : null, a.close_reason ? h("div", {}, CLOSE_REASONS[a.close_reason]) : null),
+      h("div", { class: "toolbar" },
+        a.status === "open" ? h("button", { class: "btn primary", onclick: () => act({ action: "acknowledge", text: comment.value }, "Acknowledged") }, "Acknowledge") : null,
+        a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
+        h("a", { class: "btn", href: "#/live", onclick: () => scrim.remove() }, "Live view"),
+        canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "" }, "Export evidence") : null),
+      h("div", { class: "field" }, h("label", {}, "Note"), comment),
+      h("div", { class: "toolbar" },
+        h("button", { class: "btn", onclick: () => comment.value.trim() ? act({ action: "comment", text: comment.value }, "Note added") : toast("Write a note first") }, "Add note"),
+        h("span", { class: "muted" }, "Assign"), who,
+        h("button", { class: "btn", onclick: () => act({ action: "assign", assignee: canManage ? who.value : state.user.username, text: comment.value }, "Assigned") }, canManage ? "Assign" : "Take it")),
+      a.status !== "closed" ? h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Close as"), reason,
+        h("button", { class: "btn", onclick: () => act({ action: "close", reason: reason.value, text: comment.value }, "Closed") }, "Close alert")) : null,
+      h("h3", {}, "Timeline"),
+      h("div", { class: "list" }, (a.timeline || []).slice().reverse().map(t => h("div", { class: "item" },
+        h("span", { class: `dot ${t.kind === "escalated" ? "bad" : t.kind === "closed" ? "ok" : t.kind === "acknowledged" ? "warn" : ""}` }),
+        h("div", { class: "grow" }, h("div", { class: "title", style: "font-weight:550" }, `${label(t.kind)}${t.username ? ` · ${t.username}` : ""}`),
+          t.text ? h("div", { class: "muted", style: "font-size:12.5px;white-space:normal" }, t.text) : null),
+        h("span", { class: "faint", style: "font-size:12px" }, fmtTime(t.at))))));
+  };
+  try { draw(await api(`/alerts/${id}`)); } catch (ex) { drawer.replaceChildren(h("div", { class: "error" }, ex.message)); }
+}
+
 /* ---------------- users ---------------- */
 async function viewUsers(c) {
   const users = await api("/users");
@@ -665,7 +839,8 @@ async function viewUsers(c) {
 async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
-    user_changed: "Changed a user", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", admin_created_cli: "Admin created on the server",
+    user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -719,9 +894,60 @@ async function viewSettings(c) {
         catch (ex) { pwErr.textContent = ex.message; pwErr.hidden = false; }
       } }, "Change password")),
     card("Two-factor sign-in", me.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge warn" }, "off"), twoFactorBox(me))));
+  if (["admin", "cso"].includes(me.role)) sections.push(await rulesEditor());
   sections.push(card("Appearance", null, h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Theme"),
     h("div", { class: "seg" }, ["system", "dark", "light"].map(t => h("button", { class: (localStorage.getItem("hss.theme") || "system") === t ? "on" : null, onclick: () => { setTheme(t); render(); } }, label(t)))))));
   c.append(...sections);
+}
+async function rulesEditor() {
+  let rules = await api("/alerts/rules");
+  const box = h("div", { class: "grid", style: "gap:10px" });
+  const list = v => (v || []).join(", ");
+  const parseList = v => v.split(",").map(x => x.trim()).filter(Boolean);
+  const draw = () => box.replaceChildren(...rules.map((r, i) => {
+    const f = (key, el) => { el.addEventListener("change", () => { r[key] = el.type === "checkbox" ? el.checked : el.value; }); return el; };
+    const txt = (key, ph) => { const el = h("input", { class: "input", value: list(r[key]), placeholder: ph }); el.addEventListener("change", () => { r[key] = parseList(el.value); }); return el; };
+    const armed = h("input", { class: "input", value: (r.armed || []).map(w => w.join("-")).join(", "), placeholder: "always, or e.g. 18:00-06:00" });
+    armed.addEventListener("change", () => { r.armed = parseList(armed.value).map(w => w.split("-").map(t => t.trim())); });
+    const esc = h("input", { class: "input", type: "number", min: 1, max: 1440, value: r.escalate_after_min ?? "", placeholder: "never" });
+    esc.addEventListener("change", () => { r.escalate_after_min = esc.value ? Number(esc.value) : null; });
+    const cool = h("input", { class: "input", type: "number", min: 0, max: 86400, value: r.cooldown_s ?? 120 });
+    cool.addEventListener("change", () => { r.cooldown_s = Number(cool.value || 0); });
+    const chans = ["screen", "sound", "push", "whatsapp"].map(ch => {
+      const cb = h("input", { type: "checkbox", checked: (r.channels || []).includes(ch) });
+      cb.addEventListener("change", () => { r.channels = cb.checked ? [...new Set([...(r.channels || []), ch])] : (r.channels || []).filter(x => x !== ch); });
+      return h("label", { style: "display:flex;gap:5px;align-items:center" }, cb, label(ch));
+    });
+    const field = (l, el) => h("div", { class: "field", style: "margin:0" }, h("label", {}, l), el);
+    return h("div", { class: "card", style: "background:var(--panel-2)" },
+      h("div", { class: "toolbar", style: "margin-bottom:10px" },
+        h("span", { class: "badge" }, `#${i + 1}`), f("name", h("input", { class: "input", value: r.name, style: "max-width:280px;font-weight:600" })),
+        h("label", { style: "display:flex;gap:6px;align-items:center" }, f("enabled", h("input", { type: "checkbox", checked: r.enabled !== false })), "On"),
+        h("div", { style: "flex:1" }),
+        h("button", { class: "btn small", disabled: i === 0, onclick: () => { [rules[i - 1], rules[i]] = [rules[i], rules[i - 1]]; draw(); } }, "Up"),
+        h("button", { class: "btn small danger", onclick: () => { rules.splice(i, 1); draw(); } }, "Remove")),
+      h("div", { class: "grid", style: "grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px" },
+        field("Lowest severity", f("min_severity", h("select", { class: "input" }, ["info", "warning", "critical"].map(x => h("option", { value: x, selected: x === r.min_severity }, label(x)))))),
+        field("Cameras", txt("cameras", "all, or e.g. nvr4-*")), field("Zones", txt("zones", "all, or e.g. *fence*")),
+        field("Event types", txt("types", "all, or e.g. intrusion")), field("Objects", txt("objects", "all, or human, vehicle")),
+        field("Armed", armed),
+        field("Raise to", f("raise_to", h("select", { class: "input" }, [["", "keep"], ["warning", "Warning"], ["critical", "Critical"]].map(([v, l]) => h("option", { value: v, selected: (r.raise_to || "") === v }, l))))),
+        field("Escalate after (min)", esc), field("Cooldown (s)", cool)),
+      h("div", { class: "toolbar", style: "margin-top:10px" }, h("span", { class: "muted" }, "Channels"), chans));
+  }));
+  draw();
+  const err = h("div", { class: "error", hidden: true });
+  return card("Alert rules", h("span", { class: "muted" }, "Checked in order; the first match decides"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Patterns use * as a wildcard. Armed times are local, and a window like 18:00-06:00 runs overnight. Escalation sends unacknowledged alerts to everyone subscribed to “escalation”. The cooldown folds repeat events at the same camera and zone into the open alert."),
+    err, box,
+    h("div", { class: "toolbar", style: "margin-top:12px" },
+      h("button", { class: "btn", onclick: () => { rules.push({ name: "New rule", enabled: true, min_severity: "warning", cameras: [], zones: [], types: [], objects: [], armed: [], raise_to: null, channels: ["screen", "sound"], escalate_after_min: null, cooldown_s: 120 }); draw(); } }, "Add rule"),
+      h("div", { style: "flex:1" }),
+      h("button", { class: "btn primary", onclick: async () => {
+        err.hidden = true;
+        try { rules = await api("/alerts/rules", { method: "PUT", body: rules.map(r => ({ ...r, raise_to: r.raise_to || null })) }); toast("Alert rules saved"); draw(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save rules")));
 }
 function twoFactorBox(me) {
   const box = h("div", {});

@@ -73,7 +73,16 @@ def ingest_event(event: EventIn) -> dict:
              snapshot_ref, Jsonb(event.raw)),
         ).fetchone()[0]
     latency_ms = round((received_at - event.occurred_at).total_seconds() * 1000)
-    return {"id": str(event_id), "received_at": received_at.isoformat(), "latency_ms": latency_ms}
+    alert_id = None
+    try:
+        from .alerts import on_event
+        alert_id = on_event({"id": event_id, "camera_id": event.camera_id, "zone": event.zone, "type": event.type,
+                             "object_class": event.object_class, "severity": event.severity,
+                             "confidence": event.confidence, "occurred_at": event.occurred_at})
+    except Exception:  # the event is stored either way; an alerting fault must not lose it
+        import logging
+        logging.getLogger("alerts").exception("alert rules failed for event %s", event_id)
+    return {"id": str(event_id), "received_at": received_at.isoformat(), "latency_ms": latency_ms, "alert_id": alert_id}
 
 
 @router.get("/events", dependencies=[Depends(require("admin", "cso", "operator", allow_admin_token=True))])

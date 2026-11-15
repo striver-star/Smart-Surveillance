@@ -1721,7 +1721,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 23. License scan of PoC code, models and datasets. **Done 2026-11-12**: 242 components, PASS after replacing PyAV (GPL x264/x265 inside its wheel) with OpenCV decoding; runs on every push (docs/task-23-licence-scan.md)
 24. PoC go or no-go and requirements sign-off. **To do**
 
-**Built early (2026-11-15):** web console with real sign-in, users, roles, two-factor, audit log and branding, running on site with live view on PC and iPhone (docs/console.md); reports in PDF and Word with archive, sending and schedule (docs/reports.md; ReportLab replaces WeasyPrint).
+**Built early (2026-11-15):** web console with real sign-in, users, roles, two-factor, audit log and branding, running on site with live view on PC and iPhone (docs/console.md); reports in PDF and Word with archive, sending and schedule (docs/reports.md; ReportLab replaces WeasyPrint); Phase 3 part A, alerts and incident workflow with rules, live feed, escalation and evidence export (docs/alerts.md).
 
 **Stage C: Phase 1, Foundation:** repository remote and CI; tenant-ready
 schema with row-level security and branding fields; auth and admin;
