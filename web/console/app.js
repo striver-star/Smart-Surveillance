@@ -86,6 +86,7 @@ const I = {
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+  noise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M9 20V4M14 20v-7M19 20v-11"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -114,6 +115,7 @@ const PAGES = [
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
   { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
   { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
+  { id: "false-alarms", title: "False alarms", icon: "noise", roles: ["admin", "cso", "management"], view: viewFalseAlarms },
   { id: "planner", title: "Camera planner", icon: "planner", roles: ["admin", "cso", "management"], view: viewPlanner },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
   { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports },
@@ -453,6 +455,62 @@ async function ptzPanel(cameraId, label) {
   return h("div", { class: "ptz" }, h("div", { class: "ptz-title" }, "PTZ · ", label), h("div", { class: "ptz-row" }, pad, zoom),
     h("label", { class: "ptz-speed" }, h("span", { class: "faint" }, "Speed"), sp),
     h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg);
+}
+
+/* ---------------- false alarm tuning ---------------- */
+async function viewFalseAlarms(c) {
+  let days = Number(localStorage.getItem("hss.fa.days") || 30);
+  const out = h("div", { class: "grid", style: "gap:14px" });
+  const pct = r => r === null || r === undefined ? "—" : `${Math.round(r * 100)}%`;
+  const dur = s => s === null || s === undefined ? "—" : s < 120 ? `${s} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`;
+  const playLink = x => h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(x.camera_id)}&t=${encodeURIComponent(new Date(new Date(x.at) - 10000).toISOString())}` }, new Date(x.at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }));
+  const table = (title, rows, what, empty) => card(title, null, rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+    h("thead", {}, h("tr", {}, [what, "Alerts", "False", "Real", "False rate", "What to try", "Check recent false alarms"].map(t => h("th", {}, t)))),
+    h("tbody", {}, rows.slice(0, 12).map(r => h("tr", { class: r.noisy ? "fa-noisy" : "" },
+      h("td", { style: "font-weight:600" }, r.label, r.label !== r.key ? h("div", { class: "faint mono", style: "font-size:11.5px;font-weight:400" }, r.key) : null),
+      h("td", {}, r.alerts), h("td", {}, r.false), h("td", {}, r.real),
+      h("td", {}, r.rate === null ? h("span", { class: "faint" }, "not reviewed") : h("span", { class: `badge ${r.noisy ? "bad" : r.rate >= 0.4 ? "warn" : "ok"}` }, pct(r.rate))),
+      h("td", { style: "max-width:420px;white-space:normal;font-size:12.5px" }, r.tips.length ? h("ul", { style: "margin:0;padding-left:16px" }, r.tips.map(t => h("li", {}, t))) : h("span", { class: "faint" }, r.noisy ? "" : "—")),
+      h("td", { style: "white-space:nowrap" }, r.recent_false.map(x => [playLink(x), " "])))))) ) : h("div", { class: "empty" }, empty));
+  const chart = hours => {
+    const W = 720, H = 180, pad = 28, bw = (W - pad * 2) / 24, max = Math.max(1, ...hours.map(x => x.false + x.real + x.other));
+    const ns = "http://www.w3.org/2000/svg", el = (n, a, t) => { const e = document.createElementNS(ns, n); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); if (t !== undefined) e.textContent = t; return e; };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H + 24}`, class: "fa-chart", role: "img", "aria-label": "False and real alarms by hour of day" });
+    const Y = v => H - v / max * (H - 16);
+    for (const g of [0.5, 1]) svg.append(el("line", { x1: pad, x2: W - pad, y1: Y(max * g), y2: Y(max * g), class: "fa-grid" }), el("text", { x: pad - 4, y: Y(max * g) + 4, class: "fa-axis", "text-anchor": "end" }, Math.round(max * g)));
+    hours.forEach((x, i) => {
+      let y0 = H;
+      for (const [k, cls] of [["real", "fa-real"], ["false", "fa-false"], ["other", "fa-other"]]) {
+        if (!x[k]) continue;
+        const hgt = H - Y(x[k]);
+        svg.append(el("rect", { x: pad + i * bw + 2, y: y0 - hgt, width: bw - 4, height: hgt, class: cls }, undefined));
+        svg.lastChild.append(el("title", {}, `${String(i).padStart(2, "0")}:00 · ${x[k]} ${k === "real" ? "real incidents" : k === "false" ? "false alarms" : "other or open"}`));
+        y0 -= hgt;
+      }
+      if (i % 3 === 0) svg.append(el("text", { x: pad + i * bw + bw / 2, y: H + 16, class: "fa-axis", "text-anchor": "middle" }, `${String(i).padStart(2, "0")}:00`));
+    });
+    svg.append(el("line", { x1: pad, x2: W - pad, y1: H, y2: H, class: "fa-base" }));
+    return h("div", {}, svg, h("div", { class: "legend" }, h("span", {}, h("i", { class: "lg fa-l-false" }), "false alarm"), h("span", {}, h("i", { class: "lg fa-l-real" }), "real incident"), h("span", {}, h("i", { class: "lg fa-l-other" }), "test, duplicate, other or still open")));
+  };
+  const load = async () => {
+    const d = await api(`/insights/false-alarms?days=${days}`);
+    const k = d.kpis;
+    out.replaceChildren(
+      h("div", { class: "grid kpis" },
+        kpi("Alerts", k.alerts, `last ${days} days, device alerts left out`),
+        kpi("False alarm rate", h("span", { style: `color:${k.rate >= 0.6 ? "var(--bad)" : k.rate >= 0.4 ? "var(--warn)" : "var(--ok)"}` }, pct(k.rate)), `${k.false} false, ${k.real} real incidents`),
+        kpi("Time to acknowledge", dur(k.ack_median_s), "median"),
+        kpi("Not reviewed", h("span", { style: `color:${k.open_over_24h ? "var(--warn)" : "inherit"}` }, k.open), `${k.open_over_24h} open for more than a day`)),
+      k.false + k.real === 0 ? h("div", { class: "note" }, "No alerts have been closed as false alarm or real incident in this period yet. The dashboard learns from how operators close alerts: ask them to always pick the right reason.") : null,
+      card("By hour of day", null, chart(d.by_hour)),
+      table("Rules", d.by_rule, "Rule", "No alerts in this period."),
+      table("Cameras", d.by_camera, "Camera", "No alerts in this period."));
+  };
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Period" }, [7, 30, 90].map(n => h("button", { class: n === days ? "on" : null, onclick: e => {
+    days = n; try { localStorage.setItem("hss.fa.days", n); } catch (_) {} seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === e.target)); load();
+  } }, `${n} days`)));
+  c.append(h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Rules and cameras with a false alarm rate of 60% or more (and at least 5 reviewed alerts) are marked, with what to try."), h("div", { style: "flex:1" }), seg), out);
+  await load();
 }
 
 /* ---------------- logbook and shift handover ---------------- */

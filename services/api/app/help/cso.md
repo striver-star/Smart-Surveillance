@@ -14,7 +14,7 @@ Rules are checked top to bottom; the first that matches decides. Each rule sets:
 
 Save PTZ presets from Live view (select the camera, aim it, **Save view**). You and administrators can take over a PTZ camera that someone else is steering.
 
-Start strict at night and at the perimeter, lighter in busy daytime areas. Review the weekly report's **repeat alerts**, and the alerts closed as false alarms, and adjust.
+Start strict at night and at the perimeter, lighter in busy daytime areas. Review the **False alarms** page weekly at first: it marks the noisy rules and cameras and says what to try, with links to play the recent false alarms.
 
 ## Evidence (Evidence vault)
 

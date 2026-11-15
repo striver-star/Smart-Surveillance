@@ -347,3 +347,12 @@ a.setup-banner .bar { margin-top: 8px; }
 .badge.cat-visitor { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); }
 .badge.cat-maintenance { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 textarea.input { resize: vertical; font: inherit; }
+
+/* False alarm dashboard */
+.fa-chart { width: 100%; height: auto; display: block; }
+.fa-chart .fa-false { fill: var(--bad); fill-opacity: .75; } .fa-chart .fa-real { fill: var(--accent); }
+.fa-chart .fa-other { fill: var(--faint); fill-opacity: .5; }
+.fa-chart .fa-grid { stroke: var(--line); stroke-dasharray: 3 4; } .fa-chart .fa-base { stroke: var(--muted); }
+.fa-chart .fa-axis { fill: var(--muted); font-size: 11px; }
+.lg.fa-l-false { background: var(--bad); } .lg.fa-l-real { background: var(--accent); } .lg.fa-l-other { background: var(--faint); }
+tr.fa-noisy td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
