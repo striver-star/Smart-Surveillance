@@ -53,6 +53,11 @@ class LivePlayer {
     }
     this.lastFrames = frames;
   }
+  // Try again now instead of waiting out the back-off (the wall calls this when the platform comes back).
+  nudge() {
+    if (this.closed || this.lastFrames > 0) return;
+    clearTimeout(this.timer); this.retry = 4; this.connect();
+  }
   dispose() { if (this.pc) { this.pc.close(); this.pc = null; } this.lastFrames = 0; }
   close() { this.closed = true; clearTimeout(this.timer); clearInterval(this.poller); this.dispose(); this.video.srcObject = null; }
 }

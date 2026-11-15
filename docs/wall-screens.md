@@ -40,6 +40,24 @@ arrow keys change page on a rotation screen.
 - The page reports to the Wall Agent every 5 seconds (tiles, how many are playing, frozen tiles); the
   console shows "n/m playing" and "page stalled" per TV.
 
+## When the server is busy or restarting
+
+The wall keeps going on its own; nobody needs to touch the wall PCs.
+
+| What is down | What the TVs show |
+|---|---|
+| API only (upgrade, restart, database busy or being restored) | Cameras **keep playing**: video comes from the stream gateway, not the API. The last layout stays, page rotation continues, and a small amber note says *Platform unreachable since 21:49: showing the last layout*. Alert outlines are cleared while the note shows, because they can't be kept up to date. |
+| The whole server (reboot, power cut, `docker compose up -d --build`) | The layout stays; tiles show *waiting for the video server*. |
+| Either, and the wall browser or wall PC restarts meanwhile | The page opens from the copy kept on the wall PC, with the last layout, and carries on as above. |
+| Server back | Within about 10 seconds the note goes away, the cameras reconnect at once, and layout or alert changes made in the meantime are picked up. Tested in the sandbox: video back about 4 s after the server answered. |
+
+How it works:
+- **Last layout**: kept in the wall browser's storage for each screen (and by the Wall Agent for the TV-to-screen assignment).
+- **The page itself**: a service worker (`/wall/sw.js`) keeps `/wall/`, `wall.js` and `player.js` on the wall PC. It always asks the server first, so new versions arrive as soon as the server answers. This needs the wall PC to trust the HSS certificate (it already must, docs/wall-hardening.md step 12).
+- **A busy server**: the wall's layout request gives up after 8 seconds and never queues a second one, so a slow server doesn't pile up requests. On the server, the camera list and alert list behind the wall are reused for up to 10 minutes if the stream gateway or the database briefly doesn't answer.
+- A screen that was **deleted or given a new link** is forgotten (its saved layout is removed) as soon as the server says so.
+- While the note shows, the page adds `platform_offline: true` to its heartbeat to the Wall Agent.
+
 ## Sizing (from task 19)
 
 One Core i5 wall PC is expected to handle about 32 sub-stream tiles per TV. Repeat the task 19 two-TV

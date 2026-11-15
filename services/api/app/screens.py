@@ -57,11 +57,18 @@ def build_pages(cameras: list[str], tiles: int, pinned: list[str]) -> list[list[
 _cache: dict[str, tuple[float, object]] = {}
 
 
-def _cached(key: str, ttl: float, fn):
+def _cached(key: str, ttl: float, fn, stale_s: float = 600):
+    """fn's value, kept for ttl seconds. If fn fails (gateway restarting, database busy), the last good
+    value is used for up to stale_s seconds, so the wall keeps its cameras through a short outage."""
     hit = _cache.get(key)
     if hit and time.monotonic() - hit[0] < ttl:
         return hit[1]
-    val = fn()
+    try:
+        val = fn()
+    except Exception:
+        if hit and time.monotonic() - hit[0] < stale_s:
+            return hit[1]
+        raise
     _cache[key] = (time.monotonic(), val)
     return val
 

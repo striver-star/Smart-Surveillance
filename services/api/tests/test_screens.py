@@ -37,3 +37,20 @@ def test_screen_form():
     for bad in ({"tiles": 12}, {"source": "nvr:NVR-4"}, {"source": "x"}, {"cameras": ["../etc"]}, {"dwell_s": 2}):
         with pytest.raises(ValidationError):
             ScreenIn(name="x", **bad)
+
+
+def test_cache_keeps_last_good_value_through_a_short_outage(monkeypatch):
+    import pytest
+    from app import screens
+    clock = [1000.0]
+    monkeypatch.setattr(screens.time, "monotonic", lambda: clock[0])
+    screens._cache.pop("t", None)
+    assert screens._cached("t", 15, lambda: ["cam1"]) == ["cam1"]
+
+    def down():
+        raise RuntimeError("gateway restarting")
+    clock[0] += 60
+    assert screens._cached("t", 15, down) == ["cam1"]          # stale, but the wall keeps its cameras
+    clock[0] += 600
+    with pytest.raises(RuntimeError):
+        screens._cached("t", 15, down)                       # too old: the error goes through
