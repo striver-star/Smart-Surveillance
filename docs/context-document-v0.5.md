@@ -1696,7 +1696,7 @@ decisions or purchases: legal reviewer (task 4, stages 2 to 4 of task 18), GPU s
 1. Approve the Proposed decisions in Section 14. **Done**
 2. Choose the default WhatsApp provider. **Done** (Provider A)
 3. Get the dedicated WhatsApp number, recipient numbers and send times. **Done** (number linked 2026-11-12; GM, CSO and IT Manager each have their own number from 2026-11-15; e-mail on hold)
-4. Start the legal review of face and plate recognition (reviewer, DPIA, lawful basis, signage, limits, client sign-off). **Waiting**
+4. Start the legal review of face and plate recognition (reviewer, DPIA, lawful basis, signage, limits, client sign-off). **Review drafted 2026-11-15** (docs/legal/README.md) and built into the console as a lock: face and plate stay off until an administrator reads it and accepts its ten conditions with the legal opinion and DPIA recorded. **Waiting** for the legal practitioner's opinion
 5. Hardware inventory per NVR. **Done** (probe, 11 Nov): 4 NVRs, 3 models, 112 channels; 2 or 3 more NVRs by end of December
 6. Quotes for GPU server, drives, UPS units and any fourth wall PC. **Waiting**
 7. Wall PC details. **Answered**: 3 x Core i5, 16 GB, 55 inch Hisense TVs; enough for 4 NVRs; a fourth PC is needed for 7 NVRs; Windows edition still to confirm

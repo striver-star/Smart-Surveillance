@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from fastapi.responses import FileResponse
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
@@ -46,9 +46,16 @@ def check_worker_token(authorization: str | None = Header(default=None)) -> None
 
 
 @router.post("/events", status_code=201, dependencies=[Depends(check_worker_token)])
-def ingest_event(event: EventIn) -> dict:
+def ingest_event(event: EventIn, response: Response) -> dict:
     if event.occurred_at.tzinfo is None:
         raise HTTPException(status_code=422, detail="occurred_at needs a timezone")
+    from .legal import recognition_scope, unlocked
+    scope = recognition_scope(event.type)
+    if scope and not unlocked(scope):
+        # Face and plate recognition are locked until the legal review is accepted: drop, don't store.
+        # 202 so senders don't retry or queue it.
+        response.status_code = 202
+        return {"id": None, "dropped": f"{scope} recognition is locked until the legal review is accepted"}
     event_id = uuid.uuid4()
     snapshot_ref = None
     if event.snapshot_jpeg_b64:

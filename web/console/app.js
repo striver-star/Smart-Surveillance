@@ -79,6 +79,7 @@ const I = {
   notify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9.5 17H2.5z"/><path d="M12 10v4M12 17.5h.01"/></svg>',
   sound: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>',
@@ -99,6 +100,7 @@ const PAGES = [
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap, preview: true },
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
+  { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
   { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports },
   { id: "notify", title: "WhatsApp & alerts", icon: "notify", roles: ["admin", "cso"], view: viewNotify },
@@ -546,6 +548,142 @@ function tierForm(ch) {
 }
 const driftText = s => { const a = Math.abs(s); return a > 86400 * 365 ? "clock never set" : a > 3600 ? `${Math.round(a / 3600)} h off` : `${Math.round(a / 60)} min off`; };
 
+/* ---------------- face & plate: legal review gate ---------------- */
+// A small renderer for the review's Markdown (headings, paragraphs, lists, tables, bold). Text only, no HTML from data.
+function inlineMd(text) {
+  return text.split(/(\*\*[^*]+\*\*)/).filter(Boolean).map(p => p.startsWith("**") ? h("strong", {}, p.slice(2, -2)) : p);
+}
+function renderMd(md) {
+  const out = [], lines = md.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (!l.trim()) continue;
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) { out.push(h(`h${m[1].length + 1}`, {}, inlineMd(m[2]))); continue; }
+    if (l.startsWith("|")) {
+      const rows = [];
+      while (i < lines.length && lines[i].startsWith("|")) { if (!/^\|[-|\s]+\|$/.test(lines[i])) rows.push(lines[i].split("|").slice(1, -1).map(c => c.trim())); i++; }
+      i--;
+      out.push(h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, rows[0].map(c => h("th", {}, inlineMd(c))))),
+        h("tbody", {}, rows.slice(1).map(r => h("tr", {}, r.map(c => h("td", {}, inlineMd(c)))))))));
+      continue;
+    }
+    if ((m = l.match(/^(\d+\.|-)\s+/))) {
+      const ordered = m[1] !== "-", items = [];
+      while (i < lines.length && lines[i].match(ordered ? /^\d+\.\s+/ : /^-\s+/)) { items.push(lines[i].replace(/^(\d+\.|-)\s+/, "")); i++; }
+      i--;
+      out.push(h(ordered ? "ol" : "ul", {}, items.map(t => h("li", {}, inlineMd(t)))));
+      continue;
+    }
+    const para = [l];
+    while (i + 1 < lines.length && lines[i + 1].trim() && !/^(#|\||-\s|\d+\.\s)/.test(lines[i + 1])) para.push(lines[++i]);
+    out.push(h("p", {}, inlineMd(para.join(" "))));
+  }
+  return out;
+}
+
+async function viewFacePlate(c) {
+  const doc = await api("/legal/face-plate");
+  const st = doc.status, isAdmin = state.user.role === "admin";
+  const unlocked = st.face || st.plate;
+  const cur = doc.history.find(x => !x.revoked_at);
+  c.append(h("section", { class: `card legal-status ${unlocked ? "open" : "locked"}` },
+    h("div", { class: "head" }, h("h2", {}, unlocked ? "Recognition unlocked" : "Face and plate recognition are locked"), h("div", { class: "spacer" }),
+      h("span", { class: `badge ${st.face ? "ok" : "bad"}` }, `Face ${st.face ? "unlocked" : "locked"}`), " ",
+      h("span", { class: `badge ${st.plate ? "ok" : "bad"}` }, `Plate ${st.plate ? "unlocked" : "locked"}`)),
+    unlocked && cur ? h("div", { class: "kv" },
+      h("div", {}, "Accepted by"), h("div", {}, `${cur.full_name}, ${cur.position} (${cur.username}) on ${fmtTime(cur.accepted_at)}`),
+      h("div", {}, "Legal opinion"), h("div", {}, `${cur.reviewer_name}, ${cur.reviewer_firm} · ref ${cur.opinion_ref} of ${cur.opinion_date}`),
+      h("div", {}, "DPIA"), h("div", {}, cur.dpia_ref),
+      h("div", {}, "Valid until"), h("div", {}, fmtTime(st.expires_at)))
+      : h("p", { class: "muted", style: "margin:0" }, st.locked_reason,
+        " Until an administrator reads the review below and accepts its conditions, face and plate events are dropped and the recognition trial won't run. Stage 1 (camera suitability) needs no unlock."),
+    unlocked && ["admin", "cso"].includes(state.user.role) ? h("div", { class: "toolbar", style: "margin-top:12px" }, h("button", { class: "btn danger", onclick: () => {
+      const reason = h("input", { class: "input", id: "revoke-reason", placeholder: "e.g. Legal opinion withdrawn; complaint under review" });
+      const err = h("div", { class: "error", hidden: true });
+      modal("Withdraw and lock", h("div", {}, err, h("p", { class: "muted", style: "margin:0 0 12px" }, "Face and plate recognition stop at once. Unlocking again needs a new acceptance."),
+        h("div", { class: "field" }, h("label", { for: "revoke-reason" }, "Reason"), reason)),
+        close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+          try { await api("/legal/face-plate/revoke", { method: "POST", body: { reason: reason.value.trim() } }); close.remove(); toast("Locked"); render(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "Withdraw and lock")]);
+    } }, "Withdraw and lock")) : null));
+
+  // The document, with reading progress.
+  const progress = h("span", {});
+  const bar = h("span", { style: "width:0%" });
+  const reader = h("article", { class: "legal-doc", tabindex: "0", "aria-label": doc.title }, renderMd(doc.text.replace(/^# .*\n/, "")));
+  let readToEnd = false;
+  const form = isAdmin ? acceptForm() : null;
+  const onScroll = () => {
+    const pct = Math.min(100, Math.round(100 * (reader.scrollTop + reader.clientHeight) / reader.scrollHeight));
+    bar.style.width = `${pct}%`; progress.textContent = readToEnd || pct >= 99 ? "Read to the end" : `${pct}% read`;
+    if (pct >= 99 && !readToEnd) { readToEnd = true; if (form) form.enable(); }
+  };
+  reader.addEventListener("scroll", onScroll);
+  c.append(h("section", { class: "card" },
+    h("div", { class: "head" }, h("h2", {}, doc.title), h("div", { class: "spacer" }), h("span", { class: "muted mono", style: "font-size:12px" }, `version ${doc.version}`)),
+    h("div", { class: "legal-progress" }, h("div", { class: "bar" }, bar), progress), reader), form ? form.el : null,
+    doc.history.length ? card("History", null, h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Accepted", "By", "Covers", "Legal opinion", "DPIA", "Status"].map(t => h("th", {}, t)))),
+      h("tbody", {}, doc.history.map(x => h("tr", {}, h("td", {}, fmtTime(x.accepted_at)), h("td", {}, `${x.full_name} (${x.username})`),
+        h("td", {}, x.scopes.join(", ")), h("td", {}, `${x.reviewer_name}, ${x.opinion_ref}`), h("td", {}, x.dpia_ref),
+        h("td", {}, x.revoked_at ? h("span", { class: "badge", title: x.revoke_reason || "" }, `withdrawn ${fmtTime(x.revoked_at)} by ${x.revoked_by}`)
+          : x.version !== doc.version ? h("span", { class: "badge warn" }, "older document") : new Date(x.expires_at) < new Date() ? h("span", { class: "badge warn" }, "expired")
+          : h("span", { class: "badge ok" }, `in force until ${fmtTime(x.expires_at)}`)))))))) : null);
+  setTimeout(onScroll, 0);
+
+  function acceptForm() {
+    let readId = null, openedAt = Date.now();
+    api("/legal/face-plate/open", { method: "POST", body: {} }).then(r => { readId = r.read_id; openedAt = Date.now(); }).catch(() => {});
+    const inp = (id, label, attrs = {}) => { const el = h("input", { class: "input", id, autocomplete: "off", ...attrs }); return [el, h("div", { class: "field" }, h("label", { for: id }, label), el)]; };
+    const [fullName, fFull] = inp("lg-name", "Your full name");
+    const [position, fPos] = inp("lg-pos", "Your position", { placeholder: "e.g. General Manager" });
+    const [revName, fRev] = inp("lg-rev", "Legal practitioner who gave the opinion");
+    const [revFirm, fFirm] = inp("lg-firm", "Their firm or chambers");
+    const [opRef, fOp] = inp("lg-op", "Opinion reference");
+    const [opDate, fOpDate] = inp("lg-opdate", "Opinion date", { type: "date" });
+    const [dpia, fDpia] = inp("lg-dpia", "DPIA reference");
+    const face = h("input", { type: "checkbox", id: "lg-face" }), plate = h("input", { type: "checkbox", id: "lg-plate" });
+    const conds = doc.conditions.map((t, i) => h("input", { type: "checkbox", id: `lg-c${i}` }));
+    const err = h("div", { class: "error", hidden: true });
+    const timer = h("span", { class: "muted" });
+    const btn = h("button", { class: "btn primary", disabled: true }, "Accept and unlock");
+    const fs = h("fieldset", { class: "legal-accept", disabled: true },
+      h("legend", {}, "Acceptance"),
+      doc.two_factor_ready ? null : h("div", { class: "note" }, "Your account needs two-factor sign-in before you can accept. Turn it on under Settings, then come back."),
+      h("p", { class: "muted", style: "margin-top:0" }, "Unlocks for 12 months, for this version of the review only. Recorded in the audit log."),
+      h("h3", {}, "Unlock"), h("div", { class: "field", style: "gap:8px" }, h("label", { class: "check" }, plate, "Number plate recognition"), h("label", { class: "check" }, face, "Face recognition")),
+      h("h3", {}, "Conditions (section 14): the site commits to each"),
+      h("div", { class: "field", style: "gap:10px" }, doc.conditions.map((t, i) => h("label", { class: "check" }, conds[i], `${i + 1}. ${t}`))),
+      h("h3", {}, "Records"),
+      h("div", { class: "field-row" }, fFull, fPos), h("div", { class: "field-row" }, fRev, fFirm), h("div", { class: "field-row" }, fOp, fOpDate), fDpia,
+      err, h("div", { class: "toolbar" }, timer, h("div", { style: "flex:1" }), btn));
+    const minS = doc.min_read_s;
+    const tick = setInterval(() => {
+      if (!document.body.contains(fs)) return clearInterval(tick);
+      const left = Math.ceil(minS - (Date.now() - openedAt) / 1000);
+      timer.textContent = !fs.disabled ? (left > 0 ? `You can accept in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "") : "Read the review to the end to continue";
+      btn.disabled = fs.disabled || left > 0 || !doc.two_factor_ready;
+    }, 500);
+    btn.addEventListener("click", async () => {
+      err.hidden = true;
+      const scopes = [plate.checked && "plate", face.checked && "face"].filter(Boolean);
+      const missing = [!scopes.length && "choose what to unlock", conds.some(x => !x.checked) && "accept every condition",
+        ![fullName, position, revName, revFirm, opRef, opDate, dpia].every(x => x.value.trim()) && "fill in every record"].filter(Boolean);
+      if (missing.length) { err.textContent = `Before accepting: ${missing.join(", ")}.`; err.hidden = false; return; }
+      btn.disabled = true;
+      try {
+        await api("/legal/face-plate/accept", { method: "POST", body: { read_id: readId || "", version: doc.version, scopes, conditions: conds.map(x => x.checked), read_to_end: readToEnd,
+          full_name: fullName.value.trim(), position: position.value.trim(), reviewer_name: revName.value.trim(), reviewer_firm: revFirm.value.trim(),
+          opinion_ref: opRef.value.trim(), opinion_date: opDate.value, dpia_ref: dpia.value.trim() } });
+        toast(`${scopes.map(s => s === "face" ? "Face" : "Plate").join(" and ")} recognition unlocked`); render();
+      } catch (ex) { err.textContent = ex.message; err.hidden = false; btn.disabled = false; }
+    });
+    return { el: h("section", { class: "card" }, fs), enable: () => { fs.disabled = false; } };
+  }
+}
+
 /* ---------------- video walls ---------------- */
 async function viewWalls(c) {
   const nodes = await api("/wall/nodes");
@@ -944,7 +1082,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

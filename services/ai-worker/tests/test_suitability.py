@@ -58,3 +58,20 @@ def test_no_face_template_is_ever_computed(tmp_path, monkeypatch):
 def test_full_trial_refuses_live_cameras_without_approval():
     from worker import recognition_trial
     assert recognition_trial.main(["--source", "rtsp://10.1.3.4:554/Streaming/Channels/2201", "--out", "/tmp/x"]) == 3
+
+
+def test_legal_gate_answers():
+    import httpx
+    from worker import legal_gate
+
+    def api(state):
+        return httpx.MockTransport(lambda r: httpx.Response(200, json=state) if r.headers.get("authorization") == "Bearer t"
+                                   else httpx.Response(401))
+    locked = {"face": False, "plate": False, "locked_reason": "The legal review has not been accepted."}
+    ok, msg = legal_gate.check(["face"], api_url="http://api", token="t", transport=api(locked))
+    assert not ok and "not been accepted" in msg
+    plate_only = {"face": False, "plate": True, "locked_reason": None, "expires_at": "2027-11-20T10:00:00Z"}
+    assert legal_gate.check(["plate"], api_url="http://api", token="t", transport=api(plate_only))[0]
+    assert not legal_gate.check(["face", "plate"], api_url="http://api", token="t", transport=api(plate_only))[0]
+    assert not legal_gate.check(["plate"], api_url="http://api", token="wrong", transport=api(plate_only))[0]
+    assert not legal_gate.check(["plate"], api_url="http://api", token="")[0]

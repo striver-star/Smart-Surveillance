@@ -101,7 +101,7 @@ Please keep the client's written OK for this stage with the trial records.
 
 ## Running the full trial (stages 2 and 3 only, after legal approval)
 
-Not for stage 1. On a live camera this tool refuses to start without `--approval "<legal approval reference>"`.
+Not for stage 1. This tool refuses to start until the legal review is accepted in the console (**Face & plate** page, see docs/legal/README.md) for the features being trialled; it asks the platform with the worker token, so run it with `-e HSS_API_URL=http://api:8000 -e HSS_WORKER_TOKEN="$HSS_WORKER_TOKEN"`. `--approval` now only prints a reference in the report; `--sample` allows a sample video with no site footage.
 
 1. Update and fetch the new models:
    ```bash
