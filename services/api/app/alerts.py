@@ -454,6 +454,12 @@ def alert_action(alert_id: uuid.UUID, body: ActionIn, request: Request, user: di
             conn.execute("UPDATE alerts SET status = 'acknowledged', closed_by = NULL, closed_at = NULL, close_reason = NULL "
                          "WHERE id = %s", (alert_id,))
             add_timeline(conn, alert_id, "reopened", body.text, who)
+    if body.action == "close" and body.reason == "real_incident":
+        try:                       # a real incident's evidence goes into the vault at once
+            from .evidence import seal
+            seal(alert_id, who, reason="Closed as a real incident" + (f": {body.text}" if body.text else ""), ip=client_ip(request))
+        except Exception:
+            logging.getLogger("alerts").exception("sealing evidence for alert %s failed", alert_id)
     audit(f"alert_{body.action}", user_id=user["id"], username=who, ip=client_ip(request), alert=str(alert_id),
           **({"reason": body.reason} if body.reason else {}), **({"assignee": body.assignee} if body.assignee else {}))
     updated = get_alert(alert_id)
@@ -463,44 +469,15 @@ def alert_action(alert_id: uuid.UUID, body: ActionIn, request: Request, user: di
 
 @router.get("/{alert_id}/evidence")
 def evidence(alert_id: uuid.UUID, request: Request, user: dict = Depends(require("admin", "cso"))) -> Response:
-    """A zip with the snapshot, the event, the alert and its timeline, plus SHA-256 checksums of
-    every file (manifest.json). The zip's own SHA-256 is in the X-Evidence-SHA256 header and the
-    audit log, so a copy can be checked later."""
-    a = alert_detail(alert_id)
-    with connect() as conn:
-        ev = conn.execute("SELECT id, camera_id, source_kind, source_ref, tier, type, object_class, zone, severity, "
-                          "confidence, occurred_at, received_at, snapshot_ref, raw FROM events WHERE id = %s",
-                          (a["event_id"],)).fetchone()
-    cols = ["id", "camera_id", "source_kind", "source_ref", "tier", "type", "object_class", "zone", "severity",
-            "confidence", "occurred_at", "received_at", "snapshot_ref", "raw"]
-    event = dict(zip(cols, ev))
-    files: dict[str, bytes] = {
-        "event.json": json.dumps(event, default=str, indent=2).encode(),
-        "alert.json": json.dumps({k: v for k, v in a.items() if k != "timeline"}, default=str, indent=2).encode(),
-        "timeline.json": json.dumps(a["timeline"], default=str, indent=2).encode(),
-    }
-    if event["snapshot_ref"]:
-        snap = Path(os.environ.get("HSS_DATA_DIR", "/data")) / event["snapshot_ref"]
-        if snap.exists():
-            files["snapshot.jpg"] = snap.read_bytes()
-    from .clips import clip_file
-    clip = clip_file(alert_id)
-    if clip:
-        files["clip.mp4"] = clip[0].read_bytes()
-    exported_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    manifest = {"alert": str(alert_id), "exported_at": exported_at, "exported_by": user["username"],
-                "files": {n: hashlib.sha256(b).hexdigest() for n, b in files.items()},
-                "note": "SHA-256 of each file. Recompute to check nothing was changed."}
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, data in {**files, "manifest.json": json.dumps(manifest, indent=2).encode()}.items():
-            z.writestr(name, data)
-    data = buf.getvalue()
+    """A one-off copy of the evidence zip (not kept). For evidence that must be kept and accounted for,
+    seal it into the vault instead (POST /alerts/{id}/seal)."""
+    from .evidence import build_package
+    data, manifest, _ = build_package(alert_id, user["username"])
     digest = hashlib.sha256(data).hexdigest()
     with connect() as conn:
-        add_timeline(conn, alert_id, "exported", f"Evidence exported, SHA-256 {digest}", user["username"])
+        add_timeline(conn, alert_id, "exported", f"Evidence copy exported, SHA-256 {digest}", user["username"])
     audit("evidence_exported", user_id=user["id"], username=user["username"], ip=client_ip(request),
           alert=str(alert_id), sha256=digest)
     return Response(data, media_type="application/zip", headers={
-        "Content-Disposition": f'attachment; filename="evidence-{str(alert_id)[:8]}-{exported_at[:10]}.zip"',
+        "Content-Disposition": f'attachment; filename="evidence-{str(alert_id)[:8]}-{manifest["packaged_at"][:10]}.zip"',
         "X-Evidence-SHA256": digest})

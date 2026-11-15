@@ -78,6 +78,8 @@ const I = {
   reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h6M9 17h6M9 9h3"/></svg>',
   notify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
+  vault: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M12 9.5V8M7 20v1M17 20v1"/></svg>',
+  setup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -97,9 +99,11 @@ const PAGES = [
   { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
+  { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap, preview: true },
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
+  { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
   { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
   { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports },
@@ -547,6 +551,136 @@ function tierForm(ch) {
       } }, "Save")]);
 }
 const driftText = s => { const a = Math.abs(s); return a > 86400 * 365 ? "clock never set" : a > 3600 ? `${Math.round(a / 3600)} h off` : `${Math.round(a / 60)} min off`; };
+
+/* ---------------- evidence vault ---------------- */
+function sealForm(alertId, after) {
+  const reason = h("input", { class: "input", id: "seal-reason", placeholder: "e.g. Theft at the fence, reported to police" });
+  const ref = h("input", { class: "input", id: "seal-ref", placeholder: "Police or insurance reference, if any" });
+  const err = h("div", { class: "error", hidden: true });
+  modal("Seal evidence in the vault", h("div", {}, err,
+    h("p", { class: "muted", style: "margin:0 0 12px" }, "Saves the snapshot, clip, event and alert history as one package that can't be changed, with its SHA-256 recorded. Every later download is logged. Alerts closed as a real incident are sealed automatically."),
+    h("div", { class: "field" }, h("label", { for: "seal-reason" }, "Reason"), reason), h("div", { class: "field" }, h("label", { for: "seal-ref" }, "Case reference"), ref)),
+    close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async e => {
+      e.target.disabled = true;
+      try { const r = await api(`/alerts/${alertId}/seal`, { method: "POST", body: { reason: reason.value.trim(), case_ref: ref.value.trim() } }); close.remove(); toast(`Sealed · SHA-256 ${r.sha256.slice(0, 12)}…`); after && after(); }
+      catch (ex) { err.textContent = ex.message; err.hidden = false; e.target.disabled = false; }
+    } }, "Seal")]);
+}
+
+async function viewEvidence(c) {
+  const v = await api("/evidence");
+  const isAdmin = state.user.role === "admin";
+  const kb = n => n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+  c.append(v.chain_ok ? h("div", { class: "note" }, `Custody log checked: ${v.chain_detail}. Packages are kept ${v.keep_days} days after sealing unless on legal hold.`)
+    : h("div", { class: "error" }, h("strong", {}, "Custody log check failed: "), v.chain_detail, ". Someone changed or removed log entries. Keep the server as it is and tell the administrator."));
+  c.append(card("Sealed evidence", h("span", { class: "muted", style: "font-size:12.5px" }, `${v.items.length} package${v.items.length === 1 ? "" : "s"}`),
+    v.items.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Sealed", "Evidence", "Case ref", "Contents", "SHA-256", "Kept until", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, v.items.map(e => h("tr", {},
+        h("td", { style: "white-space:nowrap" }, fmtTime(e.sealed_at), h("div", { class: "faint" }, e.sealed_by)),
+        h("td", {}, h("div", { style: "font-weight:600" }, e.title), e.reason ? h("div", { class: "faint" }, e.reason) : null),
+        h("td", {}, e.case_ref || "—"),
+        h("td", { class: "muted", style: "font-size:12.5px" }, e.files.join(", "), h("div", { class: "faint" }, kb(e.size_bytes))),
+        h("td", { class: "mono", style: "font-size:12px" }, e.sha256.slice(0, 16), "…"),
+        h("td", {}, e.legal_hold ? h("span", { class: "badge warn", title: e.hold_reason }, "legal hold") : e.retain_until),
+        h("td", { style: "text-align:right;white-space:nowrap" },
+          h("a", { class: "btn small", href: `/api/evidence/${e.id}/download`, download: "" }, "Download"), " ",
+          h("button", { class: "btn small", onclick: () => evidenceDrawer(e.id, isAdmin) }, "Details"))))))) :
+      h("div", { class: "empty" }, "Nothing sealed yet. Open an alert and choose Seal evidence, or close it as a real incident.")));
+}
+
+async function evidenceDrawer(eid, isAdmin) {
+  const e = await api(`/evidence/${eid}`);
+  const err = h("div", { class: "error", hidden: true });
+  const reason = h("input", { class: "input", id: "ev-reason", placeholder: "Reason (required for hold and retention changes)" });
+  const until = h("input", { class: "input", id: "ev-until", type: "date", value: e.retain_until });
+  const result = h("div", {});
+  const run = async (fn, okMsg) => { err.hidden = true; try { await fn(); toast(okMsg); m.remove(); evidenceDrawer(eid, isAdmin); } catch (ex) { err.textContent = ex.message; err.hidden = false; } };
+  const m = modal(e.title, h("div", { class: "grid", style: "gap:12px" }, err,
+    h("div", { class: "kv" },
+      h("div", {}, "Sealed"), h("div", {}, `${fmtTime(e.sealed_at)} by ${e.sealed_by}`),
+      h("div", {}, "Case ref"), h("div", {}, e.case_ref || "—"),
+      h("div", {}, "SHA-256"), h("div", { class: "mono", style: "font-size:11.5px;word-break:break-all" }, e.sha256),
+      h("div", {}, "Contents"), h("div", {}, e.files.join(", ")),
+      h("div", {}, "Kept until"), h("div", {}, e.legal_hold ? `legal hold: ${e.hold_reason}` : e.retain_until)),
+    result,
+    h("h3", { style: "margin:4px 0 0" }, "Custody log"),
+    h("div", { class: "list", style: "max-height:180px;overflow:auto" }, e.custody.map(x => h("div", { class: "item" },
+      h("span", { class: `dot ${x.action === "verify_failed" ? "bad" : x.action === "sealed" ? "ok" : ""}` }),
+      h("div", { class: "grow", style: "min-width:0" }, h("div", { style: "font-weight:550" }, `${x.action.replace("_", " ")} · ${x.username} · `, h("span", { class: "faint", style: "font-weight:400;font-size:12px" }, fmtTime(x.at))),
+        x.detail ? h("div", { class: "faint", style: "font-size:12px;white-space:normal;overflow-wrap:anywhere" }, x.detail) : null)))),
+    h("div", { class: "field" }, h("label", { for: "ev-reason" }, "Reason"), reason),
+    isAdmin ? h("div", { class: "field" }, h("label", { for: "ev-until" }, "Keep until"), until) : null),
+    close => [
+      h("button", { class: "btn", onclick: async () => {
+        try { const r = await api(`/evidence/${eid}/verify`, { method: "POST", body: {} });
+          result.replaceChildren(h("div", { class: r.file_ok && r.chain_ok ? "note" : "error" }, r.file_ok ? "File matches its SHA-256. " : "File does NOT match its SHA-256. ", r.chain_detail));
+        } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Verify"),
+      h("button", { class: "btn", onclick: () => reason.value.trim().length < 3 ? (err.textContent = "Write a reason first.", err.hidden = false)
+        : run(() => api(`/evidence/${eid}/hold`, { method: "PUT", body: { hold: !e.legal_hold, reason: reason.value.trim() } }), e.legal_hold ? "Legal hold removed" : "On legal hold") }, e.legal_hold ? "Remove hold" : "Legal hold"),
+      isAdmin ? h("button", { class: "btn", onclick: () => reason.value.trim().length < 3 ? (err.textContent = "Write a reason first.", err.hidden = false)
+        : run(() => api(`/evidence/${eid}/retention`, { method: "PUT", body: { retain_until: until.value, reason: reason.value.trim() } }), "Kept-until date changed") }, "Save date") : null,
+      h("button", { class: "btn primary", onclick: () => close.remove() }, "Done")]);
+}
+
+/* ---------------- event setup and walk test ---------------- */
+async function viewEventSetup(c) {
+  const canCheck = ["admin", "cso"].includes(state.user.role);
+  const data = canCheck ? await api("/event-setup") : { nvrs: [] };
+  // Walk test
+  let since = null, timer = null;
+  const status = h("span", { class: "muted" }, "Walk past cameras with line crossing or intrusion set up; each one is ticked when its event arrives.");
+  const results = h("div", { class: "list" });
+  const allCams = Object.fromEntries(data.nvrs.flatMap(n => n.cameras.map(x => [x.camera_id, x.name])));
+  const startBtn = h("button", { class: "btn primary" }, "Start walk test");
+  const poll = async () => {
+    try {
+      const rows = await api(`/event-setup/walk?since=${encodeURIComponent(since.toISOString())}`);
+      const secs = Math.round((Date.now() - since) / 1000);
+      status.textContent = `Running for ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")} · ${rows.length} camera${rows.length === 1 ? "" : "s"} reported`;
+      results.replaceChildren(...rows.map(r => h("div", { class: "item" }, h("span", { class: `dot ${r.alert_id ? "ok" : "warn"}` }),
+        h("div", { class: "grow" }, h("div", { style: "font-weight:600" }, allCams[r.camera_id] || r.camera_id, h("span", { class: "faint mono" }, ` ${r.camera_id}`)),
+          h("div", { class: "faint", style: "font-size:12.5px" }, `${label(r.type)}${r.object ? `, ${r.object}` : ""} · ${r.count} event${r.count > 1 ? "s" : ""} · `,
+            r.alert_id ? `raised a ${r.alert_severity} alert` : "no alert (no rule matched, or a repeat inside the cool-down)")),
+        h("span", { class: "faint", style: "font-size:12px" }, `${Math.max(0, Math.round((new Date(r.received_at) - new Date(r.occurred_at)) / 100) / 10)} s delay · ${fmtTime(r.received_at)}`))));
+    } catch (ex) { status.textContent = ex.message; }
+  };
+  startBtn.addEventListener("click", () => {
+    if (timer) { clearInterval(timer); timer = null; startBtn.textContent = "Start walk test"; return; }
+    since = new Date(); results.replaceChildren(); startBtn.textContent = "Stop";
+    poll(); timer = setInterval(poll, 3000);
+  });
+  state.cleanup.push(() => timer && clearInterval(timer));
+  c.append(card("Walk test", startBtn, status, results));
+  if (!canCheck) return;
+
+  for (const n of data.nvrs) {
+    const notSent = n.cameras.filter(x => x.not_sent.length).length;
+    c.append(h("section", { class: "card" },
+      h("div", { class: "head" }, h("h2", {}, n.nvr), h("span", { class: "badge mono" }, n.alias),
+        n.checked_at ? h("span", { class: "muted", style: "font-size:12.5px" }, `event settings read ${ago(n.checked_at)}`) : null,
+        notSent ? h("span", { class: "badge warn" }, `${notSent} camera${notSent > 1 ? "s" : ""} not sending some events`) : null,
+        h("div", { class: "spacer" }),
+        n.registered_id ? h("button", { class: "btn small", onclick: async e => {
+          e.target.disabled = true; e.target.textContent = "Reading…";
+          try { const r = await api(`/event-setup/${n.registered_id}/check`, { method: "POST", body: {} }); toast(`${r.triggers} event settings read`); render(); }
+          catch (ex) { toast(ex.message); e.target.disabled = false; e.target.textContent = "Check event settings"; }
+        } }, "Check event settings") : h("span", { class: "faint", style: "font-size:12.5px" }, "Add this NVR in Devices to check its settings")),
+      n.device_events.length ? h("div", { class: "toolbar", style: "margin-bottom:8px" }, h("span", { class: "muted" }, "NVR exceptions:"),
+        n.device_events.map(d => h("span", { class: `badge ${d.center ? "ok" : "warn"}`, title: d.center ? "Sent to HSS" : "Notify Surveillance Center is not ticked" }, d.name))) : null,
+      h("div", { class: "table-wrap" }, h("table", {},
+        h("thead", {}, h("tr", {}, ["Ch", "Camera", "Sent to HSS", "Set up but not sent", "Events, 7 days", "Last event"].map(t => h("th", {}, t)))),
+        h("tbody", {}, n.cameras.map(x => h("tr", {},
+          h("td", { class: "muted" }, x.channel),
+          h("td", {}, h("div", { style: "font-weight:600" }, x.name), h("div", { class: "faint mono" }, x.camera_id)),
+          h("td", {}, x.sent.length ? x.sent.map(t => h("span", { class: "badge ok", style: "margin:1px" }, t)) : h("span", { class: "faint" }, n.checked_at ? "none" : "not checked")),
+          h("td", {}, x.not_sent.length ? x.not_sent.map(t => h("span", { class: "badge warn", style: "margin:1px", title: "Tick Notify Surveillance Center for this event on the NVR" }, t)) : "—"),
+          h("td", {}, x.events_7d ? h("span", { title: Object.entries(x.types_7d).map(([k, v]) => `${label(k)}: ${v}`).join("\n") }, x.events_7d) : h("span", { class: x.sent.length ? "badge warn" : "faint" }, x.sent.length ? "none yet" : "0")),
+          h("td", { class: "muted" }, x.last_event ? ago(x.last_event) : "—"))))))));
+  }
+  if (!data.nvrs.length) c.append(h("div", { class: "empty" }, "No NVRs yet. Add them in Devices."));
+}
 
 /* ---------------- face & plate: legal review gate ---------------- */
 // A small renderer for the review's Markdown (headings, paragraphs, lists, tables, bold). Text only, no HTML from data.
@@ -1140,7 +1274,8 @@ async function alertDrawer(id) {
         a.status === "open" ? h("button", { class: "btn primary", onclick: () => act({ action: "acknowledge", text: comment.value }, "Acknowledged") }, "Acknowledge") : null,
         a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
         h("a", { class: "btn", href: "#/live", onclick: () => scrim.remove() }, "Live view"),
-        canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "" }, "Export evidence") : null),
+        canManage ? h("button", { class: "btn", onclick: () => sealForm(id, async () => draw(await api(`/alerts/${id}`))) }, "Seal evidence") : null,
+        canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "", title: "A copy that is not kept in the vault" }, "Export copy") : null),
       h("div", { class: "field" }, h("label", {}, "Note"), comment),
       h("div", { class: "toolbar" },
         h("button", { class: "btn", onclick: () => comment.value.trim() ? act({ action: "comment", text: comment.value }, "Note added") : toast("Write a note first") }, "Add note"),
@@ -1210,7 +1345,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

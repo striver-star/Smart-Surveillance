@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import alerts, auth, clips, console, devices, events, legal, notify, nvrs, screens, wall
+from . import alerts, auth, clips, console, devices, events, eventsetup, evidence, legal, notify, nvrs, screens, wall
 from .reports import service as reports
 from .db import connect, migrate
 
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 
 
 @asynccontextmanager
@@ -19,7 +19,9 @@ async def lifespan(app: FastAPI):
     scheduler = asyncio.create_task(reports.background_loop())
     escalator = asyncio.create_task(alerts.background_loop())
     gateway_sync = asyncio.create_task(nvrs.background_loop())
+    vault_cleanup = asyncio.create_task(evidence.background_loop())
     yield
+    vault_cleanup.cancel()
     gateway_sync.cancel()
     watcher.cancel()
     scheduler.cancel()
@@ -29,6 +31,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="HSS Platform API", version=VERSION, lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(console.router)
+app.include_router(evidence.router)
+app.include_router(eventsetup.router)
 app.include_router(alerts.router)
 app.include_router(devices.router)
 app.include_router(nvrs.router)

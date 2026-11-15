@@ -50,6 +50,8 @@ services:
       HSS_PROBE_DIR: /probe
       # Key that encrypts NVR passwords (empty = a key file in the api-data volume). Back it up.
       HSS_VAULT_KEY: ${HSS_VAULT_KEY:-}
+      # Days sealed evidence is kept (packages on legal hold are kept until the hold is removed)
+      HSS_EVIDENCE_DAYS: ${HSS_EVIDENCE_DAYS:-365}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).

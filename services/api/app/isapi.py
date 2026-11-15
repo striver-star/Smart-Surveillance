@@ -1,6 +1,7 @@
 """A small Hikvision ISAPI client for the connection test when an NVR is added or edited."""
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 
 import httpx
@@ -74,3 +75,50 @@ def read_nvr(address: str, username: str, password: str, *, scheme: str = "http"
         except (httpx.HTTPError, ET.ParseError):
             out["warnings"].append("drive status unavailable")
         return out
+
+
+# Event types the platform turns into alerts (Hikvision names, lower case) and their plain names.
+WATCHED_EVENTS = {
+    "linedetection": "Line crossing", "fielddetection": "Intrusion", "regionentrance": "Region entrance",
+    "regionexiting": "Region exiting", "loitering": "Loitering", "unattendedbaggage": "Unattended object",
+    "attendedbaggage": "Object removal", "tamperdetection": "Video tampering", "shelteralarm": "Video tampering",
+    "videoloss": "Video loss", "scenechangedetection": "Scene change", "vmd": "Motion",
+}
+DEVICE_EVENTS = {"diskerror": "HDD error", "diskfull": "HDD full", "nicbroken": "Network disconnected",
+                 "ipconflict": "IP conflict", "illaccess": "Illegal login"}
+
+
+def parse_triggers(xml_text: str) -> list[dict]:
+    """Event linkage from /ISAPI/Event/triggers (pure, tested): which events notify the surveillance
+    centre ("center"), the setting outside software such as HSS needs to receive them."""
+    root = _strip(ET.fromstring(xml_text))
+    out = []
+    for t in root.iter("EventTrigger"):
+        etype = _t(t, "eventType").lower()
+        # On NVRs, IP camera channels are "dynamic" channels (id like linedetection-D22); prefer that number.
+        m = re.search(r"-D(\d+)$", _t(t, "id"))
+        ch = _t(t, "dynVideoInputChannelID") or (m.group(1) if m else "") or _t(t, "videoInputChannelID")
+        methods = sorted({_t(n, "notificationMethod").lower() for n in t.iter("EventTriggerNotification") if _t(n, "notificationMethod")})
+        if etype in WATCHED_EVENTS and ch.isdigit():
+            out.append({"channel": int(ch), "event": etype, "name": WATCHED_EVENTS[etype], "center": "center" in methods, "methods": methods})
+        elif etype in DEVICE_EVENTS:
+            out.append({"channel": None, "event": etype, "name": DEVICE_EVENTS[etype], "center": "center" in methods, "methods": methods})
+    return out
+
+
+def read_event_triggers(address: str, username: str, password: str, *, scheme: str = "http",
+                        transport: httpx.BaseTransport | None = None) -> list[dict]:
+    with httpx.Client(base_url=f"{scheme}://{address}", auth=httpx.DigestAuth(username, password), timeout=15,
+                      verify=False, transport=transport) as http:
+        try:
+            r = http.get("/ISAPI/Event/triggers")
+            r.raise_for_status()
+            return parse_triggers(r.text)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (401, 403):
+                raise DeviceError("The NVR user may not read event settings: give it 'Remote Parameters Settings' (read).") from exc
+            raise DeviceError(f"The NVR answered HTTP {exc.response.status_code} for its event settings.") from exc
+        except httpx.HTTPError as exc:
+            raise DeviceError(f"Couldn't read the event settings ({exc.__class__.__name__}).") from exc
+        except ET.ParseError as exc:
+            raise DeviceError("The event settings weren't readable XML.") from exc

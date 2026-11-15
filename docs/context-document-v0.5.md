@@ -1755,7 +1755,11 @@ cameras; **site gate waiting** (wired server, then the wall PCs at 6 NVRs).
 **Stage E: Phase 3, Edge events and alerts:** alertStream ingestion and
 normalization; device analytics; rules and schedules; alert feed;
 snapshots and clips; incident workflow; escalation; evidence vault;
-offline queueing. Gate: real events raise alerts.
+offline queueing. Gate: real events raise alerts. **Built 2026-11-15** (docs/alerts.md, docs/edge.md,
+docs/event-setup.md, docs/evidence-vault.md): everything in this stage, including the event set-up
+check (which events have Notify Surveillance Center ticked, per camera), the walk test for the gate,
+and the evidence vault (sealed packages, SHA-256 checks, hash-chained custody log, legal hold,
+retention). Rehearsed against a simulated NVR; **site gate waiting** (walk test on the real NVRs).
 
 **Stage F: Phase 4, Server AI:** Tier S workers; image-quality checks;
 supplement light scheduling; coverage dashboard; GPU benchmark; pinned
