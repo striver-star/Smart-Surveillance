@@ -2,7 +2,7 @@
 
 Generated 2026-11-15 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 249 components: 237 ok, 2 waived, 10 conditional.
+**Result: PASS.** 262 components: 250 ok, 2 waived, 10 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -31,21 +31,22 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 
 | Licence | Components |
 | --- | --- |
-| MIT | 147 |
+| MIT | 151 |
+| Apache-2.0 | 27 |
 | ISC | 27 |
-| Apache-2.0 | 26 |
-| BSD-3-Clause | 16 |
+| BSD-3-Clause | 22 |
 | BSD-2-Clause | 6 |
 | Proprietary-free | 5 |
 | BlueOak-1.0.0 | 4 |
+| PSF-2.0 | 3 |
 | LGPL-3.0-only | 2 |
-| PSF-2.0 | 2 |
 | LGPL-2.1-or-later | 2 |
 | Non-commercial | 2 |
 | MPL-2.0 | 1 |
-| Apache-2.0 OR MIT | 1 |
 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 1 |
 | Apache-2.0 OR BSD-2-Clause | 1 |
+| MIT-CMU | 1 |
+| Apache-2.0 OR MIT | 1 |
 | Python-2.0 | 1 |
 | 0BSD | 1 |
 | PostgreSQL AND GPL-2.0-or-later | 1 |
@@ -279,29 +280,42 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | annotated-types | 0.8.0 | MIT | ok | api |
 | pypi | anyio | 4.16.0 | MIT | ok | ai-worker, api, probe |
 | pypi | certifi | 2026.10.23 | MPL-2.0 | ok | ai-worker, api, probe |
+| pypi | charset-normalizer | 3.5.2 | MIT | ok | api |
 | pypi | click | 8.5.1 | BSD-3-Clause | ok | api |
+| pypi | contourpy | 1.4.0 | BSD-3-Clause | ok | api |
+| pypi | cycler | 0.12.1 | BSD-3-Clause | ok | api |
 | pypi | fastapi | 0.115.6 | MIT | ok | api |
 | pypi | flatbuffers | 25.12.19 | Apache-2.0 | ok | ai-worker |
+| pypi | fonttools | 4.68.0 | MIT | ok | api |
 | pypi | h11 | 0.16.0 | MIT | ok | ai-worker, api, probe |
 | pypi | httpcore | 1.0.9 | BSD-3-Clause | ok | ai-worker, api, probe |
 | pypi | httptools | 0.9.0 | MIT | ok | api |
 | pypi | httpx | 0.28.1 | BSD-3-Clause | ok | ai-worker, api, probe |
 | pypi | idna | 3.20 | BSD-3-Clause | ok | ai-worker, api, probe |
-| pypi | numpy | 2.5.3 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | ok | ai-worker |
+| pypi | kiwisolver | 1.5.1 | BSD-3-Clause | ok | api |
+| pypi | lxml | 6.1.3 | BSD-3-Clause | ok | api |
+| pypi | matplotlib | 3.11.2 | PSF-2.0 | ok | api |
+| pypi | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | ok | ai-worker, api |
 | pypi | onnxruntime | 1.29.0 | MIT | ok | ai-worker |
 | pypi | opencv-python-headless | 5.0.0.93 | Apache-2.0 | ok | ai-worker |
-| pypi | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | ok | ai-worker |
+| pypi | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | ok | ai-worker, api |
+| pypi | pillow | 13.0.0 | MIT-CMU | ok | api |
 | pypi | protobuf | 7.36.2 | BSD-3-Clause | ok | ai-worker |
 | pypi | psycopg | 3.2.3 | LGPL-3.0-only | conditional | api |
 | pypi | psycopg-binary | 3.2.3 | LGPL-3.0-only | conditional | api |
 | pypi | pydantic | 2.14.3 | MIT | ok | api |
 | pypi | pydantic-core | 2.50.4 | MIT | ok | api |
+| pypi | pyparsing | 3.3.3 | MIT | ok | api |
+| pypi | python-dateutil | 4.0.0 | BSD-3-Clause | ok | api |
+| pypi | python-docx | 1.2.0 | MIT | ok | api |
 | pypi | python-dotenv | 1.2.4 | BSD-3-Clause | ok | api |
 | pypi | pyyaml | 6.0.3 | MIT | ok | api |
+| pypi | reportlab | 5.1.0 | BSD-3-Clause | ok | api |
 | pypi | segno | 1.6.6 | BSD-3-Clause | ok | api |
 | pypi | starlette | 0.41.3 | BSD-3-Clause | ok | api |
 | pypi | typing-extensions | 4.16.0 | PSF-2.0 | ok | ai-worker, api, probe |
 | pypi | typing-inspection | 0.4.5 | MIT | ok | api |
+| pypi | tzdata | 2026.6 | Apache-2.0 | ok | api |
 | pypi | uvicorn | 0.34.0 | BSD-3-Clause | ok | api |
 | pypi | uvloop | 0.23.0 | Apache-2.0 OR MIT | ok | api |
 | pypi | watchfiles | 1.3.0 | MIT | ok | api |

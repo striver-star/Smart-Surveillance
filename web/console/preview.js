@@ -1,4 +1,4 @@
-/* Sample data for console pages whose services aren't built yet (maps: Phase 5, reports: Phase 6).
+/* Sample data for console pages whose services aren't built yet (site map: Phase 5).
    Every page that uses it shows a "Preview" banner. Nothing here is site data. */
 "use strict";
 window.PREVIEW = {
@@ -23,15 +23,5 @@ window.PREVIEW = {
       { name: "Block 2 up left", x: 420, y: 325, state: "bad" }, { name: "Stream fence", x: 760, y: 300, state: "ok" },
     ],
     guards: [{ name: "Patrol 1", x: 330, y: 330 }, { name: "Patrol 2", x: 600, y: 200 }],
-  },
-  reports: {
-    week: [["Mon", 31], ["Tue", 24], ["Wed", 42], ["Thu", 18], ["Fri", 37], ["Sat", 12], ["Sun", 9]],
-    list: [
-      { name: "Daily security report", period: "Yesterday", sent: "08:05 by WhatsApp", to: "CSO, IT Manager", status: "delivered" },
-      { name: "Weekly summary", period: "Last week", sent: "Monday 08:05", to: "GM, CSO", status: "delivered" },
-      { name: "Monthly management report", period: "October", sent: "1 November 08:05", to: "GM", status: "read" },
-      { name: "Device health report", period: "Last 7 days", sent: "Monday 08:10", to: "IT Manager", status: "delivered" },
-    ],
-    top: [["Perimeter fence", 64], ["Store yard", 21], ["Main gate (after hours)", 14], ["Restaurant back door", 9]],
   },
 };

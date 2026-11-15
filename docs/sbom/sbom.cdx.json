@@ -101,6 +101,34 @@
   },
   {
    "type": "library",
+   "name": "charset-normalizer",
+   "version": "3.5.2",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/charset-normalizer@3.5.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/charset-normalizer/3.5.2/"
+    }
+   ]
+  },
+  {
+   "type": "library",
    "name": "click",
    "version": "8.5.1",
    "group": "pypi",
@@ -129,6 +157,62 @@
   },
   {
    "type": "library",
+   "name": "contourpy",
+   "version": "1.4.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/contourpy@1.4.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/contourpy/1.4.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cycler",
+   "version": "0.12.1",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/cycler@0.12.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/cycler/0.12.1/"
+    }
+   ]
+  },
+  {
+   "type": "library",
    "name": "fastapi",
    "version": "0.115.6",
    "group": "pypi",
@@ -152,6 +236,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/fastapi/0.115.6/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "fonttools",
+   "version": "4.68.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/fonttools@4.68.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/fonttools/4.68.0/"
     }
    ]
   },
@@ -297,6 +409,174 @@
   },
   {
    "type": "library",
+   "name": "kiwisolver",
+   "version": "1.5.1",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/kiwisolver@1.5.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/kiwisolver/1.5.1/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "lxml",
+   "version": "6.1.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/lxml@6.1.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/lxml/6.1.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "matplotlib",
+   "version": "3.11.2",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "PSF-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/matplotlib@3.11.2",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/matplotlib/3.11.2/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "numpy",
+   "version": "2.5.4",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api"
+    }
+   ],
+   "purl": "pkg:pypi/numpy@2.5.4",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/numpy/2.5.4/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "packaging",
+   "version": "26.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0 OR BSD-2-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "ai-worker, api"
+    }
+   ],
+   "purl": "pkg:pypi/packaging@26.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/packaging/26.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pillow",
+   "version": "13.0.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT-CMU"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pillow@13.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pillow/13.0.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
    "name": "psycopg",
    "version": "3.2.3",
    "group": "pypi",
@@ -409,6 +689,90 @@
   },
   {
    "type": "library",
+   "name": "pyparsing",
+   "version": "3.3.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pyparsing@3.3.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pyparsing/3.3.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "python-dateutil",
+   "version": "4.0.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/python-dateutil@4.0.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/python-dateutil/4.0.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "python-docx",
+   "version": "1.2.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/python-docx@1.2.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/python-docx/1.2.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
    "name": "python-dotenv",
    "version": "1.2.4",
    "group": "pypi",
@@ -460,6 +824,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/pyyaml/6.0.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "reportlab",
+   "version": "5.1.0",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/reportlab@5.1.0",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/reportlab/5.1.0/"
     }
    ]
   },
@@ -572,6 +964,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/typing-inspection/0.4.5/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "tzdata",
+   "version": "2026.6",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/tzdata@2026.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/tzdata/2026.6/"
     }
    ]
   },
@@ -717,34 +1137,6 @@
   },
   {
    "type": "library",
-   "name": "numpy",
-   "version": "2.5.3",
-   "group": "pypi",
-   "licenses": [
-    {
-     "expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
-    }
-   ],
-   "properties": [
-    {
-     "name": "hss:status",
-     "value": "ok"
-    },
-    {
-     "name": "hss:used-by",
-     "value": "ai-worker"
-    }
-   ],
-   "purl": "pkg:pypi/numpy@2.5.3",
-   "externalReferences": [
-    {
-     "type": "website",
-     "url": "https://pypi.org/project/numpy/2.5.3/"
-    }
-   ]
-  },
-  {
-   "type": "library",
    "name": "onnxruntime",
    "version": "1.29.0",
    "group": "pypi",
@@ -796,34 +1188,6 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/opencv-python-headless/5.0.0.93/"
-    }
-   ]
-  },
-  {
-   "type": "library",
-   "name": "packaging",
-   "version": "26.3",
-   "group": "pypi",
-   "licenses": [
-    {
-     "expression": "Apache-2.0 OR BSD-2-Clause"
-    }
-   ],
-   "properties": [
-    {
-     "name": "hss:status",
-     "value": "ok"
-    },
-    {
-     "name": "hss:used-by",
-     "value": "ai-worker"
-    }
-   ],
-   "purl": "pkg:pypi/packaging@26.3",
-   "externalReferences": [
-    {
-     "type": "website",
-     "url": "https://pypi.org/project/packaging/26.3/"
     }
    ]
   },

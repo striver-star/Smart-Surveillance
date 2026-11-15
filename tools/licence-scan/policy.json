@@ -30,7 +30,8 @@
     "Unicode-3.0",
     "CC-BY-3.0",
     "Python-2.0.1",
-    "BSD-2-Clause-Patent"
+    "BSD-2-Clause-Patent",
+    "MIT-CMU"
   ],
   "conditional": {
     "LGPL-2.1-only": "Allowed as an unmodified, dynamically linked library or separate process.",

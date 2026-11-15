@@ -41,6 +41,10 @@ services:
       HSS_NTFY_URL: http://ntfy:80
       HSS_NTFY_TOPIC: ${HSS_NTFY_TOPIC:-}
       HSS_NOTIFY_DAILY_TEST: ${HSS_NOTIFY_DAILY_TEST:-}
+      # Scheduled reports: e.g. 07:00 (empty = off); daily every day, weekly Mondays, monthly on the 1st
+      HSS_REPORT_TIME: ${HSS_REPORT_TIME:-}
+      HSS_REPORT_KINDS: ${HSS_REPORT_KINDS:-daily,weekly,monthly}
+      HSS_REPORT_FORMATS: ${HSS_REPORT_FORMATS:-pdf}
       HSS_RECIPIENTS: /config/recipients.json
       HSS_GATEWAY_API: http://gateway:9997
       HSS_PROBE_DIR: /probe

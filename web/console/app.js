@@ -87,7 +87,7 @@ const PAGES = [
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
-  { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports, preview: true },
+  { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports },
   { id: "notify", title: "WhatsApp & alerts", icon: "notify", roles: ["admin", "cso"], view: viewNotify },
   { group: "Administration", roles: ["admin"] },
   { id: "users", title: "Users", icon: "users", roles: ["admin"], view: viewUsers },
@@ -520,18 +520,96 @@ function viewMap(c) {
         h("div", { class: "item" }, h("span", { style: "width:18px;border-top:2px dashed #ef4444" }), "Restricted area")))));
 }
 
-/* ---------------- reports (preview) ---------------- */
-function viewReports(c) {
-  const r = PREVIEW.reports, max = Math.max(...r.week.map(x => x[1]));
-  c.append(h("div", { class: "preview-banner" }, h("span", { class: "badge preview" }, "Preview"),
-      "Sample figures. Phase 6 builds these reports from your events, in your branding, as PDF and Word, delivered by WhatsApp with e-mail as backup."),
-    h("div", { class: "grid cols-2" },
-      card("Alerts per day, last week", null, h("div", { class: "chart", style: "margin-bottom:22px" }, r.week.map(([d, n]) => h("div", { style: `height:${100 * n / max}%`, title: `${d}: ${n}` }, h("span", {}, d))))),
-      card("Busiest zones", null, h("div", { class: "list" }, r.top.map(([z, n]) => h("div", { class: "item" }, h("div", { class: "grow" }, z), h("strong", {}, n)))))),
-    card("Scheduled reports", null, h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["Report", "Period", "Sent", "To", "Status", ""].map(t => h("th", {}, t)))),
-      h("tbody", {}, r.list.map(x => h("tr", {}, h("td", { style: "font-weight:600" }, x.name), h("td", {}, x.period), h("td", {}, x.sent), h("td", {}, x.to),
-        h("td", {}, h("span", { class: "badge ok" }, x.status)), h("td", {}, h("button", { class: "btn small", disabled: true }, "PDF"), " ", h("button", { class: "btn small", disabled: true }, "Word")))))))));
+/* ---------------- reports ---------------- */
+const KIND_NAMES = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", custom: "Custom period" };
+async function viewReports(c) {
+  const canSend = ["admin", "cso"].includes(state.user.role);
+  let q = "", kind = "";
+  const listBox = h("div", {});
+  const load = async () => {
+    const params = new URLSearchParams({ limit: 100 }); if (kind) params.set("kind", kind); if (q) params.set("q", q);
+    const rows = await api(`/reports?${params}`);
+    listBox.replaceChildren(rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Report", "Period", "Events", "Critical", "vs previous", "Created", "Sent", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, rows.map(r => {
+        const f = r.figures || {}, ch = f.change_pct;
+        const delivered = (r.sent || []).filter(x => x.status === "sent").length;
+        return h("tr", { class: "clickable", onclick: e => { if (!e.target.closest("a,button")) reportDrawer(r, canSend, load); } },
+          h("td", {}, h("div", { style: "font-weight:600" }, r.title), h("span", { class: "badge" }, KIND_NAMES[r.kind])),
+          h("td", {}, f.label || ""), h("td", {}, f.events ?? "—"),
+          h("td", {}, f.critical ? h("span", { class: "badge bad" }, f.critical) : "0"),
+          h("td", {}, ch === null || ch === undefined ? h("span", { class: "faint" }, "—") : h("span", { class: `badge ${ch > 0 ? "warn" : ch < 0 ? "ok" : ""}` }, `${ch > 0 ? "+" : ""}${ch}%`)),
+          h("td", { class: "muted", style: "font-size:12.5px" }, fmtTime(r.created_at), h("div", { class: "faint" }, r.created_by === "schedule" ? "by schedule" : `by ${r.created_by}`)),
+          h("td", {}, (r.sent || []).length ? h("span", { class: `badge ${delivered ? "ok" : "bad"}` }, delivered ? `${delivered} delivered` : "failed") : h("span", { class: "faint" }, "not sent")),
+          h("td", { style: "white-space:nowrap;text-align:right" },
+            h("a", { class: "btn small", href: r.files.pdf, download: "" }, "PDF"), " ",
+            h("a", { class: "btn small", href: r.files.docx, download: "" }, "Word")));
+      }))))
+      : h("div", { class: "empty" }, q || kind ? "No reports match." : "No reports yet. Generate one above, or turn on the schedule (HSS_REPORT_TIME)."));
+  };
+  // generate form
+  const kindSel = h("select", { class: "input", style: "width:auto" }, Object.entries(KIND_NAMES).map(([k, v]) => h("option", { value: k }, v)));
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  const on = h("input", { class: "input", type: "date", value: yesterday, style: "width:auto" });
+  const start = h("input", { class: "input", type: "date", style: "width:auto" });
+  const end = h("input", { class: "input", type: "date", value: yesterday, style: "width:auto" });
+  const hint = h("span", { class: "muted", style: "font-size:12.5px" });
+  const err = h("div", { class: "error", hidden: true });
+  const dates = h("div", { class: "toolbar" });
+  const drawDates = () => {
+    const k = kindSel.value;
+    dates.replaceChildren(...(k === "custom" ? [h("span", { class: "muted" }, "From"), start, h("span", { class: "muted" }, "to"), end] : [h("span", { class: "muted" }, k === "daily" ? "Day" : k === "weekly" ? "Any day in the week" : "Any day in the month"), on]));
+    hint.textContent = { daily: "One day, midnight to midnight.", weekly: "Monday to Sunday.", monthly: "The whole calendar month, compared with the month before.", custom: "Up to 93 days." }[k];
+  };
+  kindSel.addEventListener("change", drawDates); drawDates();
+  const gen = h("button", { class: "btn primary", onclick: async () => {
+    err.hidden = true; gen.disabled = true; gen.textContent = "Generating…";
+    try {
+      const k = kindSel.value;
+      const body = k === "custom" ? { kind: k, start: start.value, end: end.value } : { kind: k, on: on.value };
+      const r = await api("/reports", { method: "POST", body });
+      toast(`${r.title} ready`); await load(); reportDrawer(r, canSend, load);
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    finally { gen.disabled = false; gen.textContent = "Generate"; }
+  } }, "Generate");
+  c.append(
+    card("New report", h("span", { class: "muted" }, "PDF and Word, in your branding"), err,
+      h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Type"), kindSel, dates, gen), h("div", { style: "margin-top:8px" }, hint)),
+    h("div", { class: "toolbar" },
+      h("div", { class: "seg", role: "group", "aria-label": "Type" }, [["", "All"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["custom", "Custom"]].map(([k, l]) =>
+        h("button", { class: k === kind ? "on" : null, onclick: e => { kind = k; e.target.parentNode.querySelectorAll("button").forEach(b => b.classList.remove("on")); e.target.classList.add("on"); load(); } }, l))),
+      h("input", { class: "input", type: "search", placeholder: "Search titles, periods and summaries", oninput: e => { q = e.target.value.trim(); clearTimeout(viewReports.t); viewReports.t = setTimeout(load, 300); } })),
+    h("section", { class: "card", style: "padding:6px 8px" }, listBox));
+  await load();
+}
+function reportDrawer(r, canSend, reload) {
+  const f = r.figures || {};
+  const sentBox = h("div", {});
+  const drawSent = sent => sentBox.replaceChildren(sent.length ? h("div", { class: "list" }, sent.slice(-12).reverse().map(x => h("div", { class: "item" },
+    h("span", { class: `dot ${x.status === "sent" ? "ok" : "bad"}` }), h("div", { class: "grow" }, h("div", { class: "title" }, `${x.recipient || "—"} · ${x.channel} · ${x.format}`),
+      h("div", { class: "muted", style: "font-size:12px" }, `${x.status}${x.detail ? ` — ${x.detail}` : ""}`)), h("span", { class: "faint", style: "font-size:12px" }, fmtTime(x.at)))))
+    : h("div", { class: "faint" }, "Not sent yet."));
+  drawSent(r.sent || []);
+  const withDocx = h("input", { type: "checkbox", id: "wd" });
+  const scrim = h("div", { class: "scrim", onclick: ev => { if (ev.target === scrim) scrim.remove(); } },
+    h("div", { class: "drawer", role: "dialog", "aria-label": r.title },
+      h("div", { class: "toolbar" }, h("span", { class: "badge" }, KIND_NAMES[r.kind]), h("h2", {}, r.title), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: () => scrim.remove() }, "Close")),
+      h("div", { class: "muted" }, f.label),
+      h("div", { class: "grid kpis", style: "grid-template-columns:repeat(4,1fr)" },
+        [["Events", f.events], ["Critical", f.critical], ["Warnings", f.warning], ["Open items", f.open_items]].map(([l, v]) => h("div", { class: "card kpi", style: "padding:10px" }, h("div", { class: "label" }, l), h("div", { class: "value", style: "font-size:22px" }, v ?? "—")))),
+      h("h3", {}, "Summary"), ...(r.summary || "").split("\n\n").map(p => h("p", { style: "margin:0" }, p)),
+      h("div", { class: "toolbar" }, h("a", { class: "btn primary", href: r.files.pdf, download: "" }, "Download PDF"), h("a", { class: "btn", href: r.files.docx, download: "" }, "Download Word")),
+      canSend && r.kind !== "custom" ? h("section", { class: "card" }, h("div", { class: "head" }, h("h2", {}, "Send"), h("div", { class: "spacer" }), h("span", { class: "muted" }, `to everyone subscribed to ${r.kind} reports`)),
+        h("div", { class: "toolbar" }, h("label", { for: "wd", class: "muted", style: "display:flex;gap:6px;align-items:center" }, withDocx, "Also send the Word file"), h("div", { style: "flex:1" }),
+          h("button", { class: "btn primary", onclick: async e => {
+            e.target.disabled = true; e.target.textContent = "Sending…";
+            try { const res = await api(`/reports/${r.id}/send`, { method: "POST", body: { formats: withDocx.checked ? ["pdf", "docx"] : ["pdf"] } });
+              const ok = res.attempts.filter(a => a.status === "sent").length; toast(`${ok} of ${res.attempts.length} delivered`);
+              drawSent([...(r.sent || []), ...res.attempts]); r.sent = [...(r.sent || []), ...res.attempts]; reload(); }
+            catch (ex) { toast(ex.message); } finally { e.target.disabled = false; e.target.textContent = "Send now"; }
+          } }, "Send now"))) : null,
+      h("h3", {}, "Deliveries"), sentBox));
+  document.body.append(scrim);
 }
 
 /* ---------------- users ---------------- */
@@ -585,7 +663,8 @@ async function viewUsers(c) {
 async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
-    user_changed: "Changed a user", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", admin_created_cli: "Admin created on the server" };
+    user_changed: "Changed a user", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", admin_created_cli: "Admin created on the server",
+    report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
     h("tbody", {}, rows.map(r => h("tr", {}, h("td", { style: "white-space:nowrap" }, fmtTime(r.at)), h("td", { style: "font-weight:600" }, r.username || "—"),
