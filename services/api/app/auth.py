@@ -34,7 +34,7 @@ from .db import connect
 
 router = APIRouter(tags=["auth"])
 
-ROLES = ("admin", "cso", "operator", "management")
+ROLES = ("admin", "cso", "operator", "management", "guard")
 COOKIE = "hss_session"
 MIN_PASSWORD = 12
 MAX_FAILED, LOCK_MINUTES = 5, 15

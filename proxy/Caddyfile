@@ -41,6 +41,20 @@
 		file_server
 	}
 	redir /wall /wall/
+	# Phone app for guards and supervisors (installs to the home screen; uses the phone's GPS when asked).
+	handle /m/* {
+		root * /srv/console
+		header {
+			Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+			Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "no-referrer"
+			Cache-Control "no-cache"
+		}
+		try_files {path} /m/index.html
+		file_server
+	}
+	redir /m /m/
 	# Web console (login, overview, live view, events, devices, walls, users, settings)
 	handle {
 		root * /srv/console

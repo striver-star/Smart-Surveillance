@@ -24,8 +24,9 @@ from .auth import audit, client_ip, require
 from .db import connect
 
 router = APIRouter(prefix="/logbook", tags=["logbook"])
-WRITERS = ("admin", "cso", "operator")
-READERS = ("admin", "cso", "operator", "management")
+WRITERS = ("admin", "cso", "operator", "guard")
+CONTROL = ("admin", "cso", "operator")          # control-room shift handover
+READERS = ("admin", "cso", "operator", "management", "guard")
 DEFAULT_SHIFTS = [["Day", "06:00", "18:00"], ["Night", "18:00", "06:00"]]
 EDIT_MIN = 15
 CATEGORIES = ("patrol", "incident", "visitor", "maintenance", "other")
@@ -194,7 +195,7 @@ def edit_entry(eid: int, body: EditIn, user: dict = Depends(require(*WRITERS))) 
 
 
 @router.get("/handover/draft")
-def handover_draft(_: dict = Depends(require(*WRITERS))) -> dict:
+def handover_draft(_: dict = Depends(require(*CONTROL))) -> dict:
     sh = current_shift()
     return {"shift": sh, "summary": summarise(sh["start"], min(sh["end"], datetime.now(timezone.utc)))}
 
@@ -204,7 +205,7 @@ class HandoverIn(BaseModel):
 
 
 @router.post("/handover", status_code=201)
-def hand_over(body: HandoverIn, request: Request, user: dict = Depends(require(*WRITERS))) -> dict:
+def hand_over(body: HandoverIn, request: Request, user: dict = Depends(require(*CONTROL))) -> dict:
     sh = current_shift()
     summary = summarise(sh["start"], min(sh["end"], datetime.now(timezone.utc)))
     with connect() as conn:
@@ -230,7 +231,7 @@ class TakeIn(BaseModel):
 
 
 @router.post("/handover/{hid}/take")
-def take_over(hid: int, body: TakeIn, request: Request, user: dict = Depends(require(*WRITERS))) -> dict:
+def take_over(hid: int, body: TakeIn, request: Request, user: dict = Depends(require(*CONTROL))) -> dict:
     with connect() as conn:
         r = conn.execute("SELECT from_user, to_user FROM handovers WHERE id = %s", (hid,)).fetchone()
         if not r:

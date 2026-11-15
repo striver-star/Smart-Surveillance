@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import alerts, auth, clips, console, devices, events, eventsetup, evidence, geo, help, insights, legal, logbook, notify, nvrs, outputs, playback, ptz, screens, system, wall
+from . import alerts, auth, clips, console, devices, events, eventsetup, evidence, geo, help, insights, legal, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, wall
 from .reports import service as reports
 from .db import connect, migrate
 
@@ -47,6 +47,7 @@ app.include_router(playback.router)
 app.include_router(outputs.router)
 app.include_router(logbook.router)
 app.include_router(insights.router)
+app.include_router(mobile.router)
 app.include_router(alerts.router)
 app.include_router(devices.router)
 app.include_router(nvrs.router)

@@ -45,6 +45,8 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 **Site map**: draw restricted zones, the perimeter and patrol checkpoints; link the cameras covering each. Use **Walk-through** to test a zone without a phone.
 
+**Phone app** (`https://<server>/m/`): guards check in at checkpoints with the phone's GPS and hold **SOS** for 2 seconds to raise a critical alert with their position. Supervisors also see open alerts there and can acknowledge and close them. Keep the Traccar Client app for guards who must be tracked all shift: the phone app only knows where a guard is when they check in.
+
 ## Each month
 
 - [ ] Security page: no red items

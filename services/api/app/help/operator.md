@@ -10,6 +10,7 @@ For control-room operators. You watch cameras, handle alerts and record what you
 - **Live view**: pick cameras on the left; 1, 4, 9 or 16 at a time. Double-click a tile for full screen. Click a PTZ camera's tile to steer it: hold an arrow to move, + and − to zoom, or pick a preset and press Go. If someone else is steering it, wait 30 seconds.
 - **Events**: everything the cameras and NVRs reported, including what didn't raise an alert.
 - **Site map**: cameras, zones and guards on the site plan. Click a camera to watch it.
+- **Phone app** (`/m/` on your phone, installed to the home screen): open alerts with snapshots; acknowledge, add a note, close or watch live when you're away from the desk.
 
 ## Handling an alert
 

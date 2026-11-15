@@ -48,7 +48,7 @@ const ago = t => {
 };
 const delay = ms => { const s = ms / 1000; return s < 60 ? `${s.toFixed(1)} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`; };
 const initials = u => (u.display_name || u.username || "?").split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
-const ROLE_NAMES = { admin: "Administrator", cso: "Chief Security Officer", operator: "Operator", management: "Management" };
+const ROLE_NAMES = { admin: "Administrator", cso: "Chief Security Officer", operator: "Operator", management: "Management", guard: "Guard (phone app only)" };
 function toast(msg) {
   let box = document.getElementById("toasts");
   if (!box) { box = h("div", { id: "toasts", class: "toasts", "aria-live": "polite" }); document.body.append(box); }
@@ -167,6 +167,7 @@ function render() {
   app.replaceChildren();
   if (!state.user) return app.append(viewLogin());
   if (state.user.must_change_password) return app.append(viewForcedPassword());
+  if (state.user.role === "guard") { location.replace("/m/"); return; }       // guards use the phone app only
   app.append(viewShell(currentPage()));
 }
 
