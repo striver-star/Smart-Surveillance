@@ -1813,4 +1813,4 @@ install.sh needs a first run on a clean Ubuntu machine. Deferred: hosted option 
 (after the pilot).
 
 **Stage L: Phase 10, Growth (release 2.0):** remaining Section 5.8
-items. Gate: prioritization session.
+items. Gate: prioritization session. **Prepared 2026-11-15:** release 2.0 prioritisation document with 21 candidates scored for value and effort and a proposed first batch (playback and timeline, sirens and lights on alerts, logbook, false-alarm dashboard, phone app, viewing audit, wall without the server); **waiting** for the prioritisation session.
