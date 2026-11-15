@@ -114,3 +114,19 @@ def test_shared_number_gets_one_copy_and_no_email_is_fine():
     attempts = dispatch("test", "Test", "hi", None, [gm, cso], wa, EmailSender({}), no_push())
     assert len(sent) == 1
     assert [(a.recipient, a.status) for a in attempts] == [("GM", "sent"), ("CSO", "skipped")]
+
+
+def test_recipients_file_mistakes_keep_the_last_good_list(tmp_path, monkeypatch):
+    monkeypatch.setenv("HSS_DATA_DIR", str(tmp_path))
+    from app.notify import load_recipients, recipients_problem
+    f = tmp_path / "recipients.json"
+    f.write_text('[{"name": "CSO", "whatsapp": "+2348011112222", "subscriptions": ["daily", "critical"]}]')
+    assert [r.name for r in load_recipients(f)] == ["CSO"] and recipients_problem()["error"] == ""
+    f.write_text('[{"name": "CSO", "whatsapp": "+2348011112222",\n  "subscriptions": ["daily", "test" "escalation"]}]')
+    assert [r.name for r in load_recipients(f)] == ["CSO"], "a typo must not stop deliveries"
+    p = recipients_problem()
+    assert p["using_last_good"] and "line 2" in p["error"] and "missing comma" in p["error"]
+    f.write_text('[{"name": "IT", "whatsapp": "2349151637886", "subscriptions": ["device", "escalaton"]}]')
+    assert [r.name for r in load_recipients(f)] == ["IT"]
+    w = " ".join(recipients_problem()["warnings"])
+    assert "unknown subscription(s) escalaton" in w and "should start with +" in w

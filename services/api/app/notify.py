@@ -64,13 +64,72 @@ def mask(address: str) -> str:
     return "…" + digits[-4:] if digits else ""
 
 
+TOPICS = {"daily", "weekly", "monthly", "test", "critical", "device", "system", "escalation"}
+_recipients_state: dict = {"good": None, "problem": "", "warnings": []}
+
+
+def check_recipients(text: str) -> tuple[list[Recipient], list[str]]:
+    """Parse and check recipients.json. Raises ValueError with a plain message (line and column)."""
+    if not text.strip():
+        raise ValueError("recipients.json is empty")
+    try:
+        raw = json.loads(text)
+    except json.JSONDecodeError as exc:
+        hint = " (often a missing comma between two items, or a comma after the last one)" if "delimiter" in exc.msg or "Expecting" in exc.msg else ""
+        raise ValueError(f"recipients.json line {exc.lineno}, column {exc.colno}: {exc.msg}{hint}") from exc
+    if not isinstance(raw, list):
+        raise ValueError("recipients.json must be a list [ ... ] of recipients")
+    out, warnings = [], []
+    for i, r in enumerate(raw, 1):
+        if not isinstance(r, dict) or not r.get("name"):
+            raise ValueError(f"recipients.json entry {i}: each recipient needs at least a name")
+        subs = r.get("subscriptions", [])
+        if not isinstance(subs, list) or not all(isinstance(x, str) for x in subs):
+            raise ValueError(f"recipients.json, {r['name']}: subscriptions must be a list of words in quotes")
+        unknown = [x for x in subs if x not in TOPICS]
+        if unknown:
+            warnings.append(f"{r['name']}: unknown subscription(s) {', '.join(unknown)} (known: {', '.join(sorted(TOPICS))})")
+        if r.get("whatsapp") and not str(r["whatsapp"]).startswith("+"):
+            warnings.append(f"{r['name']}: WhatsApp number should start with + and the country code")
+        out.append(Recipient(**{k: v for k, v in r.items() if k in Recipient.__dataclass_fields__}))
+    return out, warnings
+
+
 def load_recipients(path: Path | None = None) -> list[Recipient]:
+    """The recipients. If the file has a mistake, keep using the last good list (so a typo can't silently
+    stop alerts) and remember the problem for the console's WhatsApp page."""
     path = path or Path(os.environ.get("HSS_RECIPIENTS", "/config/recipients.json"))
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        recipients, warnings = check_recipients(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
+        _recipients_state.update(problem="", warnings=[])
         return []
-    return [Recipient(**{k: v for k, v in r.items() if k in Recipient.__dataclass_fields__}) for r in raw]
+    except (ValueError, OSError) as exc:
+        if _recipients_state["problem"] != str(exc):
+            logging.getLogger("notify").error("%s; using the last good recipient list", exc)
+        _recipients_state["problem"] = str(exc)
+        if _recipients_state["good"] is None:          # after a restart: the copy saved on disk
+            try:
+                _recipients_state["good"], _ = check_recipients(_last_good_file().read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                _recipients_state["good"] = []
+        return _recipients_state["good"]
+    if _recipients_state["good"] != recipients:
+        try:
+            _last_good_file().write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+        except OSError:
+            pass
+    _recipients_state.update(good=recipients, problem="", warnings=warnings)
+    return recipients
+
+
+def _last_good_file() -> Path:
+    return Path(os.environ.get("HSS_DATA_DIR", "/data")) / "recipients.last-good.json"
+
+
+def recipients_problem() -> dict:
+    return {"error": _recipients_state["problem"], "warnings": _recipients_state["warnings"],
+            "using_last_good": bool(_recipients_state["problem"] and _recipients_state["good"])}
 
 
 class WhatsAppSender:
@@ -346,6 +405,7 @@ def notify_status(days: int = 7) -> dict:
         "push_configured": push.configured,
         "recipients": [{"name": r.name, "role": r.role, "whatsapp": mask(r.whatsapp), "email": mask(r.email),
                         "subscriptions": r.subscriptions} for r in load_recipients()],
+        "recipients_check": recipients_problem(),
         "since": since.isoformat(),
         "deliveries": [{"channel": c, "status": s, "fallback": f, "count": n} for c, s, f, n in counts],
         "gateway_events": [{"at": a.isoformat(), "status": s} for a, s in events],

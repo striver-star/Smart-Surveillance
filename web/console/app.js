@@ -493,6 +493,10 @@ async function viewNotify(c) {
   const wa = st.whatsapp.status;
   const totals = {};
   for (const d of st.deliveries) totals[d.status] = (totals[d.status] || 0) + d.count;
+  const rc = st.recipients_check || {};
+  if (rc.error) c.append(h("div", { class: "error" }, h("strong", {}, "config/recipients.json has a mistake: "), rc.error,
+    rc.using_last_good ? " Messages still go to the last good list below until it's fixed." : " No recipients can be used until it's fixed."));
+  if (rc.warnings && rc.warnings.length) c.append(h("div", { class: "note" }, h("strong", {}, "Check config/recipients.json: "), rc.warnings.join("; ")));
   c.append(h("div", { class: "grid kpis" },
       kpi("WhatsApp gateway", h("span", { style: `color:${wa === "ready" ? "var(--ok)" : "var(--warn)"}` }, wa), st.whatsapp.me ? `Linked number ends …${String(st.whatsapp.me).slice(-4)}` : ""),
       kpi("Sent, last 7 days", (totals.sent || 0) + (totals.delivered || 0) + (totals.read || 0), `${totals.read || 0} read · ${totals.failed || 0} failed`),
