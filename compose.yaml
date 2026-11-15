@@ -52,6 +52,9 @@ services:
       HSS_VAULT_KEY: ${HSS_VAULT_KEY:-}
       # Days sealed evidence is kept (packages on legal hold are kept until the hold is removed)
       HSS_EVIDENCE_DAYS: ${HSS_EVIDENCE_DAYS:-365}
+      # Guard phones and trackers: minutes without a position before "offline", and low battery %
+      HSS_UNIT_OFFLINE_MIN: ${HSS_UNIT_OFFLINE_MIN:-10}
+      HSS_UNIT_LOW_BATTERY: ${HSS_UNIT_LOW_BATTERY:-15}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).
@@ -120,6 +123,24 @@ services:
     depends_on:
       - api
 
+  traccar:
+    # GPS (Phase 5): guard phones (Traccar Client app) and trackers report here; positions go to HSS.
+    # Start with: --profile geo. Phones send to http://SERVER_IP:5055 (docs/gps.md).
+    profiles: ["geo"]
+    image: traccar/traccar:6.16.0-alpine
+    restart: unless-stopped
+    environment:
+      CONFIG_USE_ENVIRONMENT_VARIABLES: "true"
+      FORWARD_URL: http://api:8000/geo/traccar?token=${HSS_WORKER_TOKEN}
+    volumes:
+      - ./gps/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - traccar-data:/opt/traccar/data
+      - traccar-logs:/opt/traccar/logs
+    ports:
+      - "5055:5055"     # OsmAnd protocol (Traccar Client)
+    depends_on:
+      - api
+
   whatsapp:
     # WhatsApp gateway (provider A). Start with: docker compose --profile notify up -d
     # Link once: docker compose logs -f whatsapp, then scan the QR code with the dedicated phone.
@@ -166,6 +187,8 @@ services:
       - gateway
 
 volumes:
+  traccar-data:
+  traccar-logs:
   edge-data:
   wa-data:
   ntfy-cache:

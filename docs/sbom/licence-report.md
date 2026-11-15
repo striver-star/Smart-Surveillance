@@ -2,7 +2,7 @@
 
 Generated 2026-11-15 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 266 components: 253 ok, 2 waived, 11 conditional.
+**Result: PASS.** 268 components: 255 ok, 2 waived, 11 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -33,7 +33,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | Licence | Components |
 | --- | --- |
 | MIT | 151 |
-| Apache-2.0 | 27 |
+| Apache-2.0 | 29 |
 | ISC | 27 |
 | BSD-3-Clause | 23 |
 | BSD-2-Clause | 6 |
@@ -62,6 +62,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 
 | Type | Name | Version | Licence | Status | Used by / use |
 | --- | --- | --- | --- | --- | --- |
+| app | Traccar Client (Android, iOS) | store release | Apache-2.0 | ok | Guard phone location app, OsmAnd protocol to Traccar |
 | build-tool | Go toolchain and standard library | 1.24 | BSD-3-Clause | ok | Builds the Wall Agent; the standard library is compiled into it |
 | build-tool | NSIS | 3.x | Zlib | ok | Builds the Windows Wall Agent installer |
 | bundled | FFmpeg (inside opencv-python-headless) |  | LGPL-2.1-or-later | conditional | ai-worker |
@@ -79,6 +80,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | image | nvcr.io/nvidia/tensorrt | 24.08-py3 | Proprietary-free | conditional | Base image for the GPU AI worker (Dockerfile.gpu), built on the client's server |
 | image | postgis/postgis | 16-3.5 | PostgreSQL AND GPL-2.0-or-later | conditional | Database, separate container, unmodified |
 | image | python | 3.12-slim | PSF-2.0 | ok | Base image for the API and the AI worker |
+| image | traccar/traccar | 6.16.0-alpine | Apache-2.0 | ok | GPS server: guard phones (Traccar Client) and trackers, positions forwarded to HSS (Phase 5) |
 | media | OpenCV sample photos lena.jpg and messi5.jpg | 4.x | Apache-2.0 | ok | Face tests only (fetch-models.sh --demo); never shipped |
 | media | OpenCV sample video vtest.avi | 4.x | Apache-2.0 | ok | Demo and tests only (fetch-models.sh --demo), never shipped |
 | model | PaddleOCR PP-OCRv4 text detection and recognition (ONNX, from the RapidOCR 1.4.4 wheel) | v4 | Apache-2.0 | ok | Number plate reading (task 18) |

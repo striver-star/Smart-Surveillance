@@ -7412,6 +7412,60 @@
      "url": "https://packages.debian.org/bookworm/ffmpeg"
     }
    ]
+  },
+  {
+   "type": "container",
+   "name": "traccar/traccar",
+   "version": "6.16.0-alpine",
+   "group": "image",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/traccar/traccar"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "Traccar Client (Android, iOS)",
+   "version": "store release",
+   "group": "app",
+   "licenses": [
+    {
+     "expression": "Apache-2.0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": ""
+    }
+   ],
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://github.com/traccar/traccar-client"
+    }
+   ]
   }
  ]
 }

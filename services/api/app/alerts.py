@@ -164,7 +164,11 @@ def camera_label(camera_id: str) -> str | None:
         try:
             from .console import load_devices
             from .reports.data import camera_names
-            _names_cache["names"] = camera_names(load_devices())
+            names = camera_names(load_devices())
+            with connect() as conn:          # guards and vehicles (Phase 5) and patrol checkpoints
+                names |= {f"unit-{i}": n for i, n in conn.execute("SELECT id, name FROM tracked_units").fetchall()}
+                names |= {f"checkpoint-{i}": n for i, n in conn.execute("SELECT id, name FROM zones").fetchall()}
+            _names_cache["names"] = names
         except Exception:
             _names_cache["names"] = {}
         _names_cache["at"] = _t.monotonic()

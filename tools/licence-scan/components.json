@@ -240,6 +240,24 @@
       "source": "https://packages.debian.org/bookworm/ffmpeg",
       "checked": "2026-11-15",
       "note": "Debian builds FFmpeg with GPL components; allowed because it runs as a separate, unmodified program (Section 19)."
+    },
+    {
+      "kind": "image",
+      "name": "traccar/traccar",
+      "version": "6.16.0-alpine",
+      "licence": "Apache-2.0",
+      "use": "GPS server: guard phones (Traccar Client) and trackers, positions forwarded to HSS (Phase 5)",
+      "source": "https://github.com/traccar/traccar",
+      "checked": "2026-11-15"
+    },
+    {
+      "kind": "app",
+      "name": "Traccar Client (Android, iOS)",
+      "version": "store release",
+      "licence": "Apache-2.0",
+      "use": "Guard phone location app, OsmAnd protocol to Traccar",
+      "source": "https://github.com/traccar/traccar-client",
+      "checked": "2026-11-15"
     }
   ]
 }

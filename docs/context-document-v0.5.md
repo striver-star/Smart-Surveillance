@@ -1767,7 +1767,13 @@ NVIDIA versions and staging. Gate: detection on a non-AI camera.
 
 **Stage G: Phase 5, Geo features:** geotags; self-hosted maps and floor
 plans; site map; geofence editor and push to devices; Traccar with
-PostGIS; Android guard tracking; GPS events. Gate: breach walk-through.
+PostGIS; Android guard tracking; GPS events. Gate: breach walk-through. **Built 2026-11-15** (docs/gps.md): site plans tied to latitude and
+longitude by two reference points, cameras placed with view direction and live status, zone editor
+(restricted, perimeter, patrol checkpoint, area; armed windows; linked cameras), Traccar 6.16 with
+Traccar Client phones forwarding to HSS, PostGIS zone tests, events (zone enter/exit, SOS, checkpoint
+visit, missed patrol, offline, low battery), live map with trails, and a walk-through simulator.
+Tested end to end with Traccar in the build environment; **site gate waiting** (guard phones).
+Deferred: pushing zones to cameras over ISAPI, internet map background, vehicle trackers.
 
 **Stage H: Phase 6, Reporting and delivery:** DOCX and PDF reports;
 uploadable branding, selectable language and timezone; scheduling and

@@ -100,7 +100,7 @@ const PAGES = [
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
-  { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap, preview: true },
+  { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap },
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
   { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
@@ -1001,30 +1001,315 @@ async function viewNotify(c) {
       : h("div", { class: "empty" }, "No deliveries yet.")) : null);
 }
 
-/* ---------------- map (preview) ---------------- */
-function viewMap(c) {
-  const m = PREVIEW.map;
-  const NS = "http://www.w3.org/2000/svg";
-  const s = (tag, attrs, text) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); if (text) el.textContent = text; return el; };
-  const svg = s("svg", { viewBox: "0 0 800 400", role: "img", "aria-label": m.title });
-  svg.append(s("rect", { x: 0, y: 0, width: 800, height: 400, fill: "var(--panel-2)" }));
-  for (const z of m.zones) svg.append(s("polygon", { points: z.points, fill: z.kind === "restricted" ? "rgba(239,68,68,.10)" : "none", stroke: z.kind === "restricted" ? "#ef4444" : "#f59e0b", "stroke-width": 2, "stroke-dasharray": "8 6" }));
-  for (const b of m.buildings) { svg.append(s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 6, fill: "var(--panel)", stroke: "var(--line)" })); svg.append(s("text", { x: b.x + 8, y: b.y + 18, fill: "var(--muted)", "font-size": 12 }, b.name)); }
-  for (const cam of m.cameras) {
-    const col = { ok: "#22c55e", warn: "#f59e0b", bad: "#ef4444" }[cam.state];
-    const g = s("g", {}); g.append(s("circle", { cx: cam.x, cy: cam.y, r: 7, fill: col, stroke: "#0b1220", "stroke-width": 2 }));
-    g.append(s("title", {}, `${cam.name} (${cam.state})`)); svg.append(g);
+/* ---------------- site map: plans, cameras, zones, guards (Phase 5) ---------------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, ...kids) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v);
   }
-  for (const gd of m.guards) { svg.append(s("rect", { x: gd.x - 6, y: gd.y - 6, width: 12, height: 12, rx: 3, fill: "#38bdf8", transform: `rotate(45 ${gd.x} ${gd.y})` })); svg.append(s("text", { x: gd.x + 10, y: gd.y + 4, fill: "#38bdf8", "font-size": 11 }, gd.name)); }
-  c.append(h("div", { class: "preview-banner" }, h("span", { class: "badge preview" }, "Preview"),
-      "Sample site plan, not your site. Phase 5 adds your own plan or offline map, camera pins with live status, zones drawn in the platform, and guard positions from the GPS phones."),
-    h("div", { class: "grid cols-2" },
-      h("section", { class: "card map" }, svg),
-      card("Legend", null, h("div", { class: "list" },
-        h("div", { class: "item" }, h("span", { class: "dot ok" }), "Camera online"), h("div", { class: "item" }, h("span", { class: "dot warn" }), "Camera with a warning"),
-        h("div", { class: "item" }, h("span", { class: "dot bad" }), "Camera offline"), h("div", { class: "item" }, h("span", { class: "dot info" }), "Guard (GPS phone)"),
-        h("div", { class: "item" }, h("span", { style: "width:18px;border-top:2px dashed #f59e0b" }), "Perimeter zone, armed at night"),
-        h("div", { class: "item" }, h("span", { style: "width:18px;border-top:2px dashed #ef4444" }), "Restricted area")))));
+  for (const kid of kids.flat(9)) if (kid !== null && kid !== undefined && kid !== false) el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const ZONE_KINDS = { restricted: "Restricted area", perimeter: "Perimeter", checkpoint: "Patrol checkpoint", area: "Area" };
+const wedge = (x, y, bearing, fov, r) => {
+  if (fov >= 359) return `M ${x - r} ${y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0`;
+  const a1 = (bearing - fov / 2 - 90) * Math.PI / 180, a2 = (bearing + fov / 2 - 90) * Math.PI / 180;
+  return `M ${x} ${y} L ${x + r * Math.cos(a1)} ${y + r * Math.sin(a1)} A ${r} ${r} 0 ${fov > 180 ? 1 : 0} 1 ${x + r * Math.cos(a2)} ${y + r * Math.sin(a2)} Z`;
+};
+const parseWindows = t => t.split(",").map(x => x.trim()).filter(Boolean).map(x => x.split(/\s*(?:-|to|–)\s*/));
+
+async function viewMap(c) {
+  const canEdit = ["admin", "cso"].includes(state.user.role);
+  let plans = await api("/geo/plans");
+  let planId = Number(localStorage.getItem("hss.map.plan")) || (plans[0] && plans[0].id);
+  if (!plans.some(p => p.id === planId)) planId = plans[0] && plans[0].id;
+  let mode = "view", live = null, zoom = 1, draft = [], placing = null, simUnit = null, refDraft = [];
+  let devices = null;
+  const side = h("div", { class: "map-side" });
+  const tip = h("div", { class: "map-tip", hidden: true });
+  const svg = sv("svg", { class: "map-svg", preserveAspectRatio: "none" });
+  const img = h("img", { class: "map-img", alt: "" });
+  const stage = h("div", { class: "map-stage" }, img, svg);
+  const scroller = h("div", { class: "map-scroll" }, stage);
+  const modeBar = h("div", { class: "seg", role: "group", "aria-label": "Map mode" });
+  const planBar = h("div", { class: "seg", role: "group", "aria-label": "Plan" });
+
+  const toPlan = ev => { const r = svg.getBoundingClientRect(), p = live.plan; return [(ev.clientX - r.left) * p.width / r.width, (ev.clientY - r.top) * p.height / r.height]; };
+  const setMode = m => { mode = m; draft = []; placing = null; refDraft = []; tip.hidden = m === "view"; drawModes(); drawSide(); draw(); };
+
+  function drawModes() {
+    const modes = [["view", "View"], ...(canEdit ? [["refs", "Reference points"], ["camera", "Place cameras"], ["zone", "Draw zone"], ["simulate", "Walk-through"]] : [])];
+    modeBar.replaceChildren(...modes.map(([k, t]) => h("button", { class: mode === k ? "on" : null, disabled: !live, onclick: () => setMode(k) }, t)));
+    tip.textContent = { refs: "Click a spot on the plan whose latitude and longitude you know (a gate, a building corner). Two spots, far apart.",
+      camera: "Pick a camera on the right, then click where it is on the plan.", zone: "Click the corners of the zone in order, then Finish on the right.",
+      simulate: "Pick a guard or vehicle on the right, then click on the plan to move it there, as if its phone reported from that spot." }[mode] || "";
+  }
+  function drawPlans() {
+    planBar.replaceChildren(...plans.map(p => h("button", { class: p.id === planId ? "on" : null, onclick: () => { planId = p.id; localStorage.setItem("hss.map.plan", p.id); load(true); } }, p.name)));
+  }
+
+  function draw() {
+    if (!live) return;
+    const p = live.plan, W = p.width, H = p.height, k = Math.max(W, H) / 1000;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const kids = [];
+    for (const z of live.zones) {
+      const pts = z.points.map(q => q.join(",")).join(" ");
+      const cx = z.points.reduce((a, q) => a + q[0], 0) / z.points.length, cy = z.points.reduce((a, q) => a + q[1], 0) / z.points.length;
+      kids.push(sv("g", { class: `zone ${z.kind} ${z.armed_now ? "armed" : "disarmed"} ${z.enabled ? "" : "off"}`, onclick: e => { e.stopPropagation(); if (mode === "view") zonePanel(z); } },
+        sv("polygon", { points: pts, "stroke-width": 2.5 * k }), sv("text", { x: cx, y: cy, "font-size": 15 * k, "text-anchor": "middle" }, z.name)));
+    }
+    for (const cam of live.cameras) {
+      const cls = cam.alert ? `alert-${cam.alert}` : cam.online === false ? "offline" : cam.online ? "online" : "unknown";
+      kids.push(sv("g", { class: `cam ${cls} ${placing && placing.camera_id === cam.camera_id ? "sel" : ""}`, onclick: e => { e.stopPropagation(); if (mode === "view") cameraPanel(cam); else if (mode === "camera") { placing = { ...cam }; drawSide(); draw(); } } },
+        sv("path", { d: wedge(cam.x, cam.y, cam.bearing, cam.fov, cam.reach), class: "fov" }),
+        sv("circle", { cx: cam.x, cy: cam.y, r: 8 * k, "stroke-width": 2 * k }), sv("title", {}, `${cam.name} (${cam.camera_id})`)));
+    }
+    if (placing && placing.x !== undefined && !live.cameras.some(x => x.camera_id === placing.camera_id && x.x === placing.x && x.y === placing.y))
+      kids.push(sv("g", { class: "cam sel draft" }, sv("path", { d: wedge(placing.x, placing.y, placing.bearing, placing.fov, placing.reach), class: "fov" }), sv("circle", { cx: placing.x, cy: placing.y, r: 8 * k })));
+    for (const u of live.units) {
+      if (u.trail.length > 1) kids.push(sv("polyline", { class: "trail", points: u.trail.map(q => q.join(",")).join(" "), "stroke-width": 2 * k }));
+      kids.push(sv("g", { class: `unit ${u.kind} ${u.offline ? "offline" : ""}`, onclick: e => { e.stopPropagation(); if (mode === "view") unitPanel(u); } },
+        sv("circle", { cx: u.x, cy: u.y, r: 9 * k, "stroke-width": 2.5 * k }),
+        sv("text", { x: u.x + 13 * k, y: u.y + 5 * k, "font-size": 14 * k }, u.name)));
+    }
+    const refs = mode === "refs" ? refDraft : (p.refs || []);
+    refs.forEach((r, i) => kids.push(sv("g", { class: "ref" }, sv("circle", { cx: r.x, cy: r.y, r: 7 * k }), sv("text", { x: r.x + 10 * k, y: r.y - 8 * k, "font-size": 14 * k }, "AB"[i]))));
+    if (draft.length) kids.push(sv("polyline", { class: "draft-zone", points: draft.map(q => q.join(",")).join(" "), "stroke-width": 2.5 * k }),
+      ...draft.map(q => sv("circle", { class: "draft-pt", cx: q[0], cy: q[1], r: 5 * k })));
+    svg.replaceChildren(...kids);
+    stage.style.width = `${zoom * 100}%`;
+  }
+
+  svg.addEventListener("click", async ev => {
+    if (!live || mode === "view") return;
+    const [x, y] = toPlan(ev);
+    if (mode === "zone") { draft.push([Math.round(x), Math.round(y)]); drawSide(); draw(); }
+    else if (mode === "camera" && placing) { placing = { ...placing, x: Math.round(x), y: Math.round(y) }; drawSide(); draw(); }
+    else if (mode === "refs" && refDraft.length < 2) refPointForm(Math.round(x), Math.round(y));
+    else if (mode === "simulate" && simUnit) {
+      try { const r = await api(`/geo/units/${simUnit}/simulate`, { method: "POST", body: { plan_id: planId, x, y } });
+        toast(r.events.length ? r.events.map(e => label(e.type) + (e.alert_id ? " → alert" : "")).join(", ") : "Moved; nothing to report");
+        load(); } catch (ex) { toast(ex.message); }
+    }
+  });
+
+  function refPointForm(x, y) {
+    const lat = h("input", { class: "input", id: "rp-lat", placeholder: "e.g. 6.524379", inputmode: "decimal" });
+    const lon = h("input", { class: "input", id: "rp-lon", placeholder: "e.g. 3.379206", inputmode: "decimal" });
+    const both = h("input", { class: "input", id: "rp-both", placeholder: "or paste: 6.524379, 3.379206" });
+    both.addEventListener("input", () => { const m = both.value.match(/(-?\d+\.\d+)\s*[, ]\s*(-?\d+\.\d+)/); if (m) { lat.value = m[1]; lon.value = m[2]; } });
+    modal(`Reference point ${"AB"[refDraft.length]}`, h("div", {},
+      h("p", { class: "muted", style: "margin:0 0 12px" }, "Latitude and longitude of the spot you clicked. Stand there with a phone's map app, or right-click the spot in an online map and copy the numbers."),
+      h("div", { class: "field" }, h("label", { for: "rp-both" }, "Paste both"), both),
+      h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "rp-lat" }, "Latitude"), lat), h("div", { class: "field" }, h("label", { for: "rp-lon" }, "Longitude"), lon))),
+      close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+        const la = parseFloat(lat.value), lo = parseFloat(lon.value);
+        if (!isFinite(la) || !isFinite(lo)) return toast("Enter both numbers");
+        refDraft.push({ x, y, lat: la, lon: lo }); close.remove(); draw(); drawSide();
+        if (refDraft.length === 2) {
+          try { await api(`/geo/plans/${planId}`, { method: "PUT", body: { name: live.plan.name, refs: refDraft } }); toast("Plan tied to the map"); plans = await api("/geo/plans"); setMode("view"); load(); }
+          catch (ex) { toast(ex.message); refDraft = []; draw(); drawSide(); }
+        }
+      } }, "Set point")]);
+  }
+
+  async function drawSide() {
+    if (!live) { side.replaceChildren(); return; }
+    const plan = plans.find(p => p.id === planId);
+    if (mode === "view") {
+      const alerts = live.cameras.filter(x => x.alert), units = live.units;
+      side.replaceChildren(h("h3", {}, live.plan.name),
+        h("div", { class: "faint", style: "font-size:12.5px" }, plan.georeferenced ? `Tied to the map · ${plan.metres_per_px} m per pixel` : "Not tied to the map yet: set the two reference points so GPS positions and zones work."),
+        h("div", { class: "legend" }, h("span", {}, h("i", { class: "lg online" }), "camera online"), h("span", {}, h("i", { class: "lg offline" }), "offline"),
+          h("span", {}, h("i", { class: "lg alert" }), "open alert"), h("span", {}, h("i", { class: "lg guard" }), "guard"), h("span", {}, h("i", { class: "lg vehicle" }), "vehicle")),
+        alerts.length ? h("div", {}, h("h3", {}, "Cameras with open alerts"), alerts.map(a => h("button", { class: "linkrow", onclick: () => cameraPanel(a) }, h("span", { class: `dot ${a.alert === "critical" ? "bad" : "warn"}` }), a.name))) : null,
+        h("h3", {}, "On this plan"), units.length ? units.map(u => h("button", { class: "linkrow", onclick: () => unitPanel(u) },
+          h("span", { class: `dot ${u.offline ? "" : "ok"}` }), u.name, h("span", { class: "faint" }, ` · ${ago(u.last_at)}`), u.on_plan ? null : h("span", { class: "badge warn", style: "margin-left:6px" }, "off the plan")))
+          : h("div", { class: "faint" }, "No guards or vehicles reporting."),
+        h("div", { class: "faint", style: "font-size:12.5px;margin-top:8px" }, `${live.cameras.length} camera${live.cameras.length === 1 ? "" : "s"} and ${live.zones.length} zone${live.zones.length === 1 ? "" : "s"} on this plan.`));
+    } else if (mode === "refs") {
+      side.replaceChildren(h("h3", {}, "Tie the plan to the map"), h("p", { class: "muted" }, `Point ${"AB"[refDraft.length] || "B"} of 2. Pick spots far apart, such as two corners of the fence.`),
+        plan.georeferenced ? h("p", { class: "faint" }, "The plan already has reference points; setting new ones replaces them and moves zones and cameras on the map.") : null,
+        h("button", { class: "btn", onclick: () => setMode("view") }, "Cancel"));
+    } else if (mode === "camera") {
+      devices = devices || await api("/devices");
+      const placed = new Set(live.cameras.map(x => x.camera_id));
+      const all = devices.nvrs.flatMap(n => n.channels.map(ch => ({ camera_id: ch.camera_id, name: ch.name, nvr: n.name })));
+      const find = h("input", { class: "input", type: "search", placeholder: "Find a camera" });
+      const list = h("div", { class: "pick-list" });
+      const drawList = () => list.replaceChildren(...all.filter(x => !find.value || `${x.name} ${x.camera_id}`.toLowerCase().includes(find.value.toLowerCase()))
+        .sort((a, b) => placed.has(a.camera_id) - placed.has(b.camera_id)).map(x => h("button", { class: `linkrow ${placing && placing.camera_id === x.camera_id ? "on" : ""}`, onclick: () => {
+          const cur = live.cameras.find(y => y.camera_id === x.camera_id);
+          placing = cur ? { ...cur } : { camera_id: x.camera_id, name: x.name, bearing: 0, fov: 90, reach: Math.round(Math.max(live.plan.width, live.plan.height) / 12) }; drawSide(); draw();
+        } }, h("span", { class: `dot ${placed.has(x.camera_id) ? "ok" : ""}` }), x.name, h("span", { class: "faint mono" }, ` ${x.camera_id}`))));
+      find.addEventListener("input", drawList); drawList();
+      const slider = (key, lab, min, max) => h("div", { class: "field" }, h("label", {}, `${lab}: `, h("span", { class: "mono" }, Math.round(placing[key]))),
+        h("input", { type: "range", min, max, value: placing[key], oninput: e => { placing[key] = Number(e.target.value); e.target.previousSibling.lastChild.textContent = e.target.value; draw(); } }));
+      side.replaceChildren(h("h3", {}, "Place cameras"), find, list,
+        placing ? h("div", { class: "card", style: "padding:12px;margin-top:10px" }, h("strong", {}, placing.name),
+          placing.x === undefined ? h("p", { class: "muted" }, "Click its spot on the plan.") : h("div", {},
+            slider("bearing", "Facing (degrees, 0 = up)", 0, 359), slider("fov", "View angle", 10, 360), slider("reach", "View length on the plan", 20, Math.max(live.plan.width, live.plan.height) / 2),
+            h("div", { class: "toolbar" },
+              live.cameras.some(y => y.camera_id === placing.camera_id) ? h("button", { class: "btn danger", onclick: async () => { await api(`/geo/cameras/${placing.camera_id}`, { method: "DELETE" }); placing = null; load(); } }, "Remove") : null,
+              h("div", { style: "flex:1" }),
+              h("button", { class: "btn primary", onclick: async () => {
+                try { await api(`/geo/cameras/${placing.camera_id}`, { method: "PUT", body: { plan_id: planId, x: placing.x, y: placing.y, bearing: placing.bearing % 360, fov: placing.fov, reach: placing.reach } }); toast("Camera placed"); placing = null; load(); }
+                catch (ex) { toast(ex.message); }
+              } }, "Save")))) : null,
+        h("button", { class: "btn", style: "margin-top:10px", onclick: () => setMode("view") }, "Done"));
+    } else if (mode === "zone") {
+      side.replaceChildren(h("h3", {}, "Draw a zone"), h("p", { class: "muted" }, `${draft.length} corner${draft.length === 1 ? "" : "s"}. Click the corners in order around the zone.`),
+        h("div", { class: "toolbar" }, h("button", { class: "btn", disabled: !draft.length, onclick: () => { draft.pop(); drawSide(); draw(); } }, "Undo corner"),
+          h("button", { class: "btn primary", disabled: draft.length < 3, onclick: () => zoneForm(null, draft) }, "Finish")),
+        h("button", { class: "btn", style: "margin-top:10px", onclick: () => setMode("view") }, "Cancel"));
+    } else if (mode === "simulate") {
+      const units = (await api("/geo/units")).units.filter(u => u.active);
+      side.replaceChildren(h("h3", {}, "Walk-through"),
+        h("p", { class: "muted" }, "Test zones and alerts without a phone. Each simulated position is marked as simulated in its events."),
+        plan.georeferenced ? null : h("div", { class: "error" }, "Set this plan's reference points first."),
+        units.length ? units.map(u => h("button", { class: `linkrow ${simUnit === u.id ? "on" : ""}`, onclick: () => { simUnit = u.id; drawSide(); } }, h("span", { class: `dot ${simUnit === u.id ? "ok" : ""}` }), u.name, h("span", { class: "faint" }, ` · ${u.kind}`)))
+          : h("div", { class: "faint" }, "Add a guard or vehicle below first."),
+        simUnit ? h("button", { class: "btn danger", style: "margin-top:10px", onclick: async () => {
+          const u = live.units.find(x => x.id === simUnit);
+          if (!u) return toast("Click on the plan to place it first");
+          try { const r = await api(`/geo/units/${simUnit}/simulate`, { method: "POST", body: { plan_id: planId, x: u.x, y: u.y, alarm: "sos" } }); toast(r.events.map(e => label(e.type)).join(", ")); load(); } catch (ex) { toast(ex.message); }
+        } }, "Send SOS from here") : null,
+        h("button", { class: "btn", style: "margin-top:10px", onclick: () => setMode("view") }, "Done"));
+    }
+  }
+
+  function cameraPanel(cam) {
+    const video = h("video", { muted: true, autoplay: true, playsinline: true, class: "map-video" });
+    video.muted = true;
+    const st = h("div", { class: "faint", style: "font-size:12px" }, "connecting");
+    const player = new LivePlayer(video, cam.camera_id, (s, info) => { st.textContent = s === "playing" ? `live ${info || ""}` : s === "error" ? info : s; });
+    state.cleanup.push(() => player.close());
+    side.replaceChildren(h("button", { class: "btn small", onclick: () => { player.close(); drawSide(); } }, "‹ Back"), h("h3", {}, cam.name),
+      h("div", { class: "faint mono" }, cam.camera_id), video, st,
+      h("div", { class: "kv", style: "margin-top:8px" }, h("div", {}, "Status"), h("div", {}, cam.online ? "online" : cam.online === false ? "offline" : "unknown"),
+        h("div", {}, "AI tier"), h("div", {}, cam.tier || "?"), cam.alert ? h("div", {}, "Alert") : null, cam.alert ? h("div", {}, h("a", { href: "#/alerts" }, `open ${cam.alert} alert`)) : null));
+  }
+  function unitPanel(u) {
+    side.replaceChildren(h("button", { class: "btn small", onclick: () => drawSide() }, "‹ Back"), h("h3", {}, u.name),
+      h("div", { class: "kv" }, h("div", {}, "Type"), h("div", {}, u.kind), h("div", {}, "Last report"), h("div", {}, `${fmtTime(u.last_at)} (${ago(u.last_at)})`),
+        h("div", {}, "Battery"), h("div", {}, u.battery !== null && u.battery !== undefined ? `${Math.round(u.battery)}%` : "—"),
+        h("div", {}, "In zones"), h("div", {}, live.zones.filter(z => u.zones.includes(z.id)).map(z => z.name).join(", ") || "none"),
+        h("div", {}, "Status"), h("div", {}, u.offline ? "not reporting" : "reporting")));
+  }
+  function zonePanel(z) {
+    side.replaceChildren(h("button", { class: "btn small", onclick: () => drawSide() }, "‹ Back"), h("h3", {}, z.name),
+      h("div", { class: "kv" }, h("div", {}, "Kind"), h("div", {}, ZONE_KINDS[z.kind]), h("div", {}, "For"), h("div", {}, { all: "guards and vehicles", guard: "guards", vehicle: "vehicles" }[z.applies_to]),
+        h("div", {}, "Alerts on"), h("div", {}, z.kind === "checkpoint" ? (z.visit_every_min ? `no visit for ${z.visit_every_min} min` : "visits only logged") : { enter: "entering", exit: "leaving", both: "entering and leaving", none: "nothing" }[z.alert_on]),
+        h("div", {}, "Severity"), h("div", {}, z.severity), h("div", {}, "Armed"), h("div", {}, z.armed.length ? z.armed.map(w => w.join("–")).join(", ") : "always", z.armed_now ? " (now)" : " (not now)"),
+        h("div", {}, "Cameras"), h("div", {}, z.cameras.length ? z.cameras.join(", ") : "none"),
+        h("div", {}, "GPS"), h("div", {}, z.has_geo ? "active" : "plan not tied to the map")),
+      canEdit ? h("div", { class: "toolbar", style: "margin-top:10px" }, h("button", { class: "btn", onclick: () => zoneForm(z, z.points) }, "Edit"),
+        h("button", { class: "btn danger", onclick: async () => { if (!confirm(`Delete the zone ${z.name}?`)) return; await api(`/geo/zones/${z.id}`, { method: "DELETE" }); toast("Zone deleted"); load(); drawSide(); } }, "Delete")) : null);
+  }
+  async function zoneForm(z, points) {
+    devices = devices || await api("/devices");
+    z = z || { name: "", kind: "restricted", applies_to: "all", alert_on: "enter", severity: "warning", armed: [], cameras: [], visit_every_min: 60, enabled: true };
+    const name = h("input", { class: "input", id: "z-name", value: z.name, placeholder: "e.g. Store yard" });
+    const sel = (id, opts, cur) => h("select", { class: "input", id }, Object.entries(opts).map(([k, v]) => h("option", { value: k, selected: k === cur }, v)));
+    const kind = sel("z-kind", ZONE_KINDS, z.kind), applies = sel("z-for", { all: "Guards and vehicles", guard: "Guards", vehicle: "Vehicles" }, z.applies_to);
+    const on = sel("z-on", { enter: "Entering", exit: "Leaving", both: "Entering and leaving", none: "Nothing (show only)" }, z.alert_on);
+    const sev = sel("z-sev", { info: "Info", warning: "Warning", critical: "Critical" }, z.severity);
+    const armed = h("input", { class: "input", id: "z-armed", value: z.armed.map(w => w.join("-")).join(", "), placeholder: "Always, or e.g. 18:00-06:00" });
+    const every = h("input", { class: "input", id: "z-every", type: "number", min: 5, max: 1440, value: z.visit_every_min || "" });
+    const cams = h("select", { class: "input", id: "z-cams", multiple: true, size: 6 }, devices.nvrs.flatMap(n => n.channels.map(ch => h("option", { value: ch.camera_id, selected: z.cameras.includes(ch.camera_id) }, `${ch.name} (${ch.camera_id})`))));
+    const everyBox = h("div", { class: "field" }, h("label", { for: "z-every" }, "Alert if no guard visits for (minutes)"), every);
+    const alertBox = h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "z-on" }, "Alert on"), on), h("div", { class: "field" }, h("label", { for: "z-sev" }, "Severity"), sev));
+    const sync = () => { everyBox.hidden = kind.value !== "checkpoint"; alertBox.hidden = kind.value === "checkpoint"; };
+    kind.addEventListener("change", sync); sync();
+    const err = h("div", { class: "error", hidden: true });
+    modal(z.id ? `Edit ${z.name}` : "New zone", h("div", {}, err,
+      h("div", { class: "field" }, h("label", { for: "z-name" }, "Name"), name),
+      h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "z-kind" }, "Kind"), kind), h("div", { class: "field" }, h("label", { for: "z-for" }, "For"), applies)),
+      alertBox, everyBox,
+      h("div", { class: "field" }, h("label", { for: "z-armed" }, "Armed (local time)"), armed),
+      h("div", { class: "field" }, h("label", { for: "z-cams" }, "Cameras covering it (Ctrl or Cmd to pick several)"), cams,
+        h("div", { class: "faint", style: "font-size:12px" }, "Events in the zone open on the first camera, and the video wall pins it."))),
+      close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+        const body = { name: name.value.trim(), kind: kind.value, plan_id: planId, points, applies_to: applies.value, alert_on: on.value, severity: sev.value,
+          armed: parseWindows(armed.value), cameras: [...cams.selectedOptions].map(o => o.value), visit_every_min: kind.value === "checkpoint" && every.value ? Number(every.value) : null, enabled: true };
+        try { await api(z.id ? `/geo/zones/${z.id}` : "/geo/zones", { method: z.id ? "PUT" : "POST", body }); close.remove(); toast("Zone saved"); setMode("view"); load(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save zone")]);
+  }
+
+  async function load(resetZoom) {
+    if (!planId) return;
+    try { live = await api(`/geo/live?plan_id=${planId}`); } catch (ex) { side.replaceChildren(h("div", { class: "error" }, ex.message)); return; }
+    if (resetZoom || !img.src) { img.src = `/api/geo/plans/${planId}/image`; zoom = 1; }
+    drawPlans(); drawModes(); draw(); if (mode === "view" && !side.querySelector("video")) drawSide();
+  }
+
+  const addPlanBtn = canEdit ? h("button", { class: "btn", onclick: () => {
+    const nm = h("input", { class: "input", id: "pl-name", placeholder: "e.g. Whole site, Admin block ground floor" });
+    const file = h("input", { class: "input", id: "pl-file", type: "file", accept: "image/png,image/jpeg,image/webp" });
+    const err = h("div", { class: "error", hidden: true });
+    modal("Add a plan", h("div", {}, err, h("p", { class: "muted", style: "margin:0 0 12px" }, "A site drawing, a floor plan, or a satellite or drone picture of the site, as PNG, JPEG or WebP (up to 8 MB). For a PDF plan, export the page as an image first."),
+      h("div", { class: "field" }, h("label", { for: "pl-name" }, "Name"), nm), h("div", { class: "field" }, h("label", { for: "pl-file" }, "Image"), file)),
+      close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: () => {
+        const f = file.files[0];
+        if (!f || !nm.value.trim()) { err.textContent = "Give it a name and choose an image."; err.hidden = false; return; }
+        const rd = new FileReader();
+        rd.onload = async () => { try { const p = await api("/geo/plans", { method: "POST", body: { name: nm.value.trim(), image_data_url: rd.result } }); close.remove(); plans = await api("/geo/plans"); planId = p.id; localStorage.setItem("hss.map.plan", p.id); render(); } catch (ex) { err.textContent = ex.message; err.hidden = false; } };
+        rd.readAsDataURL(f);
+      } }, "Add plan")]);
+  } }, "Add plan") : null;
+
+  c.append(h("div", { class: "toolbar" }, planBar, h("div", { style: "flex:1" }), modeBar,
+    h("div", { class: "seg", role: "group", "aria-label": "Zoom" }, h("button", { onclick: () => { zoom = Math.max(1, zoom / 1.4); draw(); }, title: "Zoom out" }, "−"), h("button", { onclick: () => { zoom = Math.min(6, zoom * 1.4); draw(); }, title: "Zoom in" }, "+")),
+    addPlanBtn));
+  if (!plans.length) {
+    c.append(h("div", { class: "empty card" }, canEdit ? "No site plans yet. Add a plan: a site drawing, a floor plan, or a satellite picture of the site." : "No site plans yet. An administrator or the CSO adds them."));
+  } else {
+    c.append(tip, h("div", { class: "map-wrap" }, h("section", { class: "card map-card" }, scroller), h("aside", { class: "card" }, side)));
+    await load(true);
+    const t = setInterval(() => { if (!document.body.contains(svg)) return clearInterval(t); if (mode === "view" || mode === "simulate") load(); }, 5000);
+    state.cleanup.push(() => clearInterval(t));
+  }
+  if (canEdit) c.append(await unitsCard());
+}
+
+async function unitsCard() {
+  const d = await api("/geo/units");
+  const host = location.hostname;
+  const unitForm = (u, deviceId) => {
+    u = u || { name: "", kind: "guard", device_id: deviceId || `hss-${Math.random().toString(36).slice(2, 8)}`, active: true };
+    const name = h("input", { class: "input", id: "u-name", value: u.name, placeholder: "e.g. Patrol 1, Supervisor's car" });
+    const kind = h("select", { class: "input", id: "u-kind" }, h("option", { value: "guard", selected: u.kind === "guard" }, "Guard (phone)"), h("option", { value: "vehicle", selected: u.kind === "vehicle" }, "Vehicle (tracker or phone)"));
+    const dev = h("input", { class: "input mono", id: "u-dev", value: u.device_id });
+    const active = h("input", { type: "checkbox", id: "u-active", checked: u.active });
+    const err = h("div", { class: "error", hidden: true });
+    modal(u.id ? `Edit ${u.name}` : "Add a guard or vehicle", h("div", {}, err,
+      h("div", { class: "field" }, h("label", { for: "u-name" }, "Name"), name), h("div", { class: "field" }, h("label", { for: "u-kind" }, "Type"), kind),
+      h("div", { class: "field" }, h("label", { for: "u-dev" }, "Device identifier"), dev, h("div", { class: "faint", style: "font-size:12px" }, "Type the same identifier in the Traccar Client app on the phone, or the tracker's IMEI.")),
+      h("label", { class: "check" }, active, "Tracking on")),
+      close => [
+        u.id ? h("button", { class: "btn danger", style: "margin-right:auto", onclick: async () => { if (!confirm(`Remove ${u.name}? Its position history goes too.`)) return; await api(`/geo/units/${u.id}`, { method: "DELETE" }); close.remove(); render(); } }, "Remove") : null,
+        h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+        h("button", { class: "btn primary", onclick: async () => {
+          try { await api(u.id ? `/geo/units/${u.id}` : "/geo/units", { method: u.id ? "PUT" : "POST", body: { name: name.value.trim(), kind: kind.value, device_id: dev.value.trim(), active: active.checked } }); close.remove(); toast("Saved"); render(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "Save")]);
+  };
+  return card("Guards and vehicles", h("button", { class: "btn small primary", onclick: () => unitForm(null) }, "Add"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Phones run the free Traccar Client app. In the app: Server URL ", h("span", { class: "mono" }, `http://${host}:5055`),
+      ", Device identifier as below, Location accuracy High, Frequency 30 seconds. ", h("a", { href: "#", onclick: e => { e.preventDefault(); toast("See docs/gps.md on the server for the full phone set-up"); } }, "Set-up guide")),
+    d.unknown_devices.length ? h("div", { class: "note" }, "Reporting but not added: ", d.unknown_devices.map(id => h("button", { class: "btn small", style: "margin:2px", onclick: () => unitForm(null, id) }, `Add ${id}`))) : null,
+    d.units.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Name", "Type", "Device identifier", "Last report", "Battery", "Status", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, d.units.map(u => h("tr", {},
+        h("td", { style: "font-weight:600" }, u.name), h("td", {}, u.kind), h("td", { class: "mono" }, u.device_id),
+        h("td", {}, u.last_at ? ago(u.last_at) : "never"), h("td", {}, u.battery !== null && u.battery !== undefined ? `${Math.round(u.battery)}%` : "—"),
+        h("td", {}, !u.active ? h("span", { class: "badge" }, "off") : !u.last_at ? h("span", { class: "badge" }, "waiting") : u.offline ? h("span", { class: "badge bad" }, "not reporting") : h("span", { class: "badge ok" }, "reporting")),
+        h("td", { style: "text-align:right" }, h("button", { class: "btn small", onclick: () => unitForm(u) }, "Edit"))))))) :
+      h("div", { class: "empty" }, "None yet. Add each guard phone, then set it up in the Traccar Client app."));
 }
 
 /* ---------------- reports ---------------- */
@@ -1345,7 +1630,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

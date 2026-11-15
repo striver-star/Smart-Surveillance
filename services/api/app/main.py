@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import alerts, auth, clips, console, devices, events, eventsetup, evidence, legal, notify, nvrs, screens, wall
+from . import alerts, auth, clips, console, devices, events, eventsetup, evidence, geo, legal, notify, nvrs, screens, wall
 from .reports import service as reports
 from .db import connect, migrate
 
-VERSION = "0.11.0"
+VERSION = "0.12.0"
 
 
 @asynccontextmanager
@@ -20,7 +20,9 @@ async def lifespan(app: FastAPI):
     escalator = asyncio.create_task(alerts.background_loop())
     gateway_sync = asyncio.create_task(nvrs.background_loop())
     vault_cleanup = asyncio.create_task(evidence.background_loop())
+    geo_checks = asyncio.create_task(geo.background_loop())
     yield
+    geo_checks.cancel()
     vault_cleanup.cancel()
     gateway_sync.cancel()
     watcher.cancel()
@@ -33,6 +35,7 @@ app.include_router(auth.router)
 app.include_router(console.router)
 app.include_router(evidence.router)
 app.include_router(eventsetup.router)
+app.include_router(geo.router)
 app.include_router(alerts.router)
 app.include_router(devices.router)
 app.include_router(nvrs.router)

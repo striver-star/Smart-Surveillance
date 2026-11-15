@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
+<!--
+  Traccar (Apache 2.0) receives guard phones and GPS trackers and forwards every position to HSS,
+  which owns the zones and raises the events (Phase 5, docs/gps.md). Settings that need secrets come
+  from environment variables in compose.yaml (CONFIG_USE_ENVIRONMENT_VARIABLES).
+-->
+<properties>
+    <entry key='database.driver'>org.h2.Driver</entry>
+    <entry key='database.url'>jdbc:h2:./data/database</entry>
+    <entry key='database.user'>sa</entry>
+    <entry key='database.password'></entry>
+
+    <!-- Accept any device; HSS only uses the ones registered on its Site map page. -->
+    <entry key='database.registerUnknown'>true</entry>
+    <!-- Identifiers like hss-patrol1 (Traccar's default allows letters and digits only). -->
+    <entry key='database.registerUnknown.regex'>[A-Za-z0-9._-]{3,64}</entry>
+
+    <!-- Only the OsmAnd protocol (Traccar Client app) for now. Add trackers' protocols here when bought. -->
+    <entry key='protocols.enable'>osmand</entry>
+    <entry key='osmand.port'>5055</entry>
+
+    <!-- Forward every position to HSS as JSON. The URL (with the token) is set in compose.yaml. -->
+    <entry key='forward.enable'>true</entry>
+    <entry key='forward.type'>json</entry>
+    <entry key='forward.json'>true</entry>
+    <entry key='forward.retry.enable'>true</entry>
+
+    <!-- Drop obviously bad fixes before they reach HSS. -->
+    <entry key='filter.enable'>true</entry>
+    <entry key='filter.invalid'>true</entry>
+    <entry key='filter.zero'>true</entry>
+    <entry key='filter.future'>3600</entry>
+</properties>
