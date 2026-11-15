@@ -142,6 +142,11 @@ def add_nvr(body: NvrIn, request: Request, admin: dict = Depends(require("admin"
     ok, detail, info = _test(body, body.password)
     if not ok and not body.save_anyway:
         raise HTTPException(status_code=422, detail=f"Connection test failed: {detail}")
+    from .licence import allows
+    current = registry()
+    allowed, why = allows("nvr", nvrs=len(current) + 1, cameras=sum(n["channels"] for n in current) + len(info.get("channels", [])))
+    if not allowed:
+        raise HTTPException(status_code=402, detail=why)
     with connect() as conn:
         nid = conn.execute(
             "INSERT INTO nvrs (address, alias, name, username, secret, scheme, rtsp_port, segment, enabled, live_view, info, "

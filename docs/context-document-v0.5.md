@@ -1789,7 +1789,14 @@ accuracy measurement. Gate: accuracy and legal sign-off.
 privacy masking; TLS and VLAN guidance; backups and restore tests;
 retention audit and drive alerts; per-site perpetual license service;
 tenant isolation tests; performance and security tests; SBOM and
-license scan; UPS. Gate: security checklist and 20-NVR load test.
+license scan; UPS. Gate: security checklist and 20-NVR load test. **Built 2026-11-15** (docs/backup.md,
+docs/hardening.md, docs/licensing.md, docs/load-test.md): encrypted backups with automated restore tests,
+Security page running the checklist (secrets, two-factor, backups, drives, clocks, recording days,
+custody log, disk, licence), retention of events and positions, NVR recording-days check, per-site
+perpetual licence (Ed25519-signed files, never stops recording), load test tool (20 NVRs: p95 37 ms;
+capacity about 95 events/s on 4 cores), TLS, VLAN, UPS, NTP and privacy-mask guidance. **Site gate
+waiting**: Security page all green, load test on the site server. Deferred: tenant isolation and
+row-level security (with the hosted option).
 
 **Stage K: Phase 9, Bundling and deployment:** Linux installer, VM
 image and Compose package; Windows server backup installer (WSL2);

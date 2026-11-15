@@ -419,3 +419,11 @@ def deliveries(limit: int = 50) -> list[dict]:
                            "FROM deliveries ORDER BY created_at DESC LIMIT %s", (max(1, min(limit, 500)),))
         cols = [c.name for c in cur.description]
         return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+def send_text_to_topic(topic: str, text: str, title: str = "HSS system") -> list[Attempt]:
+    """A plain message to everyone subscribed to `topic` (e.g. backup failures to 'system')."""
+    wa, email, push = senders()
+    attempts = dispatch(topic, title, text, None, load_recipients(), wa, email, push)
+    record(topic, attempts)
+    return attempts

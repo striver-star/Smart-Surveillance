@@ -55,6 +55,10 @@ services:
       # Guard phones and trackers: minutes without a position before "offline", and low battery %
       HSS_UNIT_OFFLINE_MIN: ${HSS_UNIT_OFFLINE_MIN:-10}
       HSS_UNIT_LOW_BATTERY: ${HSS_UNIT_LOW_BATTERY:-15}
+      # Retention: days events and GPS positions are kept, and days of NVR video each camera must hold
+      HSS_EVENT_DAYS: ${HSS_EVENT_DAYS:-365}
+      HSS_POSITION_DAYS: ${HSS_POSITION_DAYS:-30}
+      HSS_RECORDING_DAYS: ${HSS_RECORDING_DAYS:-30}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).

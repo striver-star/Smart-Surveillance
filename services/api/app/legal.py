@@ -178,6 +178,8 @@ def accept(body: AcceptIn, request: Request, user: dict = Depends(require("admin
                                 now=now, two_factor=bool(user.get("totp_enabled")))
     if problems:
         raise HTTPException(status_code=422, detail=" ".join(problems))
+    from .licence import require_feature
+    require_feature("face_plate")
     scopes = sorted(set(body.scopes))
     expires = now + timedelta(days=VALID_DAYS)
     with connect() as conn:

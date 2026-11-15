@@ -210,6 +210,9 @@ def apply_registry(nvrs: list[dict]) -> None:
                 ch["online"] = c.get("online")
                 n["channels"].append(ch)
         n["channels"].sort(key=lambda c: c["channel"])
+        rec = (info.get("recording") or {}).get("channels", {})
+        for ch in n["channels"]:
+            ch["recorded_days"] = (rec.get(str(ch["channel"])) or {}).get("days")
         n["alias"] = r["alias"]
         n["registered"] = {k: r[k] for k in ("id", "username", "scheme", "rtsp_port", "segment", "enabled", "live_view",
                                              "test_ok", "test_detail", "tested_at")}

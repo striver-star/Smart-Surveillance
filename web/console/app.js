@@ -80,6 +80,7 @@ const I = {
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
   vault: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M12 9.5V8M7 20v1M17 20v1"/></svg>',
   setup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M12 8v5M12 16h.01"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -110,6 +111,7 @@ const PAGES = [
   { id: "notify", title: "WhatsApp & alerts", icon: "notify", roles: ["admin", "cso"], view: viewNotify },
   { group: "Administration", roles: ["admin"] },
   { id: "users", title: "Users", icon: "users", roles: ["admin"], view: viewUsers },
+  { id: "security", title: "Security", icon: "shield", roles: ["admin", "cso"], view: viewSecurity },
   { id: "audit", title: "Audit log", icon: "audit", roles: ["admin"], view: viewAudit },
   { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management"], view: viewSettings },
 ];
@@ -462,7 +464,7 @@ async function viewDevices(c) {
       reg && reg.test_ok === false ? h("div", { class: "note" }, `Last connection test ${ago(reg.tested_at)} failed: ${reg.test_detail}`) : null,
       !n.channels.length ? h("div", { class: "empty" }, "No channels known yet. Use Edit and save to test the connection again.") :
       h("div", { class: "table-wrap" }, h("table", {},
-        h("thead", {}, h("tr", {}, ["Ch", "Camera", "IP", "Status", "Model", "Class", "AI tier", "Stream", "Clock"].map(t => h("th", {}, t)))),
+        h("thead", {}, h("tr", {}, ["Ch", "Camera", "IP", "Status", "Model", "Class", "AI tier", "Stream", "Video kept", "Clock"].map(t => h("th", {}, t)))),
         h("tbody", {}, chans.map(ch => h("tr", {},
           h("td", { class: "muted" }, ch.channel), h("td", {}, h("div", { style: "font-weight:600" }, ch.name), h("div", { class: "faint mono" }, ch.camera_id)), h("td", { class: "mono" }, ch.ip),
           h("td", {}, ch.online ? h("span", { class: "badge ok" }, "online") : ch.online === false ? h("span", { class: "badge bad" }, "offline") : h("span", { class: "badge" }, "unknown")),
@@ -470,6 +472,7 @@ async function viewDevices(c) {
           h("td", {}, ch.class || "—"),
           h("td", {}, canTier ? h("button", { class: "linkish", title: "Change the AI tier", onclick: () => tierForm(ch) }, tierBadge(ch)) : tierBadge(ch)),
           h("td", { class: "muted", style: "font-size:12.5px" }, ch.stream || "—"),
+          h("td", {}, ch.recorded_days === null || ch.recorded_days === undefined ? "—" : h("span", { class: `badge ${ch.recorded_days < 30 ? "warn" : "ok"}`, title: "Days of recording on the NVR" }, `${Math.floor(ch.recorded_days)} d`)),
           h("td", {}, ch.clock_drift_s === null || ch.clock_drift_s === undefined ? "—" : Math.abs(ch.clock_drift_s) > 30 ? h("span", { class: "badge warn" }, driftText(ch.clock_drift_s)) : h("span", { class: "badge ok" }, "OK"))))))));
   }));
   c.append(h("div", { class: "toolbar" },
@@ -1630,7 +1633,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -1638,6 +1641,60 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- security self-check (Phase 8) ---------------- */
+async function viewSecurity(c) {
+  const d = await api("/system/security");
+  const STATUS = { fail: ["bad", "Needs action"], warn: ["warn", "Check"], ok: ["ok", "OK"] };
+  c.append(h("div", { class: "grid kpis" },
+    kpi("Needs action", h("span", { style: `color:${d.counts.fail ? "var(--bad)" : "var(--ok)"}` }, d.counts.fail), "failed checks"),
+    kpi("To check", h("span", { style: `color:${d.counts.warn ? "var(--warn)" : "var(--ok)"}` }, d.counts.warn), "warnings"),
+    kpi("Passing", d.counts.ok, `checked ${fmtTime(d.checked_at)}`)));
+  c.append(card("Security checklist", h("button", { class: "btn small", onclick: () => render() }, "Check again"),
+    h("div", { class: "list" }, d.checks.map(x => h("div", { class: "item", style: "align-items:flex-start" },
+      h("span", { class: `badge ${STATUS[x.status][0]}`, style: "min-width:92px;text-align:center" }, STATUS[x.status][1]),
+      h("div", { class: "grow", style: "min-width:0" }, h("div", { style: "font-weight:600" }, x.title),
+        h("div", { class: "muted", style: "font-size:13px;white-space:normal" }, x.detail),
+        x.status !== "ok" && x.fix ? h("div", { class: "faint", style: "font-size:12.5px;white-space:normal" }, "Fix: ", x.fix) : null))))));
+  const b = d.backups, r = d.retention;
+  c.append(h("div", { class: "grid cols-2" },
+    card("Backups", null, h("div", { class: "kv" },
+      h("div", {}, "Last backup"), h("div", {}, b.last ? `${fmtTime(b.last.at)} · ${b.last.status === "ok" ? b.last.detail : "FAILED: " + b.last.detail}` : "never"),
+      h("div", {}, "Last good backup"), h("div", {}, b.last_ok ? `${fmtTime(b.last_ok.at)} (${ago(b.last_ok.at)})` : "never"),
+      h("div", {}, "Restore test"), h("div", {}, b.restore_test ? `${fmtTime(b.restore_test.at)} · ${b.restore_test.status === "ok" ? "passed" : "FAILED: " + b.restore_test.detail}` : "never run")),
+      h("p", { class: "faint", style: "font-size:12.5px;margin-bottom:0" }, "Backups run on the server with tools/backup/hss-backup.sh; see docs/backup.md.")),
+    card("Retention", state.user.role === "admin" ? h("button", { class: "btn small", onclick: async e => {
+      e.target.disabled = true;
+      try { const x = await api("/system/retention/run", { method: "POST", body: {} }); toast(`${x.events} old events removed; ${x.recording_channels_checked ?? 0} cameras' recordings checked`); render(); }
+      catch (ex) { toast(ex.message); e.target.disabled = false; }
+    } }, "Run now") : null, h("div", { class: "kv" },
+      h("div", {}, "Events kept"), h("div", {}, `${r.event_days} days (open alerts always kept)`),
+      h("div", {}, "GPS positions kept"), h("div", {}, `${r.position_days} days`),
+      h("div", {}, "NVR video required"), h("div", {}, `${r.recording_days} days per camera`),
+      h("div", {}, "Last run"), h("div", {}, r.last_run ? `${fmtTime(r.last_run.at)}: ${r.last_run.detail}` : "not yet (runs daily)")))));
+}
+
+async function licenceCard(isAdmin) {
+  const st = await api("/system/licence");
+  const lic = st.licence;
+  const tone = { licensed: "ok", not_set_up: "", grace: "warn", unlicensed: "bad", invalid: "bad" }[st.state];
+  const file = h("input", { type: "file", id: "lic-file", accept: ".hsslicence,.json,application/json" });
+  return card("Licence", h("span", { class: `badge ${tone}` }, { licensed: "licensed", not_set_up: "not set up", grace: "trial period", unlicensed: "no licence", invalid: "invalid" }[st.state]),
+    h("p", { style: "margin-top:0" }, st.summary),
+    lic ? h("div", { class: "kv" }, h("div", {}, "Licence"), h("div", { class: "mono" }, lic.id), h("div", {}, "Licensee"), h("div", {}, `${lic.licensee} · ${lic.site}`),
+      h("div", {}, "Covers"), h("div", {}, `${lic.max_nvrs} NVRs, ${lic.max_cameras} cameras`),
+      h("div", {}, "Features"), h("div", {}, lic.features.length ? lic.features.map(f => st.features_known[f] || f).join(", ") : "core only"),
+      h("div", {}, "Updates and support"), h("div", {}, `until ${lic.support_until}`)) : null,
+    h("div", { class: "kv", style: "margin-top:8px" }, h("div", {}, "Installation id"),
+      h("div", {}, h("span", { class: "mono" }, st.installation_id), " ", h("button", { class: "btn small", onclick: async () => { try { await navigator.clipboard.writeText(st.installation_id); toast("Copied"); } catch (_) { toast("Select it and copy"); } } }, "Copy"))),
+    isAdmin && st.state !== "not_set_up" ? h("div", { class: "toolbar", style: "margin-top:10px" }, file, h("button", { class: "btn primary", onclick: () => {
+      const f = file.files[0]; if (!f) return toast("Choose the licence file first");
+      const rd = new FileReader();
+      rd.onload = async () => { try { await api("/system/licence", { method: "PUT", body: { text: rd.result } }); toast("Licence loaded"); render(); } catch (ex) { toast(ex.message); } };
+      rd.readAsText(f);
+    } }, "Load licence")) : null,
+    h("p", { class: "faint", style: "font-size:12.5px;margin-bottom:0" }, "The licence never stops recording, live view or alerts. It limits how many NVRs and cameras can be added and turns on optional features."));
 }
 
 /* ---------------- settings ---------------- */
@@ -1685,6 +1742,7 @@ async function viewSettings(c) {
       } }, "Change password")),
     card("Two-factor sign-in", me.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge warn" }, "off"), twoFactorBox(me))));
   if (["admin", "cso"].includes(me.role)) sections.push(await rulesEditor());
+  if (["admin", "cso", "management"].includes(me.role)) sections.push(await licenceCard(me.role === "admin"));
   sections.push(card("Appearance", null, h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Theme"),
     h("div", { class: "seg" }, ["system", "dark", "light"].map(t => h("button", { class: (localStorage.getItem("hss.theme") || "system") === t ? "on" : null, onclick: () => { setTheme(t); render(); } }, label(t)))))));
   c.append(...sections);

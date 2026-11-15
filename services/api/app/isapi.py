@@ -122,3 +122,38 @@ def read_event_triggers(address: str, username: str, password: str, *, scheme: s
             raise DeviceError(f"Couldn't read the event settings ({exc.__class__.__name__}).") from exc
         except ET.ParseError as exc:
             raise DeviceError("The event settings weren't readable XML.") from exc
+
+
+def search_body(channel: int, search_id: str) -> str:
+    """Ask for the oldest recording of a channel's main stream (track N01). Hikvision spells
+    searchResultPostion that way."""
+    return (f"<?xml version='1.0' encoding='UTF-8'?><CMSearchDescription><searchID>{search_id}</searchID>"
+            f"<trackList><trackID>{channel}01</trackID></trackList><timeSpanList><timeSpan>"
+            "<startTime>2000-01-01T00:00:00Z</startTime><endTime>2037-12-31T23:59:59Z</endTime></timeSpan></timeSpanList>"
+            "<maxResults>1</maxResults><searchResultPostion>0</searchResultPostion>"
+            "<metadataList><metadataDescriptor>//recordType.meta.std-cgi.com</metadataDescriptor></metadataList>"
+            "</CMSearchDescription>")
+
+
+def parse_earliest(xml_text: str) -> str | None:
+    """Start time of the first match in a CMSearchResult, as the NVR wrote it (pure, tested)."""
+    root = _strip(ET.fromstring(xml_text))
+    item = root.find(".//searchMatchItem")
+    return _t(item, "timeSpan/startTime") or None if item is not None else None
+
+
+def earliest_recordings(address: str, username: str, password: str, channels: list[int], *, scheme: str = "http",
+                        transport: httpx.BaseTransport | None = None) -> dict[int, str | None]:
+    import uuid as _uuid
+    out = {}
+    with httpx.Client(base_url=f"{scheme}://{address}", auth=httpx.DigestAuth(username, password), timeout=20,
+                      verify=False, transport=transport) as http:
+        for ch in channels:
+            try:
+                r = http.post("/ISAPI/ContentMgmt/search", content=search_body(ch, str(_uuid.uuid4()).upper()),
+                              headers={"Content-Type": "application/xml"})
+                r.raise_for_status()
+                out[ch] = parse_earliest(r.text)
+            except (httpx.HTTPError, ET.ParseError):
+                out[ch] = None
+    return out

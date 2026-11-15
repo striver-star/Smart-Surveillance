@@ -587,6 +587,8 @@ def list_units(_: dict = Depends(require(*VIEWERS))) -> dict:
 
 @router.post("/units", status_code=201)
 def add_unit(body: UnitIn, request: Request, user: dict = Depends(require(*EDITORS))) -> dict:
+    from .licence import require_feature
+    require_feature("gps")
     with connect() as conn:
         if conn.execute("SELECT 1 FROM tracked_units WHERE name = %s OR device_id = %s", (body.name, body.device_id)).fetchone():
             raise HTTPException(status_code=409, detail="That name or device identifier is already used.")
