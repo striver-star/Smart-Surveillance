@@ -123,13 +123,22 @@ class Tally:
 
 
 def watch(engine: FaceEngine, url: str, minutes: float, fps: float, people=None) -> dict:
+    return run_source(Tally(engine, people), url, minutes, fps)
+
+
+def watch_live(engine: FaceEngine, url: str, minutes: float, fps: float, people=None, **kw) -> dict:
+    return run_live(Tally(engine, people), url, minutes, fps, **kw)
+
+
+def run_source(tally, url: str, minutes: float, fps: float) -> dict:
+    """Feed a camera or a video file to a tally (anything with add(frame) and result())."""
     if not os.path.exists(url):
-        return watch_live(engine, url, minutes, fps, people)
+        return run_live(tally, url, minutes, fps)
     cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
     if not cap.isOpened():
         return {"error": "could not open the file"}
     every = max(1, round((cap.get(cv2.CAP_PROP_FPS) or 25.0) / fps))
-    tally, frame_no = Tally(engine, people), 0
+    frame_no = 0
     deadline = time.monotonic() + minutes * 60
     while time.monotonic() < deadline:
         ok, frame = cap.read()
@@ -142,8 +151,7 @@ def watch(engine: FaceEngine, url: str, minutes: float, fps: float, people=None)
     return tally.result()
 
 
-def watch_live(engine: FaceEngine, url: str, minutes: float, fps: float, people=None, *, first_frame_s: float = 30,
-               give_up_s: float = 180) -> dict:
+def run_live(tally, url: str, minutes: float, fps: float, *, first_frame_s: float = 30, give_up_s: float = 180) -> dict:
     """A live camera: a background reader keeps the newest frame and reconnects after drops, so one bad
     moment on the network no longer ends the test. Gaps are counted and reported."""
     from .source import LatestFrameReader
@@ -154,7 +162,7 @@ def watch_live(engine: FaceEngine, url: str, minutes: float, fps: float, people=
             if time.monotonic() - start > first_frame_s:
                 return {"error": "could not open the stream (check the address, the NVR user, and the network)"}
             time.sleep(0.2)
-        tally, seq = Tally(engine, people), -1
+        seq = -1
         deadline = time.monotonic() + minutes * 60
         last_frame = time.monotonic()
         lost = 0.0
@@ -163,8 +171,7 @@ def watch_live(engine: FaceEngine, url: str, minutes: float, fps: float, people=
             now = time.monotonic()
             if f is None:
                 if now - last_frame > give_up_s:
-                    r = tally.result()
-                    return {**r, "error": f"stream lost for {give_up_s / 60:.0f} minutes after {tally.frames} frames",
+                    return {**tally.result(), "error": f"stream lost for {give_up_s / 60:.0f} minutes after {tally.frames} frames",
                             "reconnects": reader.reconnects, "lost_s": round(lost + now - last_frame)}
                 time.sleep(0.05)
                 continue

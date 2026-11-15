@@ -2,6 +2,7 @@ from collections import Counter
 from pathlib import Path
 
 import cv2
+import numpy as np
 import pytest
 
 from worker import suitability
@@ -110,3 +111,61 @@ def test_live_stream_survives_drops(monkeypatch):
     assert "error" not in r and r["frames"] > 10
     assert r["reconnects"] == 1 and 2 <= r["lost_s"] <= 4
     assert suitability.stream_text(r).startswith("1 drop")
+
+
+# ---- number plate suitability (measures plates, never reads them)
+def _plate_scene(scale=0.45, blur=0, motion=0, brighten=1.0, text="KJA 123 AB"):
+    plate = np.full((130, 520, 3), 245, np.uint8)
+    cv2.rectangle(plate, (2, 2), (517, 127), (40, 40, 40), 3)
+    (tw, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_DUPLEX, 2.2, 5)
+    cv2.putText(plate, text, ((520 - tw) // 2, 98), cv2.FONT_HERSHEY_DUPLEX, 2.2, (30, 30, 30), 5)
+    img = np.full((720, 1280, 3), 90, np.uint8)
+    cv2.rectangle(img, (300, 250), (1000, 700), (60, 70, 80), -1)          # a "vehicle"
+    p = cv2.resize(plate, (int(520 * scale), int(130 * scale)), interpolation=cv2.INTER_AREA)
+    y, x = 520, 640 - p.shape[1] // 2
+    img[y:y + p.shape[0], x:x + p.shape[1]] = p
+    if blur:
+        img = cv2.GaussianBlur(img, (blur, blur), 0)
+    if motion:
+        k = np.zeros((motion, motion)); k[motion // 2, :] = 1.0 / motion
+        img = cv2.filter2D(img, -1, k)
+    return np.clip(img.astype(float) * brighten, 0, 255).astype(np.uint8)
+
+
+DET = Path(__file__).resolve().parents[3] / "models" / "ch_PP-OCRv4_det_infer.onnx"
+
+
+@pytest.mark.skipif(not DET.exists(), reason="run tools/fetch-models.sh first")
+def test_plate_measurements():
+    from worker.plate import TextDetector, warp_box
+    from worker.plate_suitability import measure, plate_lines
+    td = TextDetector(str(DET))
+
+    def m(img):
+        lines = plate_lines(td.detect_text(img), img.shape[0])
+        assert lines, "the plate line should be found"
+        return measure(warp_box(img, max(lines, key=lambda b: float(np.linalg.norm(b[1] - b[0])))))
+    assert m(_plate_scene(0.45))["problems"] == []
+    assert "too small" in m(_plate_scene(0.2))["problems"] and m(_plate_scene(0.3))["problems"] == []
+    assert "blurred" in m(_plate_scene(0.45, motion=9))["problems"]
+    assert "glare" in m(_plate_scene(0.45, brighten=2.6))["problems"]
+
+
+@pytest.mark.skipif(not DET.exists(), reason="run tools/fetch-models.sh first")
+def test_plate_suitability_never_reads(tmp_path, monkeypatch):
+    from worker import plate, plate_suitability
+
+    def forbidden(*a, **k):
+        raise AssertionError("the plate suitability test must not read plates")
+    monkeypatch.setattr(plate.PlateReader, "__init__", forbidden)         # the reading model is never even loaded
+    monkeypatch.setattr(plate.PlateReader, "recognize", forbidden)
+    clip = tmp_path / "gate.mp4"
+    w = cv2.VideoWriter(str(clip), cv2.VideoWriter_fourcc(*"mp4v"), 10, (1280, 720))
+    for i in range(60):
+        w.write(_plate_scene(0.45 if i < 40 else 0.17))
+    w.release()
+    assert plate_suitability.main(["--camera", f"Gate lane={clip}", "--minutes", "1", "--fps", "10", "--roi", "0,0,1,1",
+                                   "--models", str(DET.parent), "--out", str(tmp_path / "out")]) == 0
+    text = (tmp_path / "out" / "plate-suitability.md").read_text()
+    assert "| Gate lane | 1280x720 |" in text and "**suitable**" in text and "too small" in text
+    assert "KJA" not in text and not list((tmp_path / "out").glob("*.jpg")), "no plate text or images are written"

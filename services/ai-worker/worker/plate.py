@@ -156,6 +156,17 @@ class PlateReader:
         return unique
 
 
+class TextDetector:
+    """Only the text-finding half of the plate engine: where text is, never what it says. Used by the
+    plate suitability test, which must not read plates (the reading model is not even loaded)."""
+
+    def __init__(self, det_path: str, providers: list[str] | None = None):
+        import onnxruntime as ort
+        self.det = ort.InferenceSession(det_path, providers=choose_providers(providers))
+
+    detect_text = PlateReader.detect_text
+
+
 def order_points(pts: np.ndarray) -> np.ndarray:
     """Top-left, top-right, bottom-right, bottom-left."""
     s, d = pts.sum(1), np.diff(pts, axis=1).ravel()

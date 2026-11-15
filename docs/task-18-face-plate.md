@@ -99,6 +99,37 @@ Please keep the client's written OK for this stage with the trial records.
 4. Repeat after dark with `--out /data/trial/suitability-night` (and `docker rm hss-suitability` first).
 5. Send back `trial-output/suitability-day/suitability.md` and the night one. They contain only counts.
 
+## Stage 1 for number plates: plate suitability (no plates read)
+
+`worker.plate_suitability` answers "can this camera's picture be used to read plates?" without reading
+any. On vehicles it finds the plate's line of characters with the text detector only (the reading model
+is not loaded, an automated test enforces it), measures it and forgets it. Per camera it reports plate
+sightings, how many were usable, the plate width in pixels, and why the others were not:
+
+| Problem | Meaning | Usual fix |
+|---|---|---|
+| too small | plate under 130 px wide | narrower lens or zoom on one lane, or closer to the barrier |
+| blurred | the vehicle's movement smears the characters (slow shutter) | shutter 1/1000 s or faster, or read where vehicles stop |
+| glare | the plate is washed out (infrared on reflective plates at night) | ANPR camera with plate exposure, or white light |
+| low contrast | characters don't stand out | more light on the lane, shorter distance |
+
+Run it on the gate cameras by day and again after dark, at a busy time (vehicles arriving), 20 to 30
+minutes per camera:
+
+```bash
+mkdir -p trial-output && docker compose --profile ai run -d --name hss-plate-suitability \
+  --user "$(id -u):$(id -g)" -e HSS_NVR_USER -e HSS_NVR_PASSWORD -v "$PWD/trial-output:/data/trial" \
+  ai-worker python -m worker.plate_suitability --minutes 20 --out /data/trial/plate-day \
+  --camera "Main gate entrance=10.1.3.4:22" --camera "Main gate exit 1=10.1.3.6:19" \
+  --camera "Main gate exit 2=10.1.3.6:2" --camera "Gate arrival 02=10.1.3.5:10"
+```
+
+For a camera that looks at one lane where vehicles stop, add `--roi x1,y1,x2,y2` (fractions of the
+picture, e.g. `--roi 0.2,0.45,0.8,0.95`) to measure plates in that area instead of finding vehicles first.
+Send back `trial-output/plate-day/plate-suitability.md` and the night one: they contain only counts and
+sizes. A "suitable" camera can be used for the plate trial once plate recognition is unlocked; an
+"unsuitable" one tells you what an ANPR camera there must fix.
+
 ## Running the full trial (stages 2 and 3 only, after legal approval)
 
 Not for stage 1. This tool refuses to start until the legal review is accepted in the console (**Face & plate** page, see docs/legal/README.md) for the features being trialled; it asks the platform with the worker token, so run it with `-e HSS_API_URL=http://api:8000 -e HSS_WORKER_TOKEN="$HSS_WORKER_TOKEN"`. `--approval` now only prints a reference in the report; `--sample` allows a sample video with no site footage.
