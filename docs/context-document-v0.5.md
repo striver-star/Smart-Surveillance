@@ -1683,11 +1683,18 @@ Status key: **Done**, **Answered**, **In progress**, **Waiting** (on the
 builder or the site), **Conflict** (needs a builder decision), **To do**.
 Numbers stay fixed between versions so sessions can refer to them.
 
+**Progress snapshot 2026-11-15.** Built and running on site: server stack, console with sign-in, live
+view (PC and iPhone), WhatsApp delivery. Built and tested, waiting for site runs: alerts and
+incidents, edge service (NVR events, device health, clips), reports, face and plate engine
+(stage 1 running). Blocked on site work: wired server (tasks 19, 20), NVR4 drive, NTP. Blocked on
+decisions or purchases: legal reviewer (task 4, stages 2 to 4 of task 18), GPU server quote
+(tasks 16, 17), then the go/no-go (task 24).
+
 **Stage A: Decisions and long-lead items**
 
 1. Approve the Proposed decisions in Section 14. **Done**
 2. Choose the default WhatsApp provider. **Done** (Provider A)
-3. Get the dedicated WhatsApp number, recipient numbers and send times. **Done** (number linked 2026-11-12; GM and CSO share one number; e-mail on hold)
+3. Get the dedicated WhatsApp number, recipient numbers and send times. **Done** (number linked 2026-11-12; GM, CSO and IT Manager each have their own number from 2026-11-15; e-mail on hold)
 4. Start the legal review of face and plate recognition (reviewer, DPIA, lawful basis, signage, limits, client sign-off). **Waiting**
 5. Hardware inventory per NVR. **Done** (probe, 11 Nov): 4 NVRs, 3 models, 112 channels; 2 or 3 more NVRs by end of December
 6. Quotes for GPU server, drives, UPS units and any fourth wall PC. **Waiting**
