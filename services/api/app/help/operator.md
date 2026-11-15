@@ -24,6 +24,14 @@ For control-room operators. You watch cameras, handle alerts and record what you
 
 Unacknowledged critical alerts escalate to the CSO and management after the time set in the rule. Never close an alert you haven't looked at.
 
+## Logbook and handover
+
+- Write what happens during the shift in the **Logbook**: patrols, incidents, visitors, maintenance. You
+  can correct your own entry for 15 minutes; after that, add a new entry.
+- At the end of the shift, **Hand over shift**: HSS adds the summary (alerts, open alerts, faults, sirens
+  still on); you add what the next shift must watch.
+- The next operator sees the handover on the Overview and in the Logbook and presses **Take over**.
+
 ## Alerts you'll see
 
 | Alert | What to do |

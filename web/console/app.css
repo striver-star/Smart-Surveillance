@@ -338,3 +338,12 @@ a.setup-banner .bar { margin-top: 8px; }
 .out-box:empty { display: none; }
 .out-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 0 4px; }
 .out-row .grow { flex: 1; min-width: 0; }
+
+/* Logbook */
+.log-entry, .handover-item { align-items: flex-start; }
+.log-entry .badge, .handover-item .badge { flex: none; min-width: 86px; text-align: center; }
+.badge.cat-incident { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.badge.cat-patrol { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.badge.cat-visitor { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); }
+.badge.cat-maintenance { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+textarea.input { resize: vertical; font: inherit; }

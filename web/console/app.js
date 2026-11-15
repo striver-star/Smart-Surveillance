@@ -85,6 +85,7 @@ const I = {
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>',
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
+  logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -104,6 +105,7 @@ const PAGES = [
   { id: "start", title: "Getting started", icon: "start", roles: ["admin", "cso"], view: viewStart },
   { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
+  { id: "logbook", title: "Logbook", icon: "logbook", roles: ["admin", "cso", "operator", "management"], view: viewLogbook },
   { id: "playback", title: "Playback", icon: "playback", roles: ["admin", "cso", "operator"], view: viewPlayback },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
@@ -282,12 +284,15 @@ async function viewOverview(c) {
   if (alertsAllowed()) await refreshAlertCount();
   const o = await api("/overview");
   const canEvents = ["admin", "cso", "operator"].includes(state.user.role);
-  let setup = null;
+  let setup = null, handover = null;
   if (["admin", "cso"].includes(state.user.role)) { try { setup = await api("/system/onboarding"); } catch (_) { /* older API */ } }
+  if (canEvents) { try { handover = await api("/logbook/handover/pending"); } catch (_) { /* older API */ } }
   const [events, devices] = await Promise.all([canEvents ? api("/events?limit=8") : [], api("/devices")]);
   const d = o.devices, pct = d.cameras ? Math.round(100 * d.online / d.cameras) : 0;
   const ev = o.events_24h;
   c.replaceChildren(
+    handover && !handover.mine ? h("a", { class: "setup-banner", href: "#/logbook" }, h("strong", {}, `Handover from ${handover.from_user} waiting`),
+      h("span", { class: "muted" }, ` · ${handover.shift_label} shift · ${handover.summary.open_alerts} open alert${handover.summary.open_alerts === 1 ? "" : "s"} · take over in the Logbook`)) : null,
     setup && setup.done < setup.total ? h("a", { class: "setup-banner", href: "#/start" },
       h("strong", {}, `Setup: ${setup.done} of ${setup.total} done`), h("span", { class: "muted" }, " · next: ", (setup.steps.find(x => !x.done && !x.optional) || {}).title || ""),
       h("div", { class: "bar" }, h("span", { style: `width:${Math.round(100 * setup.done / setup.total)}%` }))) : null,
@@ -448,6 +453,91 @@ async function ptzPanel(cameraId, label) {
   return h("div", { class: "ptz" }, h("div", { class: "ptz-title" }, "PTZ · ", label), h("div", { class: "ptz-row" }, pad, zoom),
     h("label", { class: "ptz-speed" }, h("span", { class: "faint" }, "Speed"), sp),
     h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg);
+}
+
+/* ---------------- logbook and shift handover ---------------- */
+const LOG_CATS = { patrol: "Patrol", incident: "Incident", visitor: "Visitor", maintenance: "Maintenance", other: "Other" };
+function handoverSummary(s) {
+  const sev = s.alerts_raised || {}, raised = (sev.critical || 0) + (sev.warning || 0) + (sev.info || 0);
+  return h("div", { class: "grid", style: "gap:8px" },
+    h("div", { class: "kv" },
+      h("div", {}, "Alerts this shift"), h("div", {}, `${raised} raised (${sev.critical || 0} critical, ${sev.warning || 0} warning)`),
+      h("div", {}, "Still open"), h("div", { style: s.open_alerts ? "color:var(--bad);font-weight:600" : "" }, `${s.open_alerts}`),
+      h("div", {}, "Device problems"), h("div", {}, s.device_problems.length ? s.device_problems.map(d => `${label(d.type)} ${d.camera}`).join("; ") : "none"),
+      h("div", {}, "Sirens or lights on"), h("div", { style: s.outputs_on.length ? "color:var(--bad)" : "" }, s.outputs_on.length ? s.outputs_on.join(", ") : "none"),
+      h("div", {}, "Log entries"), h("div", {}, Object.entries(s.entries).map(([k, v]) => `${v} ${(LOG_CATS[k] || k).toLowerCase()}`).join(", ") || "none")),
+    s.open_list.length ? h("div", { class: "list" }, s.open_list.slice(0, 6).map(a => h("a", { class: "item", href: "#/alerts", style: "text-decoration:none;color:inherit" },
+      h("span", { class: `sev ${a.severity}` }), h("div", { class: "grow" }, h("div", { style: "font-weight:600" }, `${label(a.type)} · ${a.camera}`),
+        h("div", { class: "faint", style: "font-size:12px" }, `${a.status}${a.assigned_to ? `, with ${a.assigned_to}` : ""} · since ${fmtTime(a.since)}`)))),
+      s.open_alerts > 6 ? h("a", { href: "#/alerts", class: "faint", style: "font-size:12.5px;padding:4px 6px" }, `and ${s.open_alerts - 6} more open alerts on the Alerts page`) : null) : null);
+}
+
+async function viewLogbook(c) {
+  const writer = ["admin", "cso", "operator"].includes(state.user.role);
+  let sh = await api("/logbook/shift");
+  const body = h("div", {});
+  const head = h("div", {});
+  const pend = h("div", {});
+  const fmtHM = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const load = async () => {
+    const d = await api(`/logbook?start=${encodeURIComponent(sh.start)}&end=${encodeURIComponent(sh.end)}`);
+    const left = Math.max(0, Math.round((new Date(sh.end) - Date.now()) / 60000));
+    head.replaceChildren(h("div", { class: "toolbar" },
+      h("button", { class: "btn small", onclick: async () => { sh = await api(`/logbook/shift?at=${encodeURIComponent(new Date(new Date(sh.start) - 60000).toISOString())}`); load(); } }, "‹ Earlier shift"),
+      h("div", { style: "text-align:center;flex:1" }, h("div", { style: "font-weight:650;font-size:15px" }, `${sh.label} shift`),
+        h("div", { class: "muted", style: "font-size:12.5px" }, `${fmtTime(sh.start)} to ${fmtHM(sh.end)}`, sh.is_current ? ` · ${Math.floor(left / 60)} h ${left % 60} min left` : "")),
+      h("button", { class: "btn small", disabled: sh.is_current, onclick: async () => { sh = await api(`/logbook/shift?at=${encodeURIComponent(new Date(new Date(sh.end).getTime() + 60000).toISOString())}`); load(); } }, "Later shift ›")));
+    const items = [
+      ...d.entries.map(e => ({ at: e.at, el: h("div", { class: "item log-entry" },
+        h("span", { class: `badge cat-${e.category}` }, LOG_CATS[e.category]),
+        h("div", { class: "grow", style: "min-width:0" }, h("div", { style: "white-space:pre-wrap" }, e.text),
+          h("div", { class: "faint", style: "font-size:12px" }, `${e.name} · ${fmtHM(e.at)}`, e.edited_at ? " · corrected" : "", e.alert_id ? h("span", {}, " · ", h("a", { href: "#/alerts" }, "linked alert")) : null)),
+        writer && e.username === state.user.username && Date.now() - new Date(e.at) < 15 * 60000 ? h("button", { class: "btn small", onclick: () => {
+          const t = h("textarea", { class: "input", rows: 4 }, e.text);
+          modal("Correct the entry", h("div", {}, h("p", { class: "muted", style: "margin:0 0 10px" }, "Entries can be corrected for 15 minutes after writing."), t),
+            close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+              try { await api(`/logbook/${e.id}`, { method: "PUT", body: { text: t.value } }); close.remove(); load(); } catch (ex) { toast(ex.message); }
+            } }, "Save")]);
+        } }, "Correct") : null) })),
+      ...d.handovers.map(x => ({ at: x.from_at, el: h("div", { class: "item handover-item" },
+        h("span", { class: "badge info" }, "Handover"),
+        h("div", { class: "grow", style: "min-width:0" },
+          h("div", { style: "font-weight:600" }, `${x.from_user} handed over the ${x.shift_label} shift at ${fmtHM(x.from_at)}`, x.to_user ? ` · ${x.to_user} took over at ${fmtHM(x.to_at)}` : " · not taken over yet"),
+          x.notes ? h("div", { style: "white-space:pre-wrap;margin:4px 0" }, x.notes) : null,
+          x.to_note ? h("div", { class: "muted", style: "white-space:pre-wrap" }, `${x.to_user}: ${x.to_note}`) : null,
+          h("details", {}, h("summary", { class: "faint", style: "font-size:12.5px;cursor:pointer" }, "Shift summary"), handoverSummary(x.summary)))) })),
+    ].sort((a, b) => new Date(b.at) - new Date(a.at));
+    body.replaceChildren(items.length ? h("div", { class: "list" }, items.map(i => i.el)) : h("div", { class: "empty" }, "Nothing logged in this shift yet."));
+    const p = writer ? await api("/logbook/handover/pending") : null;
+    pend.replaceChildren(p && !p.mine ? h("section", { class: "card", style: "border-color:var(--accent)" },
+      h("div", { class: "head" }, h("h2", {}, `${p.from_user} handed over the ${p.shift_label} shift`), h("div", { class: "spacer" }), h("span", { class: "muted" }, fmtTime(p.from_at))),
+      p.notes ? h("div", { class: "note", style: "white-space:pre-wrap;margin-bottom:10px" }, h("strong", {}, "To watch: "), p.notes) : null,
+      handoverSummary(p.summary),
+      (() => { const note = h("input", { class: "input", placeholder: "Optional note, e.g. briefed in person" }); return h("div", { class: "toolbar", style: "margin-top:10px" }, note,
+        h("button", { class: "btn primary", onclick: async () => { try { await api(`/logbook/handover/${p.id}/take`, { method: "POST", body: { note: note.value } }); toast("You have taken over the shift"); load(); } catch (ex) { toast(ex.message); } } }, "Take over")); })())
+      : p && p.mine ? h("div", { class: "note" }, "You handed over this shift; it's waiting for the next operator to take over.") : null);
+  };
+  const form = writer ? (() => {
+    const cat = h("select", { class: "input", id: "lb-cat", style: "max-width:170px" }, Object.entries(LOG_CATS).map(([k, v]) => h("option", { value: k }, v)));
+    const text = h("textarea", { class: "input", id: "lb-text", rows: 3, placeholder: "What happened, where, who, what you did" });
+    return h("section", { class: "card" }, h("div", { class: "field" }, h("label", { for: "lb-text" }, "New entry"), text),
+      h("div", { class: "toolbar" }, cat, h("div", { style: "flex:1" }),
+        h("button", { class: "btn", onclick: async () => {
+          const d = await api("/logbook/handover/draft");
+          const notes = h("textarea", { class: "input", rows: 4, placeholder: "What the next shift must watch: open alerts, visitors still on site, faults, instructions" });
+          modal(`Hand over the ${d.shift.label} shift`, h("div", { class: "grid", style: "gap:10px" }, h("div", { class: "field", style: "margin:0" }, h("label", {}, "Things to watch"), notes),
+            h("div", { class: "faint", style: "font-size:12.5px;font-weight:600" }, "Shift summary, added for you"), handoverSummary(d.summary)),
+            close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+              try { await api("/logbook/handover", { method: "POST", body: { notes: notes.value } }); close.remove(); toast("Handed over; the next operator takes over in the Logbook"); load(); } catch (ex) { toast(ex.message); }
+            } }, "Hand over")]);
+        } }, "Hand over shift"),
+        h("button", { class: "btn primary", onclick: async () => {
+          if (!text.value.trim()) return toast("Write the entry first");
+          try { await api("/logbook", { method: "POST", body: { category: cat.value, text: text.value } }); text.value = ""; load(); } catch (ex) { toast(ex.message); }
+        } }, "Add to log")));
+  })() : null;
+  c.append(pend, form, h("section", { class: "card" }, head, body));
+  await load();
 }
 
 /* ---------------- playback of recordings ---------------- */
@@ -1907,7 +1997,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2139,6 +2229,17 @@ async function viewSettings(c) {
       } }, "Change password")),
     card("Two-factor sign-in", me.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge warn" }, "off"), twoFactorBox(me))));
   if (["admin", "cso"].includes(me.role)) sections.push(await rulesEditor());
+  if (["admin", "cso"].includes(me.role)) {
+    const sh = await api("/logbook/shift");
+    const inp = h("input", { class: "input", id: "shifts-in", value: sh.shifts.map(x => `${x[0]} ${x[1]}-${x[2]}`).join(", ") });
+    sections.push(card("Shifts", null, h("div", { class: "field" }, h("label", { for: "shifts-in" }, "Shift names and times (local)"), inp,
+      h("div", { class: "faint", style: "font-size:12px" }, "e.g. Day 06:00-18:00, Night 18:00-06:00. Used by the Logbook and handovers.")),
+      h("button", { class: "btn primary", onclick: async () => {
+        const shifts = inp.value.split(",").map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.+?)\s+(\d\d:\d\d)\s*-\s*(\d\d:\d\d)$/); return m ? [m[1], m[2], m[3]] : null; });
+        if (shifts.some(x => !x)) return toast("Write each shift as: Name HH:MM-HH:MM");
+        try { await api("/logbook/shifts", { method: "PUT", body: { shifts } }); toast("Shifts saved"); } catch (ex) { toast(ex.message); }
+      } }, "Save shifts")));
+  }
   if (["admin", "cso", "management"].includes(me.role)) sections.push(await licenceCard(me.role === "admin"));
   sections.push(card("Appearance", null, h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Theme"),
     h("div", { class: "seg" }, ["system", "dark", "light"].map(t => h("button", { class: (localStorage.getItem("hss.theme") || "system") === t ? "on" : null, onclick: () => { setTheme(t); render(); } }, label(t)))))));
