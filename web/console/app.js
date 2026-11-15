@@ -83,6 +83,7 @@ const I = {
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M12 8v5M12 16h.01"/></svg>',
   start: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>',
+  planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -109,6 +110,7 @@ const PAGES = [
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
   { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
   { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
+  { id: "planner", title: "Camera planner", icon: "planner", roles: ["admin", "cso", "management"], view: viewPlanner },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
   { id: "reports", title: "Reports", icon: "reports", roles: ["admin", "cso", "management"], view: viewReports },
   { id: "notify", title: "WhatsApp & alerts", icon: "notify", roles: ["admin", "cso"], view: viewNotify },
@@ -1720,6 +1722,94 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- camera planner: will faces and plates be big enough? ---------------- */
+const SENSORS = { '1/3"': 4.8, '1/2.8"': 5.12, '1/2.7"': 5.37, '1/2.5"': 5.76, '1/1.8"': 7.18, '1/1.2"': 10.67 };
+const RESOLUTIONS = { "2 MP (1920 × 1080)": 1920, "4 MP (2560 × 1440)": 2560, "5 MP (2880 × 1620)": 2880, "6 MP (3200 × 1800)": 3200,
+  "8 MP / 4K (3840 × 2160)": 3840, "12 MP (4000 × 3000)": 4000 };
+// Pixels per metre at the target: IEC 62676-4 levels, plus what our face and plate engines need.
+const DORI = [["Identify", 250], ["Recognise", 125], ["Observe", 62], ["Detect", 25]];
+function planCamera(c) {
+  const hfov = c.mode === "fov" ? c.hfov : 2 * Math.atan(c.sensor / (2 * c.focal)) * 180 / Math.PI;
+  const k = 2 * Math.tan(hfov * Math.PI / 360);              // scene width = k × distance
+  const ppm = c.px / (k * c.distance);
+  const faceNeed = c.faceEye / 0.063, plateNeed = c.platePx / c.plateWidth;   // px per metre needed
+  const maxAt = need => c.px / (need * k);
+  const down = Math.atan(Math.max(0, c.height - c.targetH) / c.distance) * 180 / Math.PI;
+  return { hfov, ppm, sceneW: k * c.distance, eyePx: ppm * 0.063, platePx: ppm * c.plateWidth, faceNeed, plateNeed,
+    faceMax: maxAt(faceNeed), plateMax: maxAt(plateNeed), down, dori: DORI.map(([n, v]) => [n, v, maxAt(v)]) };
+}
+function viewPlanner(c) {
+  const saved = (() => { try { return JSON.parse(localStorage.getItem("hss.planner") || "{}"); } catch (_) { return {}; } })();
+  const st = { px: 2560, mode: "lens", focal: 4, sensor: 5.37, hfov: 90, distance: 8, height: 2.5, targetH: 1.6, faceEye: 40, platePx: 130, plateWidth: 0.30, ...saved };
+  const num = (key, attrs) => { const el = h("input", { class: "input", type: "number", id: `pl-${key}`, value: st[key], step: "any", ...attrs });
+    el.addEventListener("input", () => { const v = parseFloat(el.value); if (isFinite(v) && v > 0) { st[key] = v; draw(); } }); return el; };
+  const sel = (key, opts) => { const el = h("select", { class: "input", id: `pl-${key}` }, Object.entries(opts).map(([l, v]) => h("option", { value: v, selected: String(v) === String(st[key]) }, l)));
+    el.addEventListener("change", () => { st[key] = isNaN(Number(el.value)) ? el.value : Number(el.value); draw(); }); return el; };
+  const field = (label, el, hint) => h("div", { class: "field" }, h("label", { for: el.id }, label), el, hint ? h("div", { class: "faint", style: "font-size:12px" }, hint) : null);
+  const lensBox = h("div", { class: "field-row" }, field("Lens (mm)", num("focal", { min: 1 })), field("Sensor size", sel("sensor", SENSORS)));
+  const fovBox = field("Horizontal view angle (degrees)", num("hfov", { min: 2, max: 179 }), "From the camera's datasheet, for the lens setting you'll use");
+  const out = h("div", {});
+  const pic = h("div", { class: "planner-pic" });
+  const verdict = (ok, warn) => ok ? h("span", { class: "badge ok" }, "yes") : warn ? h("span", { class: "badge warn" }, "borderline") : h("span", { class: "badge bad" }, "no");
+  const m = v => v >= 100 ? `${Math.round(v)} m` : `${v.toFixed(1)} m`;
+  function draw() {
+    try { localStorage.setItem("hss.planner", JSON.stringify(st)); } catch (_) {}
+    lensBox.hidden = st.mode !== "lens"; fovBox.hidden = st.mode !== "fov";
+    const r = planCamera(st);
+    const faceOk = r.eyePx >= st.faceEye, faceMin = r.eyePx >= 28, plateOk = r.platePx >= st.platePx, plateMin = r.platePx >= st.platePx * 0.85;
+    const level = (DORI.find(([, v]) => r.ppm >= v) || ["below Detect"])[0];
+    out.replaceChildren(
+      h("div", { class: "grid kpis" },
+        kpi("Pixels per metre", Math.round(r.ppm), `at ${m(st.distance)}: ${level} (IEC 62676-4)`),
+        kpi("Scene width there", m(r.sceneW), `view angle ${r.hfov.toFixed(0)}°`),
+        kpi("Eyes apart", `${Math.round(r.eyePx)} px`, faceOk ? "big enough for face recognition" : faceMin ? "minimum only; aim for more" : `needs ${st.faceEye}`),
+        kpi("Plate width", `${Math.round(r.platePx)} px`, plateOk ? "big enough for plate reading" : `needs ${st.platePx}`)),
+      h("div", { class: "table-wrap" }, h("table", {},
+        h("thead", {}, h("tr", {}, ["Task", "Needs", `At ${m(st.distance)}`, "Works up to", "Note"].map(t => h("th", {}, t)))),
+        h("tbody", {},
+          h("tr", {}, h("td", { style: "font-weight:600" }, "Face recognition"), h("td", {}, `${st.faceEye} px between eyes (${Math.round(r.faceNeed)} px/m)`),
+            h("td", {}, verdict(faceOk, faceMin)), h("td", {}, m(r.faceMax)),
+            h("td", { class: "muted" }, "Automatic recognition needs more than a person viewing (Identify). ",
+              r.down > 15 ? `Camera looks down ${r.down.toFixed(0)}°: keep it under 15° (lower it or move it back).` : `Looks down ${r.down.toFixed(0)}°: fine.`)),
+          h("tr", {}, h("td", { style: "font-weight:600" }, "Plate reading"), h("td", {}, `${st.platePx} px across a ${Math.round(st.plateWidth * 100)} cm plate (${Math.round(r.plateNeed)} px/m)`),
+            h("td", {}, verdict(plateOk, plateMin)), h("td", {}, m(r.plateMax)),
+            h("td", { class: "muted" }, r.sceneW > 4 ? `View is ${m(r.sceneW)} wide: one lane is about 3.5 m; narrower is better` : "View fits one lane")),
+          ...r.dori.map(([n, v, d]) => h("tr", {}, h("td", {}, n), h("td", {}, `${v} px/m`), h("td", {}, verdict(r.ppm >= v)), h("td", {}, m(d)),
+            h("td", { class: "muted" }, { Identify: "Tell who a person is", Recognise: "Tell if it's someone you know", Observe: "See what a person is doing; intrusion analytics", Detect: "See that someone is there" }[n])))))),
+      h("p", { class: "faint", style: "font-size:12.5px" }, "Night, motion and angle reduce this further: infrared range, shutter speed (plates need 1/1000 s or faster) and lighting decide whether the pixels are usable. Confirm with the suitability tests on the real camera."));
+    // Top view: the camera's cone with the range of each level.
+    const W = 640, H = 260, cx = 30, cy = H / 2, maxD = Math.max(r.dori[3][2], st.distance) * 1.05, sc = (W - 60) / maxD, half = r.hfov * Math.PI / 360;
+    const wedge = d => { const L = d * sc, a = Math.min(half, Math.atan((H / 2 - 10) / Math.max(L, 1))); return `M${cx},${cy} L${cx + L * Math.cos(a)},${cy - L * Math.sin(a)} L${cx + L * Math.cos(a)},${cy + L * Math.sin(a)} Z`; };
+    const ns = "http://www.w3.org/2000/svg", el = (t, a, txt) => { const e = document.createElementNS(ns, t); for (const [k2, v] of Object.entries(a)) e.setAttribute(k2, v); if (txt) e.textContent = txt; return e; };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "planner-svg", role: "img", "aria-label": "Top view of the camera's coverage" });
+    const bands = [["Detect", 3, "pl-detect"], ["Observe", 2, "pl-observe"], ["Recognise", 1, "pl-recognise"], ["Identify", 0, "pl-identify"]];
+    for (const [, i, cls] of bands) svg.append(el("path", { d: wedge(r.dori[i][2]), class: cls }));
+    const tx = cx + st.distance * sc;
+    svg.append(el("line", { x1: tx, y1: 12, x2: tx, y2: H - 12, class: "pl-target" }), el("text", { x: tx + 4, y: 22, class: "pl-label" }, `target ${m(st.distance)}`));
+    let lastX = -1e9;
+    for (const [n, i] of [["Identify", 0], ["Recognise", 1], ["Observe", 2], ["Detect", 3]]) {
+      const L = r.dori[i][2] * sc, x = cx + L;
+      if (x > W - 10 || x - lastX < 90) continue;             // too close to the last label: the table has it
+      const edge = L * Math.tan(Math.min(half, Math.atan((H / 2 - 10) / Math.max(L, 1))));
+      svg.append(el("text", { x: x - 3, y: Math.min(H - 6, cy + edge + 14), class: "pl-label", "text-anchor": "end" }, `${n} ${m(r.dori[i][2])}`));
+      lastX = x;
+    }
+    svg.append(el("circle", { cx, cy, r: 6, class: "pl-cam" }));
+    pic.replaceChildren(svg, h("div", { class: "faint", style: "font-size:12px" }, "Seen from above. Each band is how far that level reaches; the line is your target distance."));
+  }
+  const mode = sel("mode", { "Lens and sensor": "lens", "View angle from the datasheet": "fov" });
+  c.append(h("div", { class: "planner" },
+    h("section", { class: "card" }, h("h2", { style: "margin-top:0" }, "Camera"),
+      field("Resolution", sel("px", RESOLUTIONS)), field("Enter the view as", mode), lensBox, fovBox,
+      h("h2", {}, "Where"),
+      h("div", { class: "field-row" }, field("Distance to target (m)", num("distance", { min: 0.5 })), field("Camera height (m)", num("height", { min: 0.5 }))),
+      h("h2", {}, "Targets"),
+      h("div", { class: "field-row" }, field("Eyes apart needed (px)", num("faceEye", { min: 10 }), "28 minimum, 40 good"), field("Plate width needed (px)", num("platePx", { min: 50 }), "130 for our reader")),
+      field("Plate width (m)", num("plateWidth", { min: 0.1, max: 1 }), "Measure a real plate on site")),
+    h("div", { class: "grid", style: "gap:14px;min-width:0" }, h("section", { class: "card" }, out), h("section", { class: "card" }, pic))));
+  draw();
 }
 
 /* ---------------- getting started and help (Phase 9) ---------------- */

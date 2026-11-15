@@ -32,6 +32,10 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 - Never list someone on suspicion alone, or for ethnicity, religion, politics, union membership or health.
 - **Withdraw and lock** (Face & plate page) stops recognition at once if there's a complaint or doubt.
 
+## Planning cameras
+
+**Camera planner** shows, for a camera, lens and distance, the pixels per metre on the target, whether faces and plates will be big enough, and how far each level (detect, observe, recognise, identify) reaches. Use it before buying or moving a camera; confirm with the suitability tests.
+
 ## Video wall
 
 **Video walls**: one screen per NVR, or a rotation through all cameras. Cameras with open alerts stay on every page, outlined. Assign screens to each TV.

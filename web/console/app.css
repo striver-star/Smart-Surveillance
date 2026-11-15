@@ -297,3 +297,16 @@ a.setup-banner .bar { margin-top: 8px; }
 .ptz .toolbar { flex-wrap: wrap; }
 .ptz .toolbar select { flex: 1 1 100%; min-width: 0; }
 .ptz-none { font-size: 12.5px; padding: 6px 8px; }
+
+/* Camera planner */
+.planner { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .planner { grid-template-columns: minmax(0, 1fr); } }
+.planner h2 { font-size: 14px; margin: 14px 0 8px; }
+.planner-svg { width: 100%; height: auto; display: block; }
+.planner-svg .pl-detect { fill: color-mix(in srgb, var(--accent) 10%, transparent); }
+.planner-svg .pl-observe { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+.planner-svg .pl-recognise { fill: color-mix(in srgb, var(--accent) 34%, transparent); }
+.planner-svg .pl-identify { fill: color-mix(in srgb, var(--accent) 55%, transparent); }
+.planner-svg .pl-target { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 4; }
+.planner-svg .pl-label { fill: var(--text); font-size: 11px; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.planner-svg .pl-cam { fill: var(--text); }
