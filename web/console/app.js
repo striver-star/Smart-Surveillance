@@ -84,6 +84,7 @@ const I = {
   start: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>',
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
+  playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
@@ -103,6 +104,7 @@ const PAGES = [
   { id: "start", title: "Getting started", icon: "start", roles: ["admin", "cso"], view: viewStart },
   { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
+  { id: "playback", title: "Playback", icon: "playback", roles: ["admin", "cso", "operator"], view: viewPlayback },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap },
@@ -446,6 +448,115 @@ async function ptzPanel(cameraId, label) {
   return h("div", { class: "ptz" }, h("div", { class: "ptz-title" }, "PTZ · ", label), h("div", { class: "ptz-row" }, pad, zoom),
     h("label", { class: "ptz-speed" }, h("span", { class: "faint" }, "Speed"), sp),
     h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg);
+}
+
+/* ---------------- playback of recordings ---------------- */
+async function viewPlayback(c) {
+  const params = new URLSearchParams(location.hash.split("?")[1] || "");
+  const dev = await api("/devices");
+  const cams = dev.nvrs.filter(n => n.registered).flatMap(n => n.channels.map(ch => ({ id: ch.camera_id, name: ch.name, nvr: n.name })));
+  if (!cams.length) { c.append(h("div", { class: "empty card" }, "Playback works for cameras on NVRs added in Devices. Add an NVR there first.")); return; }
+  const pad = n => String(n).padStart(2, "0");
+  const localDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const hms = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  let cam = params.get("cam") && cams.some(x => x.id === params.get("cam")) ? params.get("cam") : (localStorage.getItem("hss.pb.cam") || cams[0].id);
+  if (!cams.some(x => x.id === cam)) cam = cams[0].id;
+  let at = params.get("t") ? new Date(params.get("t")) : new Date(Date.now() - 10 * 60000);
+  let day = localDay(at), tl = null, session = null, player = null, keep = null, playStart = null, playingSince = null, zoomH = 24;
+  const video = h("video", { muted: true, autoplay: true, playsinline: true, class: "pb-video" }); video.muted = true;
+  const state2 = h("div", { class: "pb-state" }, "Pick a time on the timeline, or press Play");
+  const clock = h("div", { class: "pb-clock mono" }, "—");
+  const timelineBox = h("div", { class: "pb-timeline" });
+  const events = h("div", { class: "list pb-events" });
+  const note = h("div", { class: "faint", style: "font-size:12.5px" });
+  const pos = () => playStart ? new Date(playStart.getTime() + (playingSince ? Date.now() - playingSince : 0)) : at;
+  const stop = async () => {
+    clearInterval(keep); keep = null;
+    if (player) { player.close(); player = null; }
+    if (session) { const s = session; session = null; api(`/playback/sessions/${s}`, { method: "DELETE" }).catch(() => {}); }
+    playStart = null; playingSince = null;
+  };
+  state.cleanup.push(stop);
+  const play = async t => {
+    await stop();
+    at = t; playStart = t;
+    state2.textContent = `Asking the NVR for ${hms(t)}…`;
+    try {
+      const r = await api("/playback/sessions", { method: "POST", body: { camera_id: cam, start: t.toISOString() } });
+      session = r.session;
+      keep = setInterval(() => session && api(`/playback/sessions/${session}/keepalive`, { method: "POST", body: {} }).catch(() => {}), 30000);
+      player = new LivePlayer(video, r.path, (st, info) => {
+        if (st === "playing" && !playingSince) playingSince = Date.now();
+        state2.textContent = st === "playing" ? "" : st === "error" ? `No video: ${info}. The camera may not have recorded then, or the browser can't play its codec (H.265).` : st;
+      });
+      if (localDay(t) !== day) { day = localDay(t); loadDay(); }
+    } catch (ex) { state2.textContent = ex.message; }
+    drawTimeline();
+  };
+  const jump = s => play(new Date(pos().getTime() + s * 1000));
+  // 24-hour (or zoomed) timeline: recorded spans, events, playhead.
+  const drawTimeline = () => {
+    const W = 1000, H = 64, dayStart = new Date(`${day}T00:00:00`).getTime();
+    const centre = (localDay(pos()) === day ? pos().getTime() : dayStart + 12 * 3600e3);
+    let t0 = zoomH === 24 ? dayStart : Math.max(dayStart, Math.min(dayStart + (24 - zoomH) * 3600e3, centre - zoomH * 1800e3)), t1 = t0 + zoomH * 3600e3;
+    const X = t => (t - t0) / (t1 - t0) * W;
+    const ns = "http://www.w3.org/2000/svg", el = (n, a) => { const e = document.createElementNS(ns, n); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "pb-svg", preserveAspectRatio: "none" });
+    svg.append(el("rect", { x: 0, y: 14, width: W, height: 26, class: "pb-bg" }));
+    for (const r of (tl && tl.recorded) || []) {
+      const a = Math.max(t0, new Date(r.start).getTime()), b = Math.min(t1, new Date(r.end).getTime());
+      if (b > a) svg.append(el("rect", { x: X(a), y: 14, width: Math.max(1, X(b) - X(a)), height: 26, class: "pb-rec" }));
+    }
+    for (const e of (tl && tl.events) || []) {
+      const t = new Date(e.at).getTime();
+      if (t >= t0 && t <= t1) svg.append(el("rect", { x: X(t) - 1, y: 8, width: 2.5, height: 38, class: `pb-ev ${e.severity}` }));
+    }
+    const step = zoomH === 24 ? 3 : zoomH === 6 ? 1 : 0.25;
+    for (let hh = 0; hh <= 24; hh += step) {
+      const t = dayStart + hh * 3600e3; if (t < t0 || t > t1) continue;
+      svg.append(el("line", { x1: X(t), x2: X(t), y1: 40, y2: 46, class: "pb-tick" }));
+    }
+    if (localDay(pos()) === day) svg.append(el("rect", { x: X(pos().getTime()) - 1.5, y: 2, width: 3, height: 50, class: "pb-head" }));
+    svg.addEventListener("click", ev => { const r = svg.getBoundingClientRect(); play(new Date(t0 + (ev.clientX - r.left) / r.width * (t1 - t0))); });
+    const labels = h("div", { class: "pb-labels" });
+    for (let hh = 0; hh <= 24; hh += step) {
+      const t = dayStart + hh * 3600e3; if (t < t0 || t > t1) continue;
+      const d = new Date(t); labels.append(h("span", { style: `left:${X(t) / W * 100}%` }, `${pad(d.getHours())}:${pad(d.getMinutes())}`));
+    }
+    timelineBox.replaceChildren(svg, labels);
+  };
+  const loadDay = async () => {
+    note.textContent = "Reading the NVR's recordings…";
+    try { tl = await api(`/playback/timeline?camera_id=${encodeURIComponent(cam)}&day=${day}`); }
+    catch (ex) { tl = null; note.textContent = ex.message; drawTimeline(); return; }
+    const hours = tl.recorded.reduce((s, r) => s + (new Date(r.end) - new Date(r.start)), 0) / 3600e3;
+    note.textContent = tl.note || `${hours.toFixed(1)} h recorded on ${day}; ${tl.events.length} event${tl.events.length === 1 ? "" : "s"}. Click the timeline to play from there.`;
+    events.replaceChildren(...(tl.events.length ? tl.events.slice().reverse().slice(0, 200).map(e => h("button", { class: "linkrow", onclick: () => play(new Date(new Date(e.at) - 10000)) },
+      h("span", { class: `sev ${e.severity}` }), h("span", { class: "mono" }, hms(new Date(e.at))), ` ${label(e.type)}`, e.zone ? h("span", { class: "faint" }, ` · ${e.zone}`) : null,
+      e.alert_id ? h("span", { class: `badge ${e.alert_status === "closed" ? "" : "warn"}`, style: "margin-left:auto;flex:none", title: `Alert ${e.alert_status}` }, "alert") : null)) : [h("div", { class: "faint", style: "padding:6px" }, "No events this day.")]));
+    drawTimeline();
+  };
+  const camSel = h("select", { class: "input", id: "pb-cam", onchange: e => { cam = e.target.value; try { localStorage.setItem("hss.pb.cam", cam); } catch (_) {} stop(); loadDay(); } },
+    cams.map(x => h("option", { value: x.id, selected: x.id === cam }, `${x.name} · ${x.nvr}`)));
+  const dayIn = h("input", { class: "input", type: "date", id: "pb-day", value: day, max: localDay(new Date()), onchange: e => { day = e.target.value; loadDay(); } });
+  const timeIn = h("input", { class: "input", type: "time", id: "pb-time", step: 1, value: hms(at) });
+  const zoomSeg = h("div", { class: "seg", role: "group", "aria-label": "Timeline span" }, [24, 6, 1].map(z => h("button", { class: z === zoomH ? "on" : null, onclick: e => { zoomH = z; zoomSeg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === e.target)); drawTimeline(); } }, `${z} h`)));
+  const btn = (t, s, title) => h("button", { class: "btn small", title, onclick: () => jump(s) }, t);
+  c.append(h("div", { class: "pb" },
+    h("section", { class: "card pb-side" },
+      h("div", { class: "field" }, h("label", { for: "pb-cam" }, "Camera"), camSel),
+      h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "pb-day" }, "Day"), dayIn), h("div", { class: "field" }, h("label", { for: "pb-time" }, "Time"), timeIn)),
+      h("button", { class: "btn primary", onclick: () => play(new Date(`${day}T${timeIn.value || "00:00:00"}`)) }, "Play from this time"),
+      h("h3", { style: "margin:14px 0 6px;font-size:13.5px" }, "Events this day"), events),
+    h("div", { class: "grid", style: "gap:12px;min-width:0" },
+      h("section", { class: "card pb-main" }, h("div", { class: "pb-stage" }, video, state2),
+        h("div", { class: "toolbar pb-controls" }, btn("−10 min", -600, "Back 10 minutes"), btn("−1 min", -60, "Back 1 minute"), btn("−10 s", -10, "Back 10 seconds"),
+          h("button", { class: "btn small danger", onclick: () => { stop(); state2.textContent = "Stopped"; drawTimeline(); } }, "Stop"),
+          btn("+10 s", 10, "Forward 10 seconds"), btn("+1 min", 60, "Forward 1 minute"), btn("+10 min", 600, "Forward 10 minutes"), h("div", { style: "flex:1" }), clock)),
+      h("section", { class: "card" }, h("div", { class: "toolbar", style: "margin-bottom:6px" }, h("strong", {}, "Timeline"), h("div", { style: "flex:1" }), zoomSeg), timelineBox, note))));
+  const tick = setInterval(() => { if (!document.body.contains(clock)) return clearInterval(tick); clock.textContent = playStart ? `${day === localDay(pos()) ? "" : localDay(pos()) + " "}${hms(pos())}` : "—"; if (playingSince) drawTimeline(); }, 1000);
+  await loadDay();
+  if (params.get("t")) play(at);
 }
 
 /* ---------------- live view ---------------- */
@@ -1643,6 +1754,7 @@ async function alertDrawer(id) {
         a.status === "open" ? h("button", { class: "btn primary", onclick: () => act({ action: "acknowledge", text: comment.value }, "Acknowledged") }, "Acknowledge") : null,
         a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
         h("a", { class: "btn", href: "#/live", onclick: () => scrim.remove() }, "Live view"),
+        h("a", { class: "btn", href: `#/playback?cam=${encodeURIComponent(a.camera_id)}&t=${encodeURIComponent(new Date(new Date(a.occurred_at) - 10000).toISOString())}`, onclick: () => scrim.remove() }, "Play recording"),
         canManage ? h("button", { class: "btn", onclick: () => sealForm(id, async () => draw(await api(`/alerts/${id}`))) }, "Seal evidence") : null,
         canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "", title: "A copy that is not kept in the vault" }, "Export copy") : null),
       h("div", { class: "field" }, h("label", {}, "Note"), comment),
@@ -1714,7 +1826,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
