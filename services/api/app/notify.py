@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .db import connect
-from .wall import admin_token
+from .auth import require
 
 log = logging.getLogger("notify")
 router = APIRouter(prefix="/notify")
@@ -311,7 +311,7 @@ def _out(attempts: list[Attempt]) -> list[dict]:
     return [a.__dict__ for a in attempts]
 
 
-@router.post("", dependencies=[Depends(admin_token)])
+@router.post("", dependencies=[Depends(require("admin", allow_admin_token=True))])
 def notify(n: NotifyIn) -> dict:
     if n.topic not in TOPICS:
         raise HTTPException(status_code=422, detail=f"topic must be one of {sorted(TOPICS)}")
@@ -327,12 +327,12 @@ def notify(n: NotifyIn) -> dict:
     return {"attempts": _out(attempts)}
 
 
-@router.post("/test", dependencies=[Depends(admin_token)])
+@router.post("/test", dependencies=[Depends(require("admin", allow_admin_token=True))])
 def notify_test() -> dict:
     return {"attempts": _out(send_test("Sent on request."))}
 
 
-@router.get("/status", dependencies=[Depends(admin_token)])
+@router.get("/status", dependencies=[Depends(require("admin", "cso", allow_admin_token=True))])
 def notify_status(days: int = 7) -> dict:
     wa, email, push = senders()
     since = datetime.now(ZoneInfo("UTC")) - timedelta(days=max(1, min(days, 90)))
@@ -352,7 +352,7 @@ def notify_status(days: int = 7) -> dict:
     }
 
 
-@router.get("/deliveries", dependencies=[Depends(admin_token)])
+@router.get("/deliveries", dependencies=[Depends(require("admin", allow_admin_token=True))])
 def deliveries(limit: int = 50) -> list[dict]:
     with connect() as conn:
         cur = conn.execute("SELECT created_at, topic, recipient, channel, address, status, detail, is_fallback "

@@ -27,7 +27,17 @@
 		root * /srv/wall-agent
 		file_server
 	}
+	# Web console (login, overview, live view, events, devices, walls, users, settings)
 	handle {
-		respond "HSS platform: PoC services are running." 200
+		root * /srv/console
+		header {
+			Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+			X-Frame-Options "DENY"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "no-referrer"
+			Cache-Control "no-cache"
+		}
+		try_files {path} /index.html
+		file_server
 	}
 }

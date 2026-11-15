@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path as PathParam
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field, field_validator
 
+from .auth import require
 from .db import connect
 
 router = APIRouter(prefix="/wall")
@@ -82,7 +83,7 @@ def heartbeat(beat: Heartbeat, node_id: str = NODE_ID) -> dict:
     return {"layout": [{"monitor": m, "path": p} for m, p in rows], "agent": agent_release(beat.os, beat.arch)}
 
 
-@router.get("/nodes", dependencies=[Depends(admin_token)])
+@router.get("/nodes", dependencies=[Depends(require("admin", "cso", allow_admin_token=True))])
 def list_nodes() -> list[dict]:
     with connect() as conn:
         nodes = conn.execute("SELECT id, hostname, agent_version, os, first_seen, last_seen, health "
@@ -102,7 +103,7 @@ def list_nodes() -> list[dict]:
     return result
 
 
-@router.put("/nodes/{node_id}/layout", dependencies=[Depends(admin_token)])
+@router.put("/nodes/{node_id}/layout", dependencies=[Depends(require("admin", allow_admin_token=True))])
 def set_layout(layout: list[MonitorLayout], node_id: str = NODE_ID) -> dict:
     if len({m.monitor for m in layout}) != len(layout):
         raise HTTPException(status_code=422, detail="each monitor may appear once")

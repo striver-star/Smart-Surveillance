@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
+from .auth import require
 from .db import connect
 
 router = APIRouter()
@@ -75,7 +76,7 @@ def ingest_event(event: EventIn) -> dict:
     return {"id": str(event_id), "received_at": received_at.isoformat(), "latency_ms": latency_ms}
 
 
-@router.get("/events")
+@router.get("/events", dependencies=[Depends(require("admin", "cso", "operator", allow_admin_token=True))])
 def list_events(limit: int = 50, camera_id: str | None = None) -> list[dict]:
     limit = max(1, min(limit, 500))
     sql = ("SELECT id, camera_id, source_kind, source_ref, tier, type, object_class, zone, severity, confidence, "
@@ -97,7 +98,7 @@ def list_events(limit: int = 50, camera_id: str | None = None) -> list[dict]:
     return rows
 
 
-@router.get("/events/{event_id}/snapshot")
+@router.get("/events/{event_id}/snapshot", dependencies=[Depends(require("admin", "cso", "operator", allow_admin_token=True))])
 def event_snapshot(event_id: uuid.UUID):
     with connect() as conn:
         row = conn.execute("SELECT snapshot_ref FROM events WHERE id = %s", (event_id,)).fetchone()

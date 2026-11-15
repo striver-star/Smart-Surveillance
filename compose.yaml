@@ -42,8 +42,12 @@ services:
       HSS_NTFY_TOPIC: ${HSS_NTFY_TOPIC:-}
       HSS_NOTIFY_DAILY_TEST: ${HSS_NOTIFY_DAILY_TEST:-}
       HSS_RECIPIENTS: /config/recipients.json
+      HSS_GATEWAY_API: http://gateway:9997
+      HSS_PROBE_DIR: /probe
     volumes:
       - api-data:/data
+      # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).
+      - ${HSS_PROBE_OUTPUT:-./tools/probe/probe-output}:/probe:ro
       - ./config:/config:ro
       - ./dist/wall-agent:/srv/wall-agent:ro
     depends_on:
@@ -127,6 +131,7 @@ services:
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./web/wall-test:/srv/wall-test:ro
+      - ./web/console:/srv/console:ro
       - ./dist/wall-agent:/srv/wall-agent:ro
       - caddy-data:/data
     depends_on:

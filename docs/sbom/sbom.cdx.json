@@ -3,7 +3,7 @@
  "specVersion": "1.5",
  "version": 1,
  "metadata": {
-  "timestamp": "2026-11-14T00:00:00Z",
+  "timestamp": "2026-11-15T00:00:00Z",
   "component": {
    "type": "application",
    "name": "HSS platform (proof of concept)"
@@ -460,6 +460,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/pyyaml/6.0.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "segno",
+   "version": "1.6.6",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/segno@1.6.6",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/segno/1.6.6/"
     }
    ]
   },

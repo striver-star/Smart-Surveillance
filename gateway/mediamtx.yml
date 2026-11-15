@@ -13,6 +13,24 @@ webrtc: yes
 webrtcAddress: :8889
 webrtcLocalUDPAddress: :8189
 
+# Who may do what. Same as MediaMTX's defaults, except that the API (port 9997, never published
+# outside Docker) also answers the platform API container on the Docker network, so the console
+# can list cameras. Publishing and reading stay as before (to be tightened in Phase 2).
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+  - user: any
+    pass:
+    ips: ['127.0.0.1', '::1', '172.16.0.0/12', '192.168.0.0/16']
+    permissions:
+      - action: api
+      - action: metrics
+
 # Pull camera video over TCP: UDP loses packets (broken frames) when the network or server is busy.
 pathDefaults:
   rtspTransport: tcp

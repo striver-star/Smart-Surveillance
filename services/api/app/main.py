@@ -1,14 +1,14 @@
-"""HSS platform API: health, events, wall PCs and notifications."""
+"""HSS platform API: login and users, console data, health, events, wall PCs and notifications."""
 import asyncio
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import events, notify, wall
+from . import auth, console, events, notify, wall
 from .db import connect, migrate
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 
 @asynccontextmanager
@@ -20,6 +20,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="HSS Platform API", version=VERSION, lifespan=lifespan)
+app.include_router(auth.router)
+app.include_router(console.router)
 app.include_router(events.router)
 app.include_router(wall.router)
 app.include_router(notify.router)

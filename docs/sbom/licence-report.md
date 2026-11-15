@@ -1,8 +1,8 @@
 # Licence scan and SBOM (task 23)
 
-Generated 2026-11-14 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
+Generated 2026-11-15 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 248 components: 236 ok, 2 waived, 10 conditional.
+**Result: PASS.** 249 components: 237 ok, 2 waived, 10 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -34,7 +34,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | MIT | 147 |
 | ISC | 27 |
 | Apache-2.0 | 26 |
-| BSD-3-Clause | 15 |
+| BSD-3-Clause | 16 |
 | BSD-2-Clause | 6 |
 | Proprietary-free | 5 |
 | BlueOak-1.0.0 | 4 |
@@ -298,6 +298,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | pydantic-core | 2.50.4 | MIT | ok | api |
 | pypi | python-dotenv | 1.2.4 | BSD-3-Clause | ok | api |
 | pypi | pyyaml | 6.0.3 | MIT | ok | api |
+| pypi | segno | 1.6.6 | BSD-3-Clause | ok | api |
 | pypi | starlette | 0.41.3 | BSD-3-Clause | ok | api |
 | pypi | typing-extensions | 4.16.0 | PSF-2.0 | ok | ai-worker, api, probe |
 | pypi | typing-inspection | 0.4.5 | MIT | ok | api |
