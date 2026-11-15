@@ -85,7 +85,7 @@ func TestSupervisorStartsOneBrowserPerMonitor(t *testing.T) {
 	if *launches != 2 || len(st) != 2 {
 		t.Fatalf("launches %d, status %d", *launches, len(st))
 	}
-	if !strings.Contains(st[0].URL, "/wall-test/") || !strings.Contains(st[1].URL, "/wall/rotation") {
+	if !strings.Contains(st[0].URL, "/wall/?") || !strings.Contains(st[1].URL, "/wall/rotation") {
 		t.Fatalf("urls %s %s", st[0].URL, st[1].URL)
 	}
 }

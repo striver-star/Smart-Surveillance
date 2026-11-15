@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import alerts, auth, clips, console, devices, events, legal, notify, nvrs, wall
+from . import alerts, auth, clips, console, devices, events, legal, notify, nvrs, screens, wall
 from .reports import service as reports
 from .db import connect, migrate
 
-VERSION = "0.9.0"
+VERSION = "0.10.0"
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(legal.router)
 app.include_router(clips.router)
 app.include_router(reports.router)
 app.include_router(events.router)
+app.include_router(screens.router)
 app.include_router(wall.router)
 app.include_router(notify.router)
 

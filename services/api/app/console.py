@@ -103,6 +103,10 @@ def set_branding(body: BrandingIn, request: Request, admin: dict = Depends(requi
 @router.get("/live/paths")
 def live_paths(_: dict = Depends(require("admin", "cso", "operator"))) -> list[dict]:
     """Camera paths configured in the gateway (names only; source URLs hold passwords and stay hidden)."""
+    return gateway_paths()
+
+
+def gateway_paths() -> list[dict]:
     url = os.environ.get("HSS_GATEWAY_API", "http://gateway:9997")
     names: set[str] = set()
     try:

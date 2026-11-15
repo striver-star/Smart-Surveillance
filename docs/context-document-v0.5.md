@@ -1687,7 +1687,7 @@ Numbers stay fixed between versions so sessions can refer to them.
 view (PC and iPhone), WhatsApp delivery. Built and tested, waiting for site runs: alerts and
 incidents, edge service (NVR events, device health, clips), reports, face and plate engine
 (stage 1 running), Phase 1 NVR registry (add NVRs in the console, encrypted credentials vault,
-tier overrides). Blocked on site work: wired server (tasks 19, 20), NVR4 drive, NTP. Blocked on
+tier overrides), Phase 2 wall screens and layouts, face and plate legal lock. Blocked on site work: wired server (tasks 19, 20), NVR4 drive, NTP. Blocked on
 decisions or purchases: legal reviewer (task 4, stages 2 to 4 of task 18), GPU server quote
 (tasks 16, 17), then the go/no-go (task 24).
 
@@ -1746,7 +1746,11 @@ row-level security (with the hosted option), ONVIF and plain RTSP adapters.
 sub-streams, auto-reconnect); 32-channel NVR screens; rotation screen;
 multi-monitor kiosk; Wall Agent; Windows wall installer; Linux wall
 package; layout manager; Hisense TV and Windows hardening guide. Gate:
-real wall PCs at 6 NVRs.
+real wall PCs at 6 NVRs. **Built 2026-11-15** (docs/wall-screens.md, docs/wall-hardening.md):
+wall screens (grids of 1 to 64 tiles, one screen per NVR at 8 × 4, rotation through all cameras, alert
+cameras pinned and outlined), layout manager and per-TV assignment in the console, wall page with
+self-healing players and agent heartbeats, TV and Windows hardening guide. Rehearsed with simulated
+cameras; **site gate waiting** (wired server, then the wall PCs at 6 NVRs).
 
 **Stage E: Phase 3, Edge events and alerts:** alertStream ingestion and
 normalization; device analytics; rules and schedules; alert feed;

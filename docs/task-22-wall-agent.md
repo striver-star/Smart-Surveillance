@@ -108,7 +108,7 @@ curl -k -X PUT https://SERVER/api/wall/nodes/wall-pc-1/layout \
   -d '[{"monitor":0,"path":"/wall-test/?n=32&paths=nvr1-ch01,nvr1-ch02"},{"monitor":1,"path":"/wall-test/?n=32&paths=nvr2-ch01"}]'
 ```
 
-The real grid and rotation screens replace `/wall-test/` in Phase 2.
+The real grid and rotation screens replace `/wall-test/` in Phase 2: make screens and assign them to TVs on the console's Video walls page (docs/wall-screens.md).
 
 ## 24-hour soak (the rest of task 22)
 

@@ -27,6 +27,20 @@
 		root * /srv/wall-agent
 		file_server
 	}
+	# Wall screens (Phase 2): opened by the Wall Agent on each TV. Same rules as the console, plus
+	# talking to the Wall Agent on the wall PC itself (127.0.0.1) for heartbeats.
+	handle /wall/* {
+		root * /srv/console
+		header {
+			Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "no-referrer"
+			Cache-Control "no-cache"
+		}
+		try_files {path} /wall/index.html
+		file_server
+	}
+	redir /wall /wall/
 	# Web console (login, overview, live view, events, devices, walls, users, settings)
 	handle {
 		root * /srv/console

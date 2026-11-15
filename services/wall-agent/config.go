@@ -79,7 +79,7 @@ func (c *Config) applyDefaults() {
 		c.StartupGraceSeconds = 60
 	}
 	if c.DefaultPath == "" {
-		c.DefaultPath = "/wall-test/"
+		c.DefaultPath = "/wall/" // shows "assign a screen to this TV" until the console does
 	}
 	if c.DataDir == "" {
 		c.DataDir = defaultDataDir()

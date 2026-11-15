@@ -684,23 +684,151 @@ async function viewFacePlate(c) {
   }
 }
 
-/* ---------------- video walls ---------------- */
+/* ---------------- video walls: screens, layouts and wall PCs ---------------- */
+const TILE_CHOICES = [1, 4, 6, 9, 16, 25, 32, 36, 64];
+const sourceText = (sc, nvrNames) => sc.source === "all" ? "All cameras" : sc.source.startsWith("nvr:") ? (nvrNames[sc.source.slice(4)] || sc.source.slice(4)) : "Picked cameras";
 async function viewWalls(c) {
-  const nodes = await api("/wall/nodes");
-  c.append(h("section", { class: "card" }, h("div", { class: "head" }, h("h2", {}, "Wall PCs"), h("div", { class: "spacer" }), h("span", { class: "muted" }, "Managed by the Wall Agent")),
+  const isAdmin = state.user.role === "admin";
+  const [nodes, screens, dev] = await Promise.all([api("/wall/nodes"), api("/wall/screens"), api("/devices")]);
+  let paths = [];
+  try { paths = await api("/live/paths"); } catch (_) { /* gateway down: the picker shows what it can */ }
+  const nvrNames = Object.fromEntries(dev.nvrs.map(n => [n.alias, n.name]));
+  const byUrl = Object.fromEntries(screens.map(sc => [sc.url, sc]));
+  const shownOn = url => nodes.flatMap(n => n.layout.filter(l => l.path === url).map(l => `${n.id} · screen ${l.monitor + 1}`));
+
+  c.append(h("div", { class: "toolbar" },
+    h("span", { class: "muted" }, `${screens.length} screen${screens.length === 1 ? "" : "s"} · ${nodes.length} wall PC${nodes.length === 1 ? "" : "s"}`),
+    h("div", { style: "flex:1" }),
+    isAdmin ? h("button", { class: "btn", title: "One 32-tile screen for each NVR that doesn't have one yet", onclick: async e => {
+      e.target.disabled = true;
+      const have = new Set(screens.map(sc => sc.source));
+      const todo = dev.nvrs.filter(n => !have.has(`nvr:${n.alias}`));
+      try {
+        for (const n of todo) await api("/wall/screens", { method: "POST", body: { name: n.name, source: `nvr:${n.alias}`, tiles: n.total > 16 || !n.total ? 32 : 16, dwell_s: 20, labels: true, pin_alerts: true } });
+        toast(todo.length ? `${todo.length} NVR screen${todo.length > 1 ? "s" : ""} added` : "Every NVR has a screen already"); render();
+      } catch (ex) { toast(ex.message); e.target.disabled = false; }
+    } }, "Add a screen per NVR") : null,
+    isAdmin ? h("button", { class: "btn primary", onclick: () => screenForm(null, paths, dev) }, "New screen") : null));
+
+  c.append(card("Screens", h("span", { class: "muted", style: "font-size:12.5px" }, "A screen is what one TV shows; more cameras than tiles rotate"),
+    screens.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Screen", "Cameras", "Grid", "Rotation", "Shown on", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, screens.map(sc => {
+        const on = shownOn(sc.url);
+        return h("tr", {},
+          h("td", {}, h("div", { style: "font-weight:600" }, sc.name), h("div", { class: "faint" }, sourceText(sc, nvrNames))),
+          h("td", {}, sc.camera_count),
+          h("td", {}, `${sc.tiles} tiles`),
+          h("td", {}, sc.pages > 1 ? `${sc.pages} pages, ${sc.dwell_s} s each` : h("span", { class: "faint" }, "fits on one page"), sc.pin_alerts ? h("div", { class: "faint" }, "alerts pinned") : null),
+          h("td", {}, on.length ? on.map(o => h("div", { style: "font-size:12.5px" }, o)) : h("span", { class: "faint" }, "not assigned")),
+          h("td", { style: "text-align:right;white-space:nowrap" },
+            h("a", { class: "btn small", href: sc.url, target: "_blank", rel: "noopener" }, "Open"), " ",
+            isAdmin ? h("button", { class: "btn small", onclick: () => screenForm(sc, paths, dev) }, "Edit") : null));
+      })))) : h("div", { class: "empty" }, isAdmin ? "No screens yet. Add a screen per NVR for 32-camera NVR screens, or make your own with New screen." : "No screens yet.")));
+
+  c.append(card("Wall PCs", h("span", { class: "muted", style: "font-size:12.5px" }, "Managed by the Wall Agent; changes reach the TVs within a minute"),
     nodes.length ? h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["Wall PC", "Status", "Agent", "Screens", "CPU", "Memory", "Last heartbeat", "Layout"].map(t => h("th", {}, t)))),
-      h("tbody", {}, nodes.map(n => h("tr", {},
-        h("td", {}, h("div", { style: "font-weight:600" }, n.id), h("div", { class: "faint" }, n.hostname)),
-        h("td", {}, n.online ? h("span", { class: "badge ok" }, "online") : h("span", { class: "badge bad" }, "offline")),
-        h("td", { class: "mono" }, `${n.agent_version} · ${n.os}`),
-        h("td", {}, (n.screens || []).length ? (n.screens || []).map(s => h("div", { class: "muted", style: "font-size:12.5px" },
-          `${s.index ?? ""} ${s.width || ""}×${s.height || ""} ${s.page_alive === false ? "· page stalled" : ""}`)) : "—"),
-        h("td", {}, n.cpu_percent !== undefined && n.cpu_percent !== null ? `${Math.round(n.cpu_percent)}%` : "—"),
-        h("td", {}, n.memory_percent !== undefined && n.memory_percent !== null ? `${Math.round(n.memory_percent)}%` : "—"),
-        h("td", {}, ago(n.last_seen)),
-        h("td", { class: "muted", style: "font-size:12.5px" }, n.layout.length ? n.layout.map(l => h("div", {}, `Screen ${l.monitor}: ${l.path}`)) : "default"))))))
-      : h("div", { class: "empty" }, "No wall PCs have reported yet.")));
+      h("thead", {}, h("tr", {}, ["Wall PC", "Status", "Agent", "TVs and what they show", "CPU", "Memory", "Last heartbeat", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, nodes.map(n => {
+        const monitors = Math.max((n.screens || []).length, ...n.layout.map(l => l.monitor + 1), 1);
+        return h("tr", {},
+          h("td", {}, h("div", { style: "font-weight:600" }, n.id), h("div", { class: "faint" }, n.hostname)),
+          h("td", {}, n.online ? h("span", { class: "badge ok" }, "online") : h("span", { class: "badge bad" }, "offline")),
+          h("td", { class: "mono" }, `${n.agent_version} · ${n.os}`),
+          h("td", {}, Array.from({ length: monitors }, (_, m) => {
+            const l = n.layout.find(x => x.monitor === m), sc = l && byUrl[l.path];
+            const live = (n.screens || []).find(s => (s.monitor ? s.monitor.index : s.index) === m), pg = (live && live.page) || {};
+            const stalled = live && live.running && (live.page_heartbeat_age_s === null || live.page_heartbeat_age_s > 30) && live.up_seconds > 60;
+            return h("div", { style: "font-size:12.5px" }, h("strong", {}, `TV ${m + 1}: `), sc ? sc.name : l ? l.path : h("span", { class: "faint" }, "default page"),
+              stalled ? h("span", { class: "badge bad", style: "margin-left:6px" }, "page stalled") : null,
+              pg.tiles ? h("span", { class: pg.playing < pg.tiles ? "badge warn" : "faint", style: "margin-left:6px" }, `${pg.playing ?? "?"}/${pg.tiles} playing`) : null);
+          })),
+          h("td", {}, n.cpu_percent !== undefined && n.cpu_percent !== null ? `${Math.round(n.cpu_percent)}%` : "—"),
+          h("td", {}, n.memory_percent !== undefined && n.memory_percent !== null ? `${Math.round(n.memory_percent)}%` : "—"),
+          h("td", {}, ago(n.last_seen)),
+          h("td", { style: "text-align:right" }, isAdmin ? h("button", { class: "btn small", onclick: () => assignForm(n, monitors, screens) }, "Assign screens") : null));
+      })))) : h("div", { class: "empty" }, "No wall PCs have reported yet. Install the Wall Agent on each wall PC (docs/task-22-wall-agent.md).")));
+}
+
+function assignForm(n, monitors, screens) {
+  const count = Math.min(16, Math.max(monitors, 1));
+  const sels = Array.from({ length: Math.max(count, 3) }, (_, m) => {
+    const cur = n.layout.find(x => x.monitor === m);
+    return h("select", { class: "input", id: `as-${m}` }, h("option", { value: "" }, "Default page (no screen)"),
+      screens.map(sc => h("option", { value: sc.url, selected: cur && cur.path === sc.url }, sc.name)),
+      cur && !screens.some(sc => sc.url === cur.path) ? h("option", { value: cur.path, selected: true }, `Other: ${cur.path.slice(0, 40)}`) : null);
+  });
+  const err = h("div", { class: "error", hidden: true });
+  modal(`Screens on ${n.id}`, h("div", {}, err,
+    h("p", { class: "muted", style: "margin:0 0 12px" }, `TV numbers follow the PC's display order (Windows: Settings › Display). ${monitors} TV${monitors > 1 ? "s" : ""} reported.`),
+    sels.map((sel, m) => h("div", { class: "field" }, h("label", { for: sel.id }, `TV ${m + 1}${m >= monitors ? " (not connected now)" : ""}`), sel))),
+    close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        const layout = sels.map((sel, m) => ({ monitor: m, path: sel.value })).filter(l => l.path);
+        try { await api(`/wall/nodes/${encodeURIComponent(n.id)}/layout`, { method: "PUT", body: layout }); close.remove(); toast("Saved. The wall PC switches within a minute."); render(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
+}
+
+function screenForm(sc, paths, dev) {
+  const editing = !!sc;
+  sc = sc || { name: "", source: "cameras", cameras: [], tiles: 16, dwell_s: 20, labels: true, pin_alerts: true };
+  const name = h("input", { class: "input", id: "sc-name", value: sc.name, placeholder: "e.g. Perimeter, Gate area, NVR4" });
+  const source = h("select", { class: "input", id: "sc-src" },
+    h("option", { value: "cameras", selected: sc.source === "cameras" }, "Cameras I pick"),
+    h("option", { value: "all", selected: sc.source === "all" }, "All cameras (rotation)"),
+    dev.nvrs.map(n => h("option", { value: `nvr:${n.alias}`, selected: sc.source === `nvr:${n.alias}` }, `All cameras of ${n.name} (${n.total})`)));
+  const tiles = h("select", { class: "input", id: "sc-tiles" }, TILE_CHOICES.map(t => h("option", { value: t, selected: t === sc.tiles }, `${t} tile${t > 1 ? "s" : ""}${t === 32 ? " (8 × 4, one NVR)" : ""}`)));
+  const dwell = h("input", { class: "input", id: "sc-dwell", type: "number", min: 5, max: 600, value: sc.dwell_s });
+  const labels = h("input", { type: "checkbox", id: "sc-labels", checked: sc.labels });
+  const pin = h("input", { type: "checkbox", id: "sc-pin", checked: sc.pin_alerts });
+  const picked = new Set(sc.cameras);
+  const count = h("span", { class: "muted", style: "font-size:12.5px" });
+  const find = h("input", { class: "input", type: "search", id: "sc-find", placeholder: "Find a camera" });
+  const list = h("div", { class: "pick-list" });
+  const drawList = () => {
+    const f = find.value.toLowerCase();
+    const groups = {};
+    paths.filter(p => !f || `${p.path} ${p.label}`.toLowerCase().includes(f)).forEach(p => (groups[p.nvr] ||= []).push(p));
+    list.replaceChildren(...Object.entries(groups).map(([nvr, ps]) => h("div", {}, h("div", { class: "faint", style: "margin:8px 0 4px;font-weight:650" }, (dev.nvrs.find(n => n.alias === nvr) || {}).name || nvr),
+      ps.map(p => h("label", { class: "check" }, h("input", { type: "checkbox", checked: picked.has(p.path), onchange: e => { e.target.checked ? picked.add(p.path) : picked.delete(p.path); count.textContent = `${picked.size} picked`; } }),
+        p.label !== p.path ? `${p.label} ` : p.path, p.label !== p.path ? h("span", { class: "faint mono" }, p.path) : null)))));
+    if (!paths.length) list.append(h("div", { class: "empty" }, "No cameras in the stream gateway yet."));
+    count.textContent = `${picked.size} picked`;
+  };
+  find.addEventListener("input", drawList);
+  const pickBox = h("div", { class: "field" }, h("div", { style: "display:flex;justify-content:space-between" }, h("label", { for: "sc-find" }, "Cameras"), count), find, list);
+  const syncSource = () => { pickBox.hidden = source.value !== "cameras"; };
+  source.addEventListener("change", syncSource);
+  const err = h("div", { class: "error", hidden: true });
+  modal(editing ? `Edit ${sc.name}` : "New screen", h("div", {}, err,
+    h("div", { class: "field" }, h("label", { for: "sc-name" }, "Name"), name),
+    h("div", { class: "field" }, h("label", { for: "sc-src" }, "Shows"), source),
+    h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "sc-tiles" }, "Grid"), tiles),
+      h("div", { class: "field" }, h("label", { for: "sc-dwell" }, "Seconds per page"), dwell, h("div", { class: "faint", style: "font-size:12px" }, "When there are more cameras than tiles"))),
+    h("div", { class: "field", style: "gap:8px" }, h("label", { class: "check" }, labels, "Show camera names"),
+      h("label", { class: "check" }, pin, "Keep cameras with open alerts on screen, outlined")),
+    pickBox),
+    close => {
+      const btns = [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+        h("button", { class: "btn primary", onclick: async () => {
+          const body = { name: name.value.trim(), source: source.value, cameras: source.value === "cameras" ? paths.map(p => p.path).filter(p => picked.has(p)).concat([...picked].filter(p => !paths.some(x => x.path === p))) : [],
+            tiles: Number(tiles.value), dwell_s: Number(dwell.value) || 20, labels: labels.checked, pin_alerts: pin.checked };
+          if (body.source === "cameras" && !body.cameras.length) { err.textContent = "Pick at least one camera."; err.hidden = false; return; }
+          try { await api(editing ? `/wall/screens/${sc.id}` : "/wall/screens", { method: editing ? "PUT" : "POST", body }); close.remove(); toast(editing ? "Screen saved; TVs update within 10 seconds" : "Screen added"); render(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, editing ? "Save" : "Add screen")];
+      if (editing) btns.unshift(
+        h("button", { class: "btn danger", style: "margin-right:auto", onclick: async () => {
+          if (!confirm(`Delete the screen ${sc.name}?`)) return;
+          try { await api(`/wall/screens/${sc.id}`, { method: "DELETE" }); close.remove(); toast("Screen deleted"); render(); } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "Delete"),
+        h("button", { class: "btn", title: "Makes a new link; the old one stops working. Assigned wall PCs move to the new link.", onclick: async () => {
+          try { await api(`/wall/screens/${sc.id}/new-key`, { method: "POST", body: {} }); toast("New link made"); close.remove(); render(); } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "New link"));
+      return btns;
+    });
+  drawList(); syncSource();
 }
 
 /* ---------------- notifications ---------------- */
@@ -1082,7 +1210,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

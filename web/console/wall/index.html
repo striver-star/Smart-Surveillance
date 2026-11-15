@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HSS Wall</title>
+<!-- A wall screen: a camera grid on one TV, opened by the Wall Agent at /wall/?s=<screen>&k=<key>. -->
+<style>
+  :root { --bg: #000; --tile: #0b0d10; --text: #e8eaed; --muted: #9aa0a6; --warn: #f9ab00; --bad: #ea4335; --ok: #34a853; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
+               font: 14px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; cursor: none; }
+  #grid { display: grid; width: 100vw; height: 100vh; gap: 2px; background: var(--bg); }
+  .tile { position: relative; background: var(--tile); overflow: hidden; outline: 0 solid transparent; outline-offset: -3px; }
+  .tile video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .tile .name { position: absolute; left: 6px; bottom: 4px; right: 6px; font-size: clamp(10px, 1.1vw, 15px); font-weight: 600;
+                text-shadow: 0 0 3px #000, 0 0 6px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .state { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: clamp(10px, 1vw, 14px);
+                 text-align: center; padding: 8px; pointer-events: none; }
+  .tile.playing .state { display: none; }
+  .tile.alert-warning { outline: 3px solid var(--warn); }
+  .tile.alert-critical { outline: 4px solid var(--bad); animation: pulse 1.2s ease-in-out infinite; }
+  .tile .badge { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 4px; font-size: clamp(9px, .9vw, 12px);
+                 font-weight: 700; letter-spacing: .04em; color: #000; background: var(--warn); }
+  .tile.alert-critical .badge { background: var(--bad); color: #fff; }
+  .empty { background: #050607; }
+  @keyframes pulse { 50% { outline-color: color-mix(in srgb, var(--bad) 35%, transparent); } }
+  @media (prefers-reduced-motion: reduce) { .tile.alert-critical { animation: none; } }
+  #bar { position: fixed; top: 6px; right: 8px; display: flex; gap: 10px; font-size: 12px; color: var(--muted);
+         background: rgba(0, 0, 0, .55); padding: 3px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+  #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; font-size: 20px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<div id="bar"><span id="title"></span><span id="page"></span><span id="clock"></span></div>
+<div id="msg" hidden></div>
+<script src="/player.js"></script>
+<script src="wall.js"></script>
+</body>
+</html>
