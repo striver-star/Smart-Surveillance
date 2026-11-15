@@ -48,6 +48,8 @@ services:
       HSS_RECIPIENTS: /config/recipients.json
       HSS_GATEWAY_API: http://gateway:9997
       HSS_PROBE_DIR: /probe
+      # Key that encrypts NVR passwords (empty = a key file in the api-data volume). Back it up.
+      HSS_VAULT_KEY: ${HSS_VAULT_KEY:-}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).
@@ -106,6 +108,7 @@ services:
       HSS_API_URL: http://api:8000
       HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
       HSS_TZ: ${HSS_TZ:-Africa/Lagos}
+      # NVRs come from the console (Devices, Add NVR); these three are only a fallback while it has none.
       HSS_NVRS: ${HSS_NVRS:-}
       HSS_NVR_USER: ${HSS_NVR_USER:-}
       HSS_NVR_PASSWORD: ${HSS_NVR_PASSWORD:-}

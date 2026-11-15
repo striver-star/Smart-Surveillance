@@ -115,3 +115,34 @@ def test_event_shape():
     assert ev["camera_id"] == "nvr4-ch23" and ev["type"] == "intrusion" and ev["object_class"] == "vehicle"
     assert ev["source_kind"] == "edge" and base64.b64decode(ev["snapshot_jpeg_b64"]) == JPEG
     assert ev["raw"]["device_time"] == "2026-11-15T07:00:00+01:00"
+
+
+# ---- NVR list from the console (Phase 1)
+def test_choose_specs_prefers_console_then_env():
+    from edge.main import choose_specs
+    env = [{"address": "10.1.3.4", "username": "u", "password": "p"}]
+    reg = [{"address": "10.1.3.9", "alias": "gate", "username": "v", "password": "q"}]
+    assert choose_specs(reg, env, None) == (reg, "console")
+    assert choose_specs([], env, None)[0] == env                         # nothing added in the console yet
+    assert choose_specs(None, env, None)[0] == env                       # API down at start-up
+    assert choose_specs(None, env, reg)[0] == reg                        # API down later: keep what runs
+
+
+def test_fleet_starts_and_stops_watchers(monkeypatch):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    import edge.main as m
+    started = []
+    monkeypatch.setattr(m, "event_loop", lambda nvr, platform, stop, ignore, pool: started.append((nvr.alias, stop)))
+    fleet = m.Fleet(platform=None, stop=threading.Event(), ignore=set(), pool=ThreadPoolExecutor(1))
+    a = {"address": "10.1.3.4", "alias": "nvr4", "username": "u", "password": "p"}
+    b = {"address": "10.1.4.4", "alias": "yard", "username": "u", "password": "p"}
+    fleet.apply([a, b], "console")
+    assert sorted(n.alias for n in fleet.current()) == ["nvr4", "yard"]
+    fleet.apply([a, {**b, "password": "new"}], "console")              # changed password: restart that one only
+    import time
+    time.sleep(0.05)
+    assert [s[0] for s in started] == ["nvr4", "yard", "yard"]
+    assert started[1][1].is_set() and not started[0][1].is_set() and not started[2][1].is_set()
+    fleet.apply([b], "console")
+    assert [n.alias for n in fleet.current()] == ["yard"] and started[0][1].is_set()

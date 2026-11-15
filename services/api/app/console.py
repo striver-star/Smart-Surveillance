@@ -118,7 +118,12 @@ def live_paths(_: dict = Depends(require("admin", "cso", "operator"))) -> list[d
         raise HTTPException(status_code=502, detail=f"gateway not reachable: {exc.__class__.__name__}") from exc
     # Skip catch-all and regular-expression path entries (all, all_others, ~...).
     names = sorted(n for n in names if n not in ("all", "all_others") and not n.startswith("~"))
-    return [{"path": n, "nvr": n.split("-")[0], "label": n} for n in names]
+    try:
+        from .reports.data import camera_names
+        labels = camera_names(load_devices())
+    except Exception:          # names are a nicety; the paths still work without them
+        labels = {}
+    return [{"path": n, "nvr": n.split("-")[0], "label": labels.get(n.removesuffix("-sub"), n)} for n in names]
 
 
 # ------------------------------------------------------------------ devices (from the probe files)
@@ -164,10 +169,69 @@ def load_devices() -> dict:
                            "status": d.get("status")} for d in disks],
                 "disk_problem": any((d.get("status") or "ok").lower() not in ("ok", "normal", "notexist", "idle") for d in disks),
             })
+    apply_registry(nvrs)
     live_at = merge_live(nvrs)
+    apply_tiers(nvrs)
     return {"source": "live" if live_at else "probe files", "live_checked_at": live_at,
             "probed_at": _mtime(inv_path), "cameras_surveyed_at": _mtime(cam_path),
             "nvrs": nvrs}
+
+
+def _blank_channel(cid: int, name: str = "", ip: str = "") -> dict:
+    return {"channel": cid, "name": name or f"Channel {cid}", "ip": ip, "online": None, "tier": "?", "model": "",
+            "firmware": "", "class": "", "clock_drift_s": None, "stream": "", "flags": []}
+
+
+def apply_registry(nvrs: list[dict]) -> None:
+    """Add NVRs registered in the console (with the channels from their last connection test) and give
+    every NVR its short name (alias), the prefix of its camera ids."""
+    from .nvrs import default_alias, host, registry
+    known = {host(n["address"]): n for n in nvrs}
+    for r in registry():
+        n = known.get(host(r["address"]))
+        info = r["info"] or {}
+        if n is None:
+            n = {"address": r["address"], "name": r["name"] or r["address"], "model": info.get("model", ""),
+                 "firmware": info.get("firmware", ""), "time_mode": "", "channels": [],
+                 "disks": [{"name": d.get("name"), "capacity_gb": d.get("capacity_gb"), "status": d.get("status")}
+                           for d in info.get("disks", [])]}
+            nvrs.append(n)
+            known[host(r["address"])] = n
+        if r["name"]:
+            n["name"] = r["name"]
+        have = {c["channel"] for c in n["channels"]}
+        for c in info.get("channels", []):
+            if c["id"] not in have:
+                ch = _blank_channel(c["id"], c.get("name", ""), c.get("ip", ""))
+                ch["online"] = c.get("online")
+                n["channels"].append(ch)
+        n["channels"].sort(key=lambda c: c["channel"])
+        n["alias"] = r["alias"]
+        n["registered"] = {k: r[k] for k in ("id", "username", "scheme", "rtsp_port", "segment", "enabled", "live_view",
+                                             "test_ok", "test_detail", "tested_at")}
+        n["online"] = sum(1 for c in n["channels"] if c["online"])
+        n["total"] = len(n["channels"])
+        n["disk_problem"] = any((d.get("status") or "ok").lower() not in ("ok", "normal", "notexist", "idle") for d in n["disks"])
+    for n in nvrs:
+        n.setdefault("alias", default_alias(n["address"]))
+        n.setdefault("registered", None)
+
+
+def apply_tiers(nvrs: list[dict]) -> None:
+    """Camera ids, and the AI tier: automatic (from the camera survey) unless someone overrode it."""
+    from .nvrs import default_alias, overrides
+    over = overrides()
+    for n in nvrs:
+        n.setdefault("alias", default_alias(n["address"]))      # NVRs only the live health knows
+        n.setdefault("registered", None)
+        for ch in n["channels"]:
+            ch["camera_id"] = f"{n['alias']}-ch{int(ch['channel']):02d}"
+            ch["tier_auto"] = ch["tier"]
+            o = over.get(ch["camera_id"])
+            ch["tier_override"] = None
+            if o and o["tier"]:
+                ch["tier"] = o["tier"]
+                ch["tier_override"] = {"note": o["note"], "by": o["by"], "at": o["at"].isoformat() if o["at"] else None}
 
 
 def merge_live(nvrs: list[dict]) -> str | None:
@@ -180,14 +244,15 @@ def merge_live(nvrs: list[dict]) -> str | None:
         return None
     if not live:
         return None
-    known = {n["address"]: n for n in nvrs}
+    from .nvrs import host
+    known = {host(n["address"]): n for n in nvrs}
     for addr, h in live.items():
-        n = known.get(addr)
+        n = known.get(host(addr))
         if n is None:
             n = {"address": addr, "name": h.get("name") or addr, "model": h.get("model", ""), "firmware": h.get("firmware", ""),
                  "time_mode": h.get("time_mode", ""), "channels": [], "disks": []}
             nvrs.append(n)
-            known[addr] = n
+            known[host(addr)] = n
         n["reachable"] = h["reachable"]
         n["live_checked_at"] = h["checked_at"].isoformat()
         if h.get("name"):
@@ -199,8 +264,7 @@ def merge_live(nvrs: list[dict]) -> str | None:
         for c in h.get("channels", []):
             ch = by_id.get(c["id"])
             if ch is None:
-                ch = {"channel": c["id"], "name": c.get("name") or f"Channel {c['id']}", "ip": c.get("ip", ""), "tier": "?",
-                      "model": "", "firmware": "", "class": "", "clock_drift_s": None, "stream": "", "flags": []}
+                ch = _blank_channel(c["id"], c.get("name", ""), c.get("ip", ""))
                 n["channels"].append(ch)
             ch["online"] = None if not h["reachable"] else c.get("online")
             if c.get("name"):

@@ -101,6 +101,34 @@
   },
   {
    "type": "library",
+   "name": "cffi",
+   "version": "2.1.1",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "MIT-0"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/cffi@2.1.1",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/cffi/2.1.1/"
+    }
+   ]
+  },
+  {
+   "type": "library",
    "name": "charset-normalizer",
    "version": "3.5.2",
    "group": "pypi",
@@ -180,6 +208,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/contourpy/1.4.0/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "cryptography",
+   "version": "46.0.3",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "Apache-2.0 OR BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/cryptography@46.0.3",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/cryptography/46.0.3/"
     }
    ]
   },
@@ -628,6 +684,34 @@
     {
      "type": "website",
      "url": "https://pypi.org/project/psycopg-binary/3.2.3/"
+    }
+   ]
+  },
+  {
+   "type": "library",
+   "name": "pycparser",
+   "version": "3.12",
+   "group": "pypi",
+   "licenses": [
+    {
+     "expression": "BSD-3-Clause"
+    }
+   ],
+   "properties": [
+    {
+     "name": "hss:status",
+     "value": "ok"
+    },
+    {
+     "name": "hss:used-by",
+     "value": "api"
+    }
+   ],
+   "purl": "pkg:pypi/pycparser@3.12",
+   "externalReferences": [
+    {
+     "type": "website",
+     "url": "https://pypi.org/project/pycparser/3.12/"
     }
    ]
   },

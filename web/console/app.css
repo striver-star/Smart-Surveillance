@@ -154,7 +154,7 @@ tr.clickable { cursor: pointer; }
 .drawer video { max-width: 100%; }
 .drawer { width: min(520px, 100%); height: 100%; background: var(--panel); border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; display: grid; gap: 14px; align-content: start; }
 .modal-scrim { position: fixed; inset: 0; background: rgba(2, 6, 16, .55); z-index: 30; display: grid; place-items: center; padding: 16px; }
-.modal { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+.modal { max-height: calc(100vh - 32px); overflow: auto; width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); display: grid; gap: 14px; }
 .kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 13px; }
 .kv div:nth-child(odd) { color: var(--muted); }
 .snapshot { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #000; }
@@ -196,3 +196,13 @@ tr.clickable { cursor: pointer; }
 .alert-pop .title { font-weight: 650; }
 @keyframes pop { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
 textarea.input { resize: vertical; min-height: 54px; }
+
+/* NVR form and tier override (Phase 1) */
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.field-row .field { align-content: start; }
+.field-row .field { min-width: 0; }
+@media (max-width: 520px) { .field-row { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+label.check { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--fg); font-weight: 400; }
+label.check input { margin-top: 3px; }
+button.linkish { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+button.linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }

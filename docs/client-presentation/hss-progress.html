@@ -1,0 +1,124 @@
+<title>HSS Programme Progress</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a control-room status board. A summary strip, then phases as rows with a state chip and progress track. */
+:root {
+  --bg: #f3f5f7; --panel: #ffffff; --fg: #17202a; --muted: #5b6875; --line: #dde3e9;
+  --accent: #0f5f8c; --ok: #1d7a46; --ok-bg: #e3f3ea; --run: #0f5f8c; --run-bg: #e2eff7;
+  --wait: #9a6100; --wait-bg: #fbf0dc; --stop: #b3261e; --stop-bg: #fbe7e5; --todo: #6b7783; --todo-bg: #eceff2;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1418; --panel: #151d23; --fg: #e4e9ee; --muted: #93a1ad; --line: #26323b;
+  --accent: #5fb3e4; --ok: #5cc98a; --ok-bg: #16301f; --run: #5fb3e4; --run-bg: #132a38;
+  --wait: #e5ad4e; --wait-bg: #33270f; --stop: #f08a80; --stop-bg: #3a1916; --todo: #93a1ad; --todo-bg: #1f2930; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1418; --panel: #151d23; --fg: #e4e9ee; --muted: #93a1ad; --line: #26323b;
+  --accent: #5fb3e4; --ok: #5cc98a; --ok-bg: #16301f; --run: #5fb3e4; --run-bg: #132a38;
+  --wait: #e5ad4e; --wait-bg: #33270f; --stop: #f08a80; --stop-bg: #3a1916; --todo: #93a1ad; --todo-bg: #1f2930; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 36px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(28px, 5vw, 38px); line-height: 1.1; }
+h2 { font-size: 21px; }
+.eyebrow { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--accent); }
+.lede { color: var(--muted); max-width: 64ch; margin: 8px 0 0; }
+header { display: grid; gap: 6px; }
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.strip > div { padding: 16px 18px; border-left: 1px solid var(--line); min-width: 0; }
+.strip > div:first-child { border-left: 0; }
+.strip b { display: block; font: 600 28px var(--display); font-variant-numeric: tabular-nums; }
+.strip span { color: var(--muted); font-size: 13px; }
+.chip { display: inline-block; font: 500 11.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-ok { color: var(--ok); background: var(--ok-bg); } .c-run { color: var(--run); background: var(--run-bg); }
+.c-wait { color: var(--wait); background: var(--wait-bg); } .c-stop { color: var(--stop); background: var(--stop-bg); }
+.c-todo { color: var(--todo); background: var(--todo-bg); }
+section { display: grid; gap: 12px; }
+.board { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 128px; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--line); align-items: start; }
+.row:first-child { border-top: 0; }
+.ph { font: 500 13px var(--mono); color: var(--muted); padding-top: 2px; }
+.row h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
+.row p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+.track { height: 6px; border-radius: 3px; background: var(--todo-bg); margin-top: 9px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.state { text-align: right; display: grid; gap: 6px; justify-items: end; }
+.state small { color: var(--muted); font-size: 12px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; min-width: 0; }
+.panel h2 { font-size: 18px; margin-bottom: 10px; }
+ul.list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+ul.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; }
+ul.list li div { min-width: 0; }
+ul.list strong { font-weight: 600; }
+ul.list span.d { display: block; color: var(--muted); font-size: 13.5px; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 720px) {
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .strip > div:nth-child(3) { border-left: 0; } .strip > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; } .state { justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start; align-items: center; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Security Surveillance System · status as of 15 November 2026</div>
+    <h1>Where the HSS programme stands</h1>
+    <p class="lede">The platform is live on the site server: operators sign in, watch cameras on PC and iPhone, and WhatsApp messages reach the GM, CSO and IT Manager. Alerts, reports, the NVR event link and the face and plate engine are built and tested, waiting for site runs. The main blockers are a wired server connection, one NVR drive, and decisions on legal review and a GPU server.</p>
+  </header>
+
+  <div class="strip" role="list">
+    <div role="listitem"><b>4</b><span>NVRs surveyed, 112 channels (7 planned)</span></div>
+    <div role="listitem"><b>103</b><span>cameras online at the last survey</span></div>
+    <div role="listitem"><b>266</b><span>software components licence-checked, all pass</span></div>
+    <div role="listitem"><b>87</b><span>automated tests run on every change</span></div>
+  </div>
+
+  <section aria-labelledby="phases">
+    <h2 id="phases">Phases</h2>
+    <div class="board">
+      <div class="row"><div class="ph">Stage A</div><div><h3>Decisions and long-lead items</h3><p>Decisions approved, WhatsApp provider chosen, numbers linked, hardware inventoried. Legal reviewer and GPU quotes outstanding.</p><div class="track"><i style="width:70%"></i></div></div><div class="state"><span class="chip c-run">In progress</span><small>7 of 10 done</small></div></div>
+      <div class="row"><div class="ph">Phase 0</div><div><h3>Discovery and proof of concept</h3><p>Probe, camera survey, licence scan and test tools done. NVR limit and video-wall tests must be re-run once the server is wired.</p><div class="track"><i style="width:55%"></i></div></div><div class="state"><span class="chip c-run">In progress</span><small>Site runs pending</small></div></div>
+      <div class="row"><div class="ph">Phase 1</div><div><h3>Foundation</h3><p>Sign-in, roles, two-factor and audit log are running. NVRs are now added from the console: the login is tested, the password stored encrypted, and the cameras appear in live view. Camera AI tiers can be overridden.</p><div class="track"><i style="width:85%"></i></div></div><div class="state"><span class="chip c-wait">Awaiting site test</span><small>Add the 4 NVRs on site</small></div></div>
+      <div class="row"><div class="ph">Phase 2</div><div><h3>Live viewing and video walls</h3><p>Live view works on PC and iPhone. Wall layouts, rotation screen and the Windows wall soak test remain.</p><div class="track"><i style="width:45%"></i></div></div><div class="state"><span class="chip c-run">Partly built</span><small>Next after Phase 1</small></div></div>
+      <div class="row"><div class="ph">Phase 3</div><div><h3>NVR events and alerts</h3><p>Alert rules, escalation, incident workflow, evidence export, live device health and video clips are built and rehearsed against a simulated NVR.</p><div class="track"><i style="width:85%"></i></div></div><div class="state"><span class="chip c-wait">Awaiting site test</span><small>Walk test on real NVRs</small></div></div>
+      <div class="row"><div class="ph">Phase 4</div><div><h3>Server AI for non-AI cameras</h3><p>Detection worker works on sample video. Benchmark and comparison need the GPU server.</p><div class="track"><i style="width:25%"></i></div></div><div class="state"><span class="chip c-stop">Blocked</span><small>GPU purchase</small></div></div>
+      <div class="row"><div class="ph">Phase 5</div><div><h3>Maps and guard tracking</h3><p>Site map preview only. Floor plans, geofences and guard phone tracking not started.</p><div class="track"><i style="width:5%"></i></div></div><div class="state"><span class="chip c-todo">Not started</span></div></div>
+      <div class="row"><div class="ph">Phase 6</div><div><h3>Reports and delivery</h3><p>Daily, weekly and monthly reports in PDF and Word, with archive and scheduled WhatsApp sending. Seven-day delivery trial ends 19 November.</p><div class="track"><i style="width:90%"></i></div></div><div class="state"><span class="chip c-ok">Built</span><small>Trial ends 19 Nov</small></div></div>
+      <div class="row"><div class="ph">Phase 7</div><div><h3>Face and number plate</h3><p>Engine built. Stage 1 camera suitability running: 7 faces seen, none usable yet. Identification waits for legal approval.</p><div class="track"><i style="width:30%"></i></div></div><div class="state"><span class="chip c-stop">Legal gate</span><small>Stages 2 to 4</small></div></div>
+      <div class="row"><div class="ph">Phase 8</div><div><h3>Hardening and licensing</h3><p>Two-factor, roles, audit and licence scanning already in place. Backups, privacy masking and load tests to come.</p><div class="track"><i style="width:30%"></i></div></div><div class="state"><span class="chip c-todo">Later</span></div></div>
+      <div class="row"><div class="ph">Phase 9</div><div><h3>Installers and go-live</h3><p>Installers, training, onboarding wizard and pilot go-live.</p><div class="track"><i style="width:0%"></i></div></div><div class="state"><span class="chip c-todo">Later</span></div></div>
+      <div class="row"><div class="ph">Phase 10</div><div><h3>Release 2.0</h3><p>Remaining growth features, chosen at a prioritisation session.</p><div class="track"><i style="width:0%"></i></div></div><div class="state"><span class="chip c-todo">Later</span></div></div>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="site">
+      <h2 id="site">Needs action on site</h2>
+      <ul class="list">
+        <li><span class="chip c-stop">Urgent</span><div><strong>Wire the server at 1 Gbps</strong><span class="d">It reaches the NVRs over Wi-Fi today, which made the NVR and wall tests invalid.</span></div></li>
+        <li><span class="chip c-stop">Urgent</span><div><strong>Replace the NVR4 drive</strong><span class="d">The drive reports an error; recordings on it are at risk.</span></div></li>
+        <li><span class="chip c-wait">Soon</span><div><strong>Set all clocks to NTP</strong><span class="d">8 cameras are about 7 hours off and one has never been set, so event times are wrong.</span></div></li>
+        <li><span class="chip c-wait">Soon</span><div><strong>Fix 8 offline cameras</strong><span class="d">Plus firmware updates on the two older NVRs.</span></div></li>
+        <li><span class="chip c-wait">Soon</span><div><strong>Connect the NVR event link</strong><span class="d">Create a dedicated NVR user, tick “Notify Surveillance Center”, then a walk test.</span></div></li>
+      </ul>
+    </section>
+    <section class="panel" aria-labelledby="decide">
+      <h2 id="decide">Needs a decision</h2>
+      <ul class="list">
+        <li><span class="chip c-stop">Blocking</span><div><strong>Appoint a legal reviewer</strong><span class="d">Required before face and plate identification can be trialled.</span></div></li>
+        <li><span class="chip c-stop">Blocking</span><div><strong>Approve a GPU server quote</strong><span class="d">Needed for server AI on non-AI cameras and the benchmark.</span></div></li>
+        <li><span class="chip c-wait">Open</span><div><strong>Recognition scope</strong><span class="d">Qualify cameras one by one, and accept the GPU budget that goes with broad recognition.</span></div></li>
+        <li><span class="chip c-wait">Open</span><div><strong>Fourth wall PC</strong><span class="d">Three PCs cover 4 NVRs; 7 NVRs need a fourth.</span></div></li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>Prepared by the IT Manager for management. All software is free and open-source and runs on our own server; no camera video leaves the site.</footer>
+</div>

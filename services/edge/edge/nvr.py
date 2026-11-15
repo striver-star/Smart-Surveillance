@@ -40,9 +40,9 @@ def _t(el, path, default=""):
 
 class Nvr:
     def __init__(self, address: str, user: str, password: str, *, scheme: str = "http", rtsp_port: int = 554,
-                 transport: httpx.BaseTransport | None = None):
+                 alias_name: str | None = None, transport: httpx.BaseTransport | None = None):
         self.address, self.user, self.password = address, user, password
-        self.alias = alias(address)
+        self.alias = alias_name or alias(address)
         self.rtsp_port = rtsp_port
         self.http = httpx.Client(base_url=f"{scheme}://{address}", auth=httpx.DigestAuth(user, password),
                                  timeout=httpx.Timeout(10, read=30), verify=False, transport=transport)

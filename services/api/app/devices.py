@@ -105,7 +105,8 @@ def transitions(prev: dict | None, cur: dict, nvr_alias: str) -> list[dict]:
 @router.post("/health", dependencies=[Depends(check_worker_token)])
 def post_health(h: HealthIn) -> dict:
     cur = h.model_dump()
-    a = alias(h.nvr)
+    from .nvrs import registry_alias
+    a = registry_alias(h.nvr) or alias(h.nvr)
     with connect() as conn:
         row = conn.execute("SELECT reachable, data FROM device_health WHERE nvr = %s", (h.nvr,)).fetchone()
         prev = {**row[1], "reachable": row[0]} if row else None

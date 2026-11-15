@@ -34,16 +34,17 @@ recovers, a note is added to its open alert.
    NVR web page → Configuration → Event → Smart Event (Line Crossing, Intrusion, Region Entrance...)
    and Basic Event (Video Tampering, Video Loss) → channel → *Linkage Method* → **Notify
    Surveillance Center**. Do the same for HDD Error and Network exceptions under Exception.
-3. In `.env`:
-   ```
-   HSS_NVRS=10.1.3.4,10.1.3.5,10.1.3.6,10.1.3.7
-   HSS_NVR_USER=<the user from step 1>
-   HSS_NVR_PASSWORD=<its password>
-   ```
-4. Start it:
+3. Start it:
    ```bash
    docker compose --profile ai --profile notify --profile edge up -d --build
    ```
+4. **Add each NVR in the console**: Devices → **Add NVR**, with its address and the user from step 1
+   (see docs/nvr-registry.md). The edge service checks the console's list every minute, so NVRs
+   added, edited or removed there are picked up without a restart.
+
+   Fallback: while no NVR has been added in the console, the edge service uses `HSS_NVRS`,
+   `HSS_NVR_USER` and `HSS_NVR_PASSWORD` from `.env` instead. Once the first NVR is in the console,
+   those lines are ignored and can be emptied.
 5. Watch it connect:
    ```bash
    docker compose logs -f edge

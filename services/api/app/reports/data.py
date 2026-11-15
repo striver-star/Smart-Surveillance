@@ -190,10 +190,11 @@ def camera_names(devices: dict) -> dict[str, str]:
     out = {}
     for n in devices.get("nvrs", []):
         m = re.search(r"\.(\d+)$", n.get("address", "").split(":")[0])
-        if not m:
+        prefix = n.get("alias") or (f"nvr{m.group(1)}" if m else None)
+        if not prefix:
             continue
         for c in n["channels"]:
-            out[f"nvr{m.group(1)}-ch{int(c['channel']):02d}"] = c["name"]
+            out[f"{prefix}-ch{int(c['channel']):02d}"] = c["name"]
     return out
 
 

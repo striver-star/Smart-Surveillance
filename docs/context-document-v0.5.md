@@ -1686,7 +1686,8 @@ Numbers stay fixed between versions so sessions can refer to them.
 **Progress snapshot 2026-11-15.** Built and running on site: server stack, console with sign-in, live
 view (PC and iPhone), WhatsApp delivery. Built and tested, waiting for site runs: alerts and
 incidents, edge service (NVR events, device health, clips), reports, face and plate engine
-(stage 1 running). Blocked on site work: wired server (tasks 19, 20), NVR4 drive, NTP. Blocked on
+(stage 1 running), Phase 1 NVR registry (add NVRs in the console, encrypted credentials vault,
+tier overrides). Blocked on site work: wired server (tasks 19, 20), NVR4 drive, NTP. Blocked on
 decisions or purchases: legal reviewer (task 4, stages 2 to 4 of task 18), GPU server quote
 (tasks 16, 17), then the go/no-go (task 24).
 
@@ -1735,7 +1736,11 @@ schema with row-level security and branding fields; auth and admin;
 device adapter (ISAPI, ONVIF, RTSP) with credentials vault and NVR
 pass-through; network segments; Device Service health polling; tier
 assignment with override; API gateway. Gate: add an NVR and see its
-channels and tiers.
+channels and tiers. **Built 2026-11-15** (docs/nvr-registry.md): CI, auth and admin, NVR registry
+with connection test and encrypted vault, ISAPI pass-through, edge service and live view following
+the console's NVR list, network segment labels, health polling (edge service), tier override;
+gate passed against a simulated NVR, **site check waiting** (add the four NVRs). Deferred: tenant
+row-level security (with the hosted option), ONVIF and plain RTSP adapters.
 
 **Stage D: Phase 2, Live viewing:** stream gateway (pull once,
 sub-streams, auto-reconnect); 32-channel NVR screens; rotation screen;

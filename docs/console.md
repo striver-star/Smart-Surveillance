@@ -29,6 +29,8 @@ for every administrator and CSO under **Settings** (any authenticator app works)
 The Devices page reads the latest probe files from `tools/probe/probe-output/` (`inventory.json`
 from `hss-probe`, `cameras/cameras.json` from `hss-cameras`). Rerun those to refresh it. If the
 probe output lives elsewhere, set `HSS_PROBE_OUTPUT=/path/to/probe-output` in `.env`.
+Administrators add NVRs there with **Add NVR**, and administrators and the CSO can override a
+camera's AI tier (docs/nvr-registry.md).
 
 ## Phones and tablets (iPhone, iPad, Android)
 

@@ -2,7 +2,7 @@
 
 Generated 2026-11-15 by `tools/licence-scan/scan.py`. Engineering guidance against Section 19, not legal advice.
 
-**Result: PASS.** 263 components: 250 ok, 2 waived, 11 conditional.
+**Result: PASS.** 266 components: 253 ok, 2 waived, 11 conditional.
 
 Status meanings: **ok** permissive licence; **conditional** allowed under the condition shown (LGPL library used unmodified, GPL program run separately, or a declared exception); **waived** checked by hand, see waivers.json; **unknown** needs a manual check; **denied** not allowed.
 
@@ -35,7 +35,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | MIT | 151 |
 | Apache-2.0 | 27 |
 | ISC | 27 |
-| BSD-3-Clause | 22 |
+| BSD-3-Clause | 23 |
 | BSD-2-Clause | 6 |
 | Proprietary-free | 5 |
 | BlueOak-1.0.0 | 4 |
@@ -44,6 +44,8 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | LGPL-2.1-or-later | 2 |
 | Non-commercial | 2 |
 | MPL-2.0 | 1 |
+| MIT-0 | 1 |
+| Apache-2.0 OR BSD-3-Clause | 1 |
 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 1 |
 | Apache-2.0 OR BSD-2-Clause | 1 |
 | MIT-CMU | 1 |
@@ -283,9 +285,11 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | annotated-types | 0.8.0 | MIT | ok | api |
 | pypi | anyio | 4.16.0 | MIT | ok | ai-worker, api, edge, probe |
 | pypi | certifi | 2026.10.23 | MPL-2.0 | ok | ai-worker, api, edge, probe |
+| pypi | cffi | 2.1.1 | MIT-0 | ok | api |
 | pypi | charset-normalizer | 3.5.2 | MIT | ok | api |
 | pypi | click | 8.5.1 | BSD-3-Clause | ok | api |
 | pypi | contourpy | 1.4.0 | BSD-3-Clause | ok | api |
+| pypi | cryptography | 46.0.3 | Apache-2.0 OR BSD-3-Clause | ok | api |
 | pypi | cycler | 0.12.1 | BSD-3-Clause | ok | api |
 | pypi | fastapi | 0.115.6 | MIT | ok | api |
 | pypi | flatbuffers | 25.12.19 | Apache-2.0 | ok | ai-worker |
@@ -306,6 +310,7 @@ Status meanings: **ok** permissive licence; **conditional** allowed under the co
 | pypi | protobuf | 7.36.2 | BSD-3-Clause | ok | ai-worker |
 | pypi | psycopg | 3.2.3 | LGPL-3.0-only | conditional | api |
 | pypi | psycopg-binary | 3.2.3 | LGPL-3.0-only | conditional | api |
+| pypi | pycparser | 3.12 | BSD-3-Clause | ok | api |
 | pypi | pydantic | 2.14.3 | MIT | ok | api |
 | pypi | pydantic-core | 2.50.4 | MIT | ok | api |
 | pypi | pyparsing | 3.3.3 | MIT | ok | api |

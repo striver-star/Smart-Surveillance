@@ -383,6 +383,7 @@ async function viewLive(c) {
   let chosen = JSON.parse(localStorage.getItem("hss.live.paths") || "null") || paths.slice(0, 16).map(p => p.path);
   chosen = chosen.filter(p => paths.some(x => x.path === p));
   const players = [];
+  const labelOf = Object.fromEntries(paths.map(p => [p.path, p.label && p.label !== p.path ? p.label : ""]));
   state.cleanup.push(() => players.forEach(p => p.close()));
   const tiles = h("div", { class: "tiles" });
   const camList = h("div", { class: "cams" });
@@ -398,7 +399,7 @@ async function viewLive(c) {
       video.muted = true;
       const st = h("span", { class: "state" }, "connecting");
       const tile = h("div", { class: "tile", ondblclick: () => tile.requestFullscreen && tile.requestFullscreen(), title: "Double-click for full screen" },
-        video, h("span", { class: "label" }, h("span", { class: "dot" }), path), st);
+        video, h("span", { class: "label" }, h("span", { class: "dot" }), labelOf[path] || path), st);
       tiles.append(tile);
       players.push(new LivePlayer(video, path, (s, info) => {
         st.textContent = s === "playing" ? (info || "live") : s === "error" ? info : s;
@@ -409,14 +410,14 @@ async function viewLive(c) {
   };
   const drawCams = filter => {
     const groups = {};
-    paths.filter(p => !filter || p.path.toLowerCase().includes(filter)).forEach(p => (groups[p.nvr] ||= []).push(p));
+    paths.filter(p => !filter || `${p.path} ${p.label}`.toLowerCase().includes(filter)).forEach(p => (groups[p.nvr] ||= []).push(p));
     camList.replaceChildren(...Object.entries(groups).map(([nvr, ps]) => h("div", {},
       h("h3", { style: "margin:10px 8px 4px" }, nvr.toUpperCase()),
       ps.map(p => h("button", { class: chosen.includes(p.path) ? "on" : null, onclick: () => {
         chosen = chosen.includes(p.path) ? chosen.filter(x => x !== p.path) : [...chosen, p.path].slice(-16);
         drawCams(filter); drawTiles();
-      } }, h("span", { class: `dot ${chosen.includes(p.path) ? "ok" : ""}` }), p.path)))));
-    if (!paths.length) camList.append(h("div", { class: "empty" }, "No cameras in the gateway yet (gateway/cameras.env)."));
+      } }, h("span", { class: `dot ${chosen.includes(p.path) ? "ok" : ""}` }), labelOf[p.path] ? h("span", { title: p.path }, labelOf[p.path]) : p.path)))));
+    if (!paths.length) camList.append(h("div", { class: "empty" }, "No cameras yet. An administrator adds NVRs on the Devices page."));
   };
   const seg = h("div", { class: "seg", role: "group", "aria-label": "Layout" }, [1, 4, 9, 16].map(n =>
     h("button", { class: n === layout ? "on" : null, onclick: e => { layout = n; seg.querySelectorAll("button").forEach(b => b.classList.remove("on")); e.target.classList.add("on"); drawTiles(); } }, `${n}`)));
@@ -429,28 +430,39 @@ async function viewLive(c) {
 }
 
 /* ---------------- devices ---------------- */
+const TIER_NAMES = { E: "Camera AI", N: "NVR AI", S: "Server AI" };
 async function viewDevices(c) {
   const dev = await api("/devices");
+  const role = state.user.role, isAdmin = role === "admin", canTier = isAdmin || role === "cso";
   const want = new URLSearchParams(location.hash.split("?")[1] || "").get("nvr");
   let q = "";
   const box = h("div", { class: "grid" });
+  const tierBadge = ch => h("span", { class: `badge ${ch.tier === "E" ? "ok" : ch.tier === "N" ? "info" : ch.tier === "S" ? "warn" : ""}`,
+    title: (TIER_NAMES[ch.tier] || "Not classified") + (ch.tier_override ? ` · set by ${ch.tier_override.by}${ch.tier_override.note ? `: ${ch.tier_override.note}` : ""}` : "") }, ch.tier || "?", ch.tier_override ? " ✎" : "");
   const draw = () => box.replaceChildren(...dev.nvrs.map(n => {
-    const chans = n.channels.filter(ch => !q || `${ch.name} ${ch.ip} ${ch.model} ${ch.class}`.toLowerCase().includes(q));
+    const chans = n.channels.filter(ch => !q || `${ch.name} ${ch.ip} ${ch.model} ${ch.class} ${ch.camera_id}`.toLowerCase().includes(q));
     if (q && !chans.length) return "";
+    const reg = n.registered;
     return h("section", { class: "card", id: `nvr-${n.address}` },
-      h("div", { class: "head" }, h("h2", {}, n.name), h("span", { class: "muted mono" }, n.address),
-        h("span", { class: "badge" }, n.model), h("span", { class: "badge" }, n.firmware),
+      h("div", { class: "head" }, h("h2", {}, n.name), h("span", { class: "muted mono" }, n.address), h("span", { class: "badge mono", title: "Short name: the start of this NVR's camera ids" }, n.alias),
+        n.model ? h("span", { class: "badge" }, n.model) : null, n.firmware ? h("span", { class: "badge" }, n.firmware) : null,
+        reg && reg.segment ? h("span", { class: "badge", title: "Network segment" }, reg.segment) : null,
         n.disk_problem ? h("span", { class: "badge bad" }, "drive fault") : null,
+        reg && !reg.enabled ? h("span", { class: "badge" }, "paused") : null,
         n.reachable === false ? h("span", { class: "badge bad" }, "not answering") : n.live_checked_at ? h("span", { class: "badge ok", title: `Checked ${fmtTime(n.live_checked_at)}` }, "live") : null,
         h("div", { class: "spacer" }),
-        h("span", { class: "muted" }, `${n.online}/${n.total} online`)),
+        h("span", { class: "muted" }, `${n.online}/${n.total} online`),
+        isAdmin ? h("button", { class: "btn small", onclick: () => nvrForm(reg ? n : { address: n.address, name: n.name, alias: n.alias }, !!reg) }, reg ? "Edit" : "Add to console") : null),
+      reg && reg.test_ok === false ? h("div", { class: "note" }, `Last connection test ${ago(reg.tested_at)} failed: ${reg.test_detail}`) : null,
+      !n.channels.length ? h("div", { class: "empty" }, "No channels known yet. Use Edit and save to test the connection again.") :
       h("div", { class: "table-wrap" }, h("table", {},
         h("thead", {}, h("tr", {}, ["Ch", "Camera", "IP", "Status", "Model", "Class", "AI tier", "Stream", "Clock"].map(t => h("th", {}, t)))),
         h("tbody", {}, chans.map(ch => h("tr", {},
-          h("td", { class: "muted" }, ch.channel), h("td", { style: "font-weight:600" }, ch.name), h("td", { class: "mono" }, ch.ip),
-          h("td", {}, ch.online ? h("span", { class: "badge ok" }, "online") : h("span", { class: "badge bad" }, "offline")),
+          h("td", { class: "muted" }, ch.channel), h("td", {}, h("div", { style: "font-weight:600" }, ch.name), h("div", { class: "faint mono" }, ch.camera_id)), h("td", { class: "mono" }, ch.ip),
+          h("td", {}, ch.online ? h("span", { class: "badge ok" }, "online") : ch.online === false ? h("span", { class: "badge bad" }, "offline") : h("span", { class: "badge" }, "unknown")),
           h("td", {}, ch.model || h("span", { class: "faint" }, "—"), ch.firmware ? h("div", { class: "faint mono" }, ch.firmware) : null),
-          h("td", {}, ch.class || "—"), h("td", {}, h("span", { class: `badge ${ch.tier === "E" ? "ok" : ch.tier === "N" ? "info" : ch.tier === "S" ? "warn" : ""}`, title: { E: "Camera AI", N: "NVR AI", S: "Server AI" }[ch.tier] || "" }, ch.tier || "?")),
+          h("td", {}, ch.class || "—"),
+          h("td", {}, canTier ? h("button", { class: "linkish", title: "Change the AI tier", onclick: () => tierForm(ch) }, tierBadge(ch)) : tierBadge(ch)),
           h("td", { class: "muted", style: "font-size:12.5px" }, ch.stream || "—"),
           h("td", {}, ch.clock_drift_s === null || ch.clock_drift_s === undefined ? "—" : Math.abs(ch.clock_drift_s) > 30 ? h("span", { class: "badge warn" }, driftText(ch.clock_drift_s)) : h("span", { class: "badge ok" }, "OK"))))))));
   }));
@@ -458,11 +470,79 @@ async function viewDevices(c) {
     h("input", { class: "input", type: "search", placeholder: "Find a camera, IP, model or class", oninput: e => { q = e.target.value.toLowerCase(); draw(); } }),
     h("div", { style: "flex:1" }),
     h("span", { class: "muted" }, dev.live_checked_at ? `Live status, checked ${ago(dev.live_checked_at)}; models and classes from the camera survey`
-      : dev.probed_at ? `From the probe of ${fmtTime(dev.probed_at)}${dev.cameras_surveyed_at ? ` and the camera survey of ${fmtTime(dev.cameras_surveyed_at)}` : ""}` : "No device data on the server yet")),
+      : dev.probed_at ? `From the probe of ${fmtTime(dev.probed_at)}${dev.cameras_surveyed_at ? ` and the camera survey of ${fmtTime(dev.cameras_surveyed_at)}` : ""}` : "No device data on the server yet"),
+    isAdmin ? h("button", { class: "btn primary", onclick: () => nvrForm({}, false) }, "Add NVR") : null),
     dev.live_checked_at ? null : h("div", { class: "note" }, "Showing the latest probe files. Start the edge service (docs/edge.md) for live status checked every minute."),
-    box);
+    dev.nvrs.length ? box : h("div", { class: "empty" }, isAdmin ? "No NVRs yet. Use Add NVR to connect the first one." : "No NVRs have been added yet."));
   draw();
   if (want) setTimeout(() => { const el = document.getElementById(`nvr-${want}`); if (el) el.scrollIntoView({ behavior: "smooth" }); }, 50);
+}
+
+function nvrForm(n, editing) {
+  const reg = n.registered || {};
+  const inp = (id, value, attrs = {}) => h("input", { class: "input", id, value: value ?? "", autocomplete: "off", ...attrs });
+  const f = {
+    address: inp("nvr-address", n.address, { placeholder: "e.g. 10.1.3.4" }),
+    name: inp("nvr-name", editing ? n.name : (n.name && n.name !== n.address ? n.name : ""), { placeholder: "Taken from the NVR if empty" }),
+    alias: inp("nvr-alias", editing ? n.alias : "", { placeholder: n.alias || "e.g. nvr4", disabled: editing }),
+    username: inp("nvr-user", reg.username, { placeholder: "A dedicated NVR user, not admin" }),
+    password: inp("nvr-pass", "", { type: "password", autocomplete: "new-password", placeholder: editing ? "Leave empty to keep the stored password" : "" }),
+    rtsp: inp("nvr-rtsp", reg.rtsp_port || 554, { type: "number", min: 1, max: 65535 }),
+    segment: inp("nvr-seg", reg.segment, { placeholder: "e.g. CCTV VLAN 30, Block B" }),
+    https: h("input", { type: "checkbox", id: "nvr-https", checked: reg.scheme === "https" }),
+    enabled: h("input", { type: "checkbox", id: "nvr-enabled", checked: editing ? reg.enabled : true }),
+    live: h("input", { type: "checkbox", id: "nvr-live", checked: editing ? reg.live_view : true }),
+  };
+  const err = h("div", { class: "error", hidden: true });
+  const anyway = h("label", { class: "check", hidden: true }, h("input", { type: "checkbox", id: "nvr-anyway" }), "Save anyway (the NVR is offline or not reachable from the server yet)");
+  const field = (label, el, hint) => h("div", { class: "field" }, h("label", { for: el.id }, label), el, hint ? h("div", { class: "faint", style: "font-size:12px" }, hint) : null);
+  const check = (el, text) => h("label", { class: "check" }, el, text);
+  const body = h("div", {}, err,
+    h("p", { class: "muted", style: "margin:0 0 14px" }, "The server tests the login before saving. The password is stored encrypted and is never shown again."),
+    field("NVR address", f.address, "IP address, with :port only if its web port isn't 80"),
+    h("div", { class: "field-row" }, field("Name", f.name), field("Short name", f.alias, editing ? "Fixed once added" : "Starts each camera id")),
+    h("div", { class: "field-row" }, field("NVR user", f.username), field("Password", f.password)),
+    h("div", { class: "field-row" }, field("RTSP port", f.rtsp), field("Network segment", f.segment)),
+    h("div", { class: "field", style: "gap:8px" }, check(f.enabled, "Watch this NVR for events, health and clips"), check(f.live, "Add its cameras to live view"),
+      check(f.https, "Use HTTPS to reach the NVR")),
+    anyway);
+  modal(editing ? `Edit ${n.name}` : "Add an NVR", body, close => {
+    const buttons = [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel")];
+    if (editing) buttons.unshift(h("button", { class: "btn danger", style: "margin-right:auto", onclick: () => {
+      if (!confirm(`Remove ${n.name} from the console? Its live view paths are removed and the edge service stops watching it. Past events and alerts stay.`)) return;
+      api(`/nvrs/${reg.id}`, { method: "DELETE" }).then(() => { close.remove(); toast(`${n.name} removed`); render(); }).catch(ex => { err.textContent = ex.message; err.hidden = false; });
+    } }, "Remove"));
+    const save = h("button", { class: "btn primary", onclick: async () => {
+      save.disabled = true; save.textContent = "Testing the connection…"; err.hidden = true;
+      const payload = { address: f.address.value.trim(), name: f.name.value.trim(), alias: editing ? "" : f.alias.value.trim(), username: f.username.value.trim(),
+        password: f.password.value, rtsp_port: Number(f.rtsp.value) || 554, segment: f.segment.value.trim(), scheme: f.https.checked ? "https" : "http",
+        enabled: f.enabled.checked, live_view: f.live.checked, save_anyway: anyway.querySelector("input").checked };
+      try {
+        const r = await api(editing ? `/nvrs/${reg.id}` : "/nvrs", { method: editing ? "PUT" : "POST", body: payload });
+        close.remove(); toast(r.test_ok ? `${r.name || r.address}: ${r.test_detail}` : `${r.address} saved without a working connection`); render();
+      } catch (ex) {
+        err.textContent = ex.message; err.hidden = false;
+        if (ex.status === 422 && ex.message.startsWith("Connection test failed")) anyway.hidden = false;
+      } finally { save.disabled = false; save.textContent = editing ? "Test and save" : "Test and add"; }
+    } }, editing ? "Test and save" : "Test and add");
+    return [...buttons, save];
+  });
+}
+
+function tierForm(ch) {
+  const sel = h("select", { class: "input", id: "tier-sel" },
+    h("option", { value: "", selected: !ch.tier_override }, `Automatic (${ch.tier_auto && ch.tier_auto !== "?" ? `${ch.tier_auto}, ${TIER_NAMES[ch.tier_auto]}` : "not classified yet"})`),
+    Object.entries(TIER_NAMES).map(([k, v]) => h("option", { value: k, selected: ch.tier_override && ch.tier === k }, `${k}: ${v}`)));
+  const note = h("input", { class: "input", id: "tier-note", value: ch.tier_override ? ch.tier_override.note : "", placeholder: "Why, e.g. AcuSense licence missing on this camera" });
+  const err = h("div", { class: "error", hidden: true });
+  modal(`AI tier for ${ch.name}`, h("div", {}, err,
+    h("p", { class: "muted", style: "margin:0 0 14px" }, "E: the camera's own AI detects people and vehicles. N: the NVR's AI does. S: the server's AI watches the video. The camera survey sets this automatically; override it when you know better."),
+    h("div", { class: "field" }, h("label", { for: "tier-sel" }, "Tier"), sel), h("div", { class: "field" }, h("label", { for: "tier-note" }, "Note"), note)),
+    close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        try { await api(`/cameras/${ch.camera_id}/tier`, { method: "PUT", body: { tier: sel.value || null, note: note.value.trim() } }); close.remove(); toast("Tier saved"); render(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
 }
 const driftText = s => { const a = Math.abs(s); return a > 86400 * 365 ? "clock never set" : a > 3600 ? `${Math.round(a / 3600)} h off` : `${Math.round(a / 60)} min off`; };
 
@@ -864,7 +944,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

@@ -91,6 +91,19 @@ class Platform:
             log.warning("health not delivered: %s", exc)
             return None
 
+    # ---- NVRs registered in the console
+    def nvr_list(self) -> list[dict] | None:
+        """The console's NVR list (with logins), or None if the API can't be asked right now."""
+        try:
+            r = self.http.get("/nvrs/edge")
+            if r.status_code == 404:          # an older API without the registry
+                return []
+            r.raise_for_status()
+            return r.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            log.warning("NVR list unavailable: %s", exc.__class__.__name__)
+            return None
+
     # ---- clips
     def next_clip(self) -> dict | None:
         try:
