@@ -26,7 +26,7 @@ from .db import connect
 router = APIRouter(tags=["wall screens"])
 TILES = (1, 4, 6, 9, 16, 25, 32, 36, 64)
 COLS = {1: 1, 4: 2, 6: 3, 9: 3, 16: 4, 25: 5, 32: 8, 36: 6, 64: 8}
-COLS_SQL = "id, name, source, cameras, tiles, dwell_s, labels, pin_alerts, key, created_at, updated_at"
+COLS_SQL = "id, name, source, cameras, tiles, dwell_s, labels, pin_alerts, key, created_at, updated_at, kind, plan_id"
 
 
 def grid_shape(tiles: int) -> tuple[int, int]:
@@ -114,6 +114,8 @@ class ScreenIn(BaseModel):
     dwell_s: int = Field(default=20, ge=5, le=600)
     labels: bool = True
     pin_alerts: bool = True
+    kind: str = Field(default="cameras", pattern="^(cameras|control)$")   # control: the control-room status board
+    plan_id: int | None = None                                           # control: the site plan to show
 
     @field_validator("source")
     @classmethod
@@ -140,7 +142,7 @@ class ScreenIn(BaseModel):
 
 def _summary(s: dict, available: list[str]) -> dict:
     cams = resolve_cameras(s["source"], s["cameras"], available)
-    return {k: s[k] for k in ("id", "name", "source", "cameras", "tiles", "dwell_s", "labels", "pin_alerts", "updated_at")} | {
+    return {k: s[k] for k in ("id", "name", "source", "cameras", "tiles", "dwell_s", "labels", "pin_alerts", "updated_at", "kind", "plan_id")} | {
         "camera_count": len(cams), "pages": max(1, math.ceil(len(cams) / s["tiles"])), "url": screen_url(s)}
 
 
@@ -160,10 +162,10 @@ def create_screen(body: ScreenIn, request: Request, user: dict = Depends(require
     with connect() as conn:
         if conn.execute("SELECT 1 FROM wall_screens WHERE name = %s", (body.name,)).fetchone():
             raise HTTPException(status_code=409, detail=f"A screen called {body.name} exists already.")
-        sid = conn.execute("INSERT INTO wall_screens (name, source, cameras, tiles, dwell_s, labels, pin_alerts, key) "
-                           "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        sid = conn.execute("INSERT INTO wall_screens (name, source, cameras, tiles, dwell_s, labels, pin_alerts, key, kind, plan_id) "
+                           "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
                            (body.name, body.source, Jsonb(body.cameras), body.tiles, body.dwell_s, body.labels, body.pin_alerts,
-                            secrets.token_urlsafe(18))).fetchone()[0]
+                            secrets.token_urlsafe(18), body.kind, body.plan_id)).fetchone()[0]
     audit("screen_created", user_id=user["id"], username=user["username"], ip=client_ip(request), screen=body.name)
     return _summary(_get(sid), [])
 
@@ -175,8 +177,9 @@ def edit_screen(sid: int, body: ScreenIn, request: Request, user: dict = Depends
         if conn.execute("SELECT 1 FROM wall_screens WHERE name = %s AND id <> %s", (body.name, sid)).fetchone():
             raise HTTPException(status_code=409, detail=f"A screen called {body.name} exists already.")
         conn.execute("UPDATE wall_screens SET name = %s, source = %s, cameras = %s, tiles = %s, dwell_s = %s, labels = %s, "
-                     "pin_alerts = %s, updated_at = now() WHERE id = %s",
-                     (body.name, body.source, Jsonb(body.cameras), body.tiles, body.dwell_s, body.labels, body.pin_alerts, sid))
+                     "pin_alerts = %s, kind = %s, plan_id = %s, updated_at = now() WHERE id = %s",
+                     (body.name, body.source, Jsonb(body.cameras), body.tiles, body.dwell_s, body.labels, body.pin_alerts,
+                      body.kind, body.plan_id, sid))
     audit("screen_changed", user_id=user["id"], username=user["username"], ip=client_ip(request), screen=body.name)
     return _summary(_get(sid), [])
 
@@ -214,6 +217,9 @@ def play(sid: int, k: str) -> dict:
     if not r or not hmac.compare_digest(k.encode(), _row(r)["key"].encode()):
         raise HTTPException(status_code=404, detail="no such screen, or its link was changed")
     s = _row(r)
+    if s["kind"] == "control":
+        from .control import board
+        return board(s)
     available, labels = available_paths()
     cams = resolve_cameras(s["source"], s["cameras"], available)
     alerts = alert_cameras() if s["pin_alerts"] else {}

@@ -1335,10 +1335,10 @@ async function viewWalls(c) {
       h("tbody", {}, screens.map(sc => {
         const on = shownOn(sc.url);
         return h("tr", {},
-          h("td", {}, h("div", { style: "font-weight:600" }, sc.name), h("div", { class: "faint" }, sourceText(sc, nvrNames))),
-          h("td", {}, sc.camera_count),
-          h("td", {}, `${sc.tiles} tiles`),
-          h("td", {}, sc.pages > 1 ? `${sc.pages} pages, ${sc.dwell_s} s each` : h("span", { class: "faint" }, "fits on one page"), sc.pin_alerts ? h("div", { class: "faint" }, "alerts pinned") : null),
+          h("td", {}, h("div", { style: "font-weight:600" }, sc.name), h("div", { class: "faint" }, sc.kind === "control" ? "Control-room status board" : sourceText(sc, nvrNames))),
+          h("td", {}, sc.kind === "control" ? "—" : sc.camera_count),
+          h("td", {}, sc.kind === "control" ? "board" : `${sc.tiles} tiles`),
+          h("td", {}, sc.kind === "control" ? h("span", { class: "faint" }, "refreshes every 10 s") : sc.pages > 1 ? `${sc.pages} pages, ${sc.dwell_s} s each` : h("span", { class: "faint" }, "fits on one page"), sc.pin_alerts ? h("div", { class: "faint" }, "alerts pinned") : null),
           h("td", {}, on.length ? on.map(o => h("div", { style: "font-size:12.5px" }, o)) : h("span", { class: "faint" }, "not assigned")),
           h("td", { style: "text-align:right;white-space:nowrap" },
             h("a", { class: "btn small", href: sc.url, target: "_blank", rel: "noopener" }, "Open"), " ",
@@ -1391,8 +1391,14 @@ function assignForm(n, monitors, screens) {
 
 function screenForm(sc, paths, dev) {
   const editing = !!sc;
-  sc = sc || { name: "", source: "cameras", cameras: [], tiles: 16, dwell_s: 20, labels: true, pin_alerts: true };
+  sc = sc || { name: "", source: "cameras", cameras: [], tiles: 16, dwell_s: 20, labels: true, pin_alerts: true, kind: "cameras", plan_id: null };
   const name = h("input", { class: "input", id: "sc-name", value: sc.name, placeholder: "e.g. Perimeter, Gate area, NVR4" });
+  const kind = h("select", { class: "input", id: "sc-kind" },
+    h("option", { value: "cameras", selected: sc.kind !== "control" }, "Camera grid"),
+    h("option", { value: "control", selected: sc.kind === "control" }, "Control-room status board (alerts, map, devices, guards)"));
+  const plan = h("select", { class: "input", id: "sc-plan" }, h("option", { value: "" }, "No map"));
+  api("/geo/plans").then(ps => plan.append(...ps.map(p => h("option", { value: p.id, selected: p.id === sc.plan_id }, p.name)))).catch(() => {});
+  const planBox = h("div", { class: "field" }, h("label", { for: "sc-plan" }, "Site map on the board"), plan);
   const source = h("select", { class: "input", id: "sc-src" },
     h("option", { value: "cameras", selected: sc.source === "cameras" }, "Cameras I pick"),
     h("option", { value: "all", selected: sc.source === "all" }, "All cameras (rotation)"),
@@ -1417,23 +1423,35 @@ function screenForm(sc, paths, dev) {
   };
   find.addEventListener("input", drawList);
   const pickBox = h("div", { class: "field" }, h("div", { style: "display:flex;justify-content:space-between" }, h("label", { for: "sc-find" }, "Cameras"), count), find, list);
-  const syncSource = () => { pickBox.hidden = source.value !== "cameras"; };
+  const gridParts = [];
+  const syncSource = () => {
+    const board = kind.value === "control";
+    pickBox.hidden = board || source.value !== "cameras";
+    planBox.hidden = !board;
+    gridParts.forEach(x => { x.hidden = board; });
+  };
   source.addEventListener("change", syncSource);
+  kind.addEventListener("change", syncSource);
   const err = h("div", { class: "error", hidden: true });
   modal(editing ? `Edit ${sc.name}` : "New screen", h("div", {}, err,
     h("div", { class: "field" }, h("label", { for: "sc-name" }, "Name"), name),
-    h("div", { class: "field" }, h("label", { for: "sc-src" }, "Shows"), source),
-    h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "sc-tiles" }, "Grid"), tiles),
-      h("div", { class: "field" }, h("label", { for: "sc-dwell" }, "Seconds per page"), dwell, h("div", { class: "faint", style: "font-size:12px" }, "When there are more cameras than tiles"))),
-    h("div", { class: "field", style: "gap:8px" }, h("label", { class: "check" }, labels, "Show camera names"),
-      h("label", { class: "check" }, pin, "Keep cameras with open alerts on screen, outlined")),
+    h("div", { class: "field" }, h("label", { for: "sc-kind" }, "Type"), kind),
+    planBox,
+    ...(gridParts.push(
+      h("div", { class: "field" }, h("label", { for: "sc-src" }, "Shows"), source),
+      h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "sc-tiles" }, "Grid"), tiles),
+        h("div", { class: "field" }, h("label", { for: "sc-dwell" }, "Seconds per page"), dwell, h("div", { class: "faint", style: "font-size:12px" }, "When there are more cameras than tiles"))),
+      h("div", { class: "field", style: "gap:8px" }, h("label", { class: "check" }, labels, "Show camera names"),
+        h("label", { class: "check" }, pin, "Keep cameras with open alerts on screen, outlined"))), gridParts),
     pickBox),
     close => {
       const btns = [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
         h("button", { class: "btn primary", onclick: async () => {
           const body = { name: name.value.trim(), source: source.value, cameras: source.value === "cameras" ? paths.map(p => p.path).filter(p => picked.has(p)).concat([...picked].filter(p => !paths.some(x => x.path === p))) : [],
-            tiles: Number(tiles.value), dwell_s: Number(dwell.value) || 20, labels: labels.checked, pin_alerts: pin.checked };
-          if (body.source === "cameras" && !body.cameras.length) { err.textContent = "Pick at least one camera."; err.hidden = false; return; }
+            tiles: Number(tiles.value), dwell_s: Number(dwell.value) || 20, labels: labels.checked, pin_alerts: pin.checked,
+            kind: kind.value, plan_id: kind.value === "control" && plan.value ? Number(plan.value) : null };
+          if (body.kind === "control") { body.source = "all"; body.cameras = []; }
+          if (body.kind !== "control" && body.source === "cameras" && !body.cameras.length) { err.textContent = "Pick at least one camera."; err.hidden = false; return; }
           try { await api(editing ? `/wall/screens/${sc.id}` : "/wall/screens", { method: editing ? "PUT" : "POST", body }); close.remove(); toast(editing ? "Screen saved; TVs update within 10 seconds" : "Screen added"); render(); }
           catch (ex) { err.textContent = ex.message; err.hidden = false; }
         } }, editing ? "Save" : "Add screen")];

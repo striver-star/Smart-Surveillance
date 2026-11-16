@@ -23,15 +23,21 @@ function forget() { try { localStorage.removeItem(CACHE_KEY); } catch (_) { /* i
 const hhmm = d => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 function apply(next) {
+  if (next.kind === "control") {                // control-room status board instead of a camera grid
+    const first = !screen || screen.kind !== "control";
+    if (first) { for (const p of players.values()) p.player && p.player.close(); players.clear(); clearInterval(rotateTimer); grid.replaceChildren(); }
+    screen = next;
+    document.getElementById("bar").hidden = true;          // the board has its own clock
+    lockBar(next.lockdown);
+    Control.draw(next, SID, KEY);
+    return;
+  }
+  if (screen && screen.kind === "control") { Control.clear(); document.getElementById("bar").hidden = false; screen = null; lastLayoutSig = ""; }
   const sig = JSON.stringify([next.tiles, next.dwell_s, next.labels, next.pages.map(p => p.map(t => t.path))]);
   const first = !screen;
   screen = next;
   document.getElementById("title").textContent = screen.name;
-  const lock = document.getElementById("lock");
-  if (next.lockdown) {
-    lock.textContent = `LOCKDOWN since ${new Date(next.lockdown.since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${next.lockdown.reason}`;
-    lock.hidden = false;
-  } else lock.hidden = true;
+  lockBar(next.lockdown);
   if (first || sig !== lastLayoutSig) {
     lastLayoutSig = sig;
     if (pageIx >= screen.pages.length) pageIx = 0;
@@ -40,6 +46,14 @@ function apply(next) {
   } else {
     markAlerts();
   }
+}
+
+function lockBar(l) {
+  const lock = document.getElementById("lock");
+  if (l) {
+    lock.textContent = `LOCKDOWN since ${new Date(l.since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${l.reason}`;
+    lock.hidden = false;
+  } else lock.hidden = true;
 }
 
 function setOffline(on) {
@@ -56,6 +70,7 @@ function setOffline(on) {
     offlineSince = null;
     note.hidden = true;
     for (const p of players.values()) p.player && p.player.nudge();     // reconnect now, not after the back-off
+    if (typeof Control !== "undefined") Control.nudge();
   }
 }
 

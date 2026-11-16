@@ -41,6 +41,8 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 **Video walls**: one screen per NVR, or a rotation through all cameras. Cameras with open alerts stay on every page, outlined. Assign screens to each TV.
 
+**Status board**: a screen of type *Control-room status board* shows open alerts, the site map, device health, guards and the shift on one TV; ask the administrator to add one and put it on the TV the operators face.
+
 ## Site map and guards
 
 **Site map**: draw restricted zones, the perimeter and patrol checkpoints; link the cameras covering each. Use **Walk-through** to test a zone without a phone.

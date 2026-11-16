@@ -3,8 +3,8 @@
    Network first, so changes on the server are picked up as soon as it answers; the API and the video
    streams are never cached. */
 "use strict";
-const CACHE = "hss-wall-v1";
-const SHELL = ["/wall/", "/wall/wall.js", "/player.js"];
+const CACHE = "hss-wall-v2";
+const SHELL = ["/wall/", "/wall/wall.js", "/wall/control.js", "/wall/control.css", "/player.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting()));
@@ -15,7 +15,7 @@ self.addEventListener("activate", e => {
 });
 
 function shellKey(url) {
-  if (url.pathname === "/player.js" || url.pathname === "/wall/wall.js") return url.pathname;
+  if (["/player.js", "/wall/wall.js", "/wall/control.js", "/wall/control.css"].includes(url.pathname)) return url.pathname;
   if (url.pathname.startsWith("/wall/") && !/\.\w+$/.test(url.pathname)) return "/wall/";   // the page, with any ?s=&k=
   if (url.pathname === "/wall/index.html") return "/wall/";
   return null;

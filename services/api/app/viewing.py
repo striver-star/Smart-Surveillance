@@ -59,7 +59,7 @@ def wall_paths(header: str) -> set[str] | None:
     """The paths a wall screen may play, from its "<screen>:<key>" header; None if the key is wrong."""
     with _wall_lock:
         hit = _wall_cache.get(header)
-        if hit and time.monotonic() - hit[0] < 30:
+        if hit and time.monotonic() - hit[0] < 10:
             return hit[1]
     sid, _, key = header.partition(":")
     allowed = None
@@ -71,7 +71,12 @@ def wall_paths(header: str) -> set[str] | None:
             s = _row(r)
             if hmac.compare_digest(key.encode(), s["key"].encode()):
                 available, _labels = available_paths()
-                allowed = set(resolve_cameras(s["source"], s["cameras"], available))
+                if s["kind"] == "control":          # the status board plays only cameras with an open alert
+                    from .screens import alert_cameras
+                    cams = set(alert_cameras())
+                    allowed = {p for p in available if p.removesuffix("-sub") in cams}
+                else:
+                    allowed = set(resolve_cameras(s["source"], s["cameras"], available))
     with _wall_lock:
         _wall_cache[header] = (time.monotonic(), allowed)
         if len(_wall_cache) > 500:

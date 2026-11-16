@@ -6,6 +6,9 @@ full screen, restarts the browser if the page stops, and picks up changes within
 
 ## Make screens
 
+A screen is a camera grid, or the **control-room status board** (alerts, map, devices, guards): see docs/control-room-screen.md.
+
+
 - **Add a screen per NVR** makes one screen for every NVR that doesn't have one: all of its cameras on
   a 32-tile grid (8 × 4), or 16 tiles for small NVRs. These are the 32-channel NVR screens.
 - **New screen** for anything else:
