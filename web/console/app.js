@@ -88,6 +88,7 @@ const I = {
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+  plug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0z"/><path d="M12 16v5"/></svg>',
   pulse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M9 9.5c.6-1 1.8-1.5 3-1.2"/></svg>',
   heat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".35"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
@@ -132,6 +133,7 @@ const PAGES = [
   { id: "users", title: "Users", icon: "users", roles: ["admin"], view: viewUsers },
   { id: "security", title: "Security", icon: "shield", roles: ["admin", "cso"], view: viewSecurity },
   { id: "audit", title: "Audit log", icon: "audit", roles: ["admin"], view: viewAudit },
+  { id: "integrations", title: "API and webhooks", icon: "plug", roles: ["admin"], view: viewIntegrations },
   { id: "viewing", title: "Viewing log", icon: "audit", roles: ["admin", "cso"], view: viewViewing },
   { id: "help", title: "Help", icon: "help", roles: ["admin", "cso", "operator", "management", "viewer", "client"], view: viewHelp },
   { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management", "viewer", "client"], view: viewSettings },
@@ -2303,7 +2305,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2311,6 +2313,91 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- open API keys and webhooks (administrators) ---------------- */
+async function viewIntegrations(c) {
+  const [keys, hk] = await Promise.all([api("/api-keys"), api("/webhooks")]);
+  const SCOPE_TEXT = { "events:read": "Read events", "alerts:read": "Read alerts", "alerts:write": "Acknowledge and close alerts", "cameras:read": "Read cameras" };
+  const EVENT_TEXT = { "alert.created": "Alert raised", "alert.acknowledged": "Alert acknowledged", "alert.closed": "Alert closed", "alert.reopened": "Alert reopened",
+    "lockdown.started": "Lockdown started", "lockdown.ended": "Lockdown ended" };
+  const showOnce = (title, label, value, note) => modal(title, h("div", {}, h("p", { class: "muted", style: "margin-top:0" }, note),
+    h("label", { class: "muted" }, label), h("div", { class: "secret mono", style: "word-break:break-all" }, value)),
+    sc => [h("button", { class: "btn", onclick: async () => { try { await navigator.clipboard.writeText(value); toast("Copied"); } catch (_) { toast("Select and copy it"); } } }, "Copy"),
+      h("button", { class: "btn primary", onclick: () => { sc.remove(); render(); } }, "Done")]);
+  const pats = el => el.value.split(",").map(x => x.trim()).filter(Boolean);
+
+  // API keys
+  const kName = h("input", { class: "input", id: "k-name", placeholder: "e.g. Head office PSIM" });
+  const kScopes = Object.entries(SCOPE_TEXT).map(([k, l]) => h("label", { class: "check" }, h("input", { type: "checkbox", value: k, checked: k.endsWith(":read") && k !== "cameras:read" ? true : false }), ` ${l}`));
+  const kCams = h("input", { class: "input", id: "k-cams", placeholder: "All cameras, or patterns: nvr4-*, nvr1-ch05" });
+  const kExp = h("input", { class: "input", type: "date", id: "k-exp" });
+  const kErr = h("div", { class: "error", hidden: true });
+  const keysCard = card("API keys", h("span", { class: "muted", style: "font-size:12.5px" }, "For other systems to read events and alerts: /api/v1 (see docs/api.md)"),
+    h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "k-name" }, "Name"), kName),
+      h("div", { class: "field", style: "grid-column:span 2" }, h("label", {}, "Allowed"), h("div", { style: "display:flex;flex-wrap:wrap;gap:4px 14px" }, kScopes)),
+      h("div", { class: "field" }, h("label", { for: "k-cams" }, "Cameras"), kCams), h("div", { class: "field" }, h("label", { for: "k-exp" }, "Expires (optional)"), kExp),
+      h("div", { class: "field", style: "align-self:end" }, h("button", { class: "btn primary", onclick: async () => {
+        kErr.hidden = true;
+        try { const r = await api("/api-keys", { method: "POST", body: { name: kName.value.trim(), scopes: kScopes.map(l => l.querySelector("input")).filter(i => i.checked).map(i => i.value), cameras: pats(kCams), expires_at: kExp.value || null } });
+          showOnce("API key made", "The key (shown only now)", r.key, `Give this to the system that will use it, through a safe channel. It's shown once; if it's lost, revoke it and make another. Send it as: Authorization: Bearer ${r.key.slice(0, 18)}…`); }
+        catch (ex) { kErr.textContent = ex.message; kErr.hidden = false; }
+      } }, "Make key"))), kErr,
+    keys.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Name", "Allowed", "Cameras", "Last used", "Expires", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, keys.map(k => h("tr", { class: k.revoked_at ? "muted" : null },
+        h("td", {}, h("div", { style: "font-weight:600" }, k.name), h("div", { class: "faint mono", style: "font-size:11.5px" }, `hss_${k.id}_… · by ${k.created_by}`)),
+        h("td", { style: "font-size:12.5px" }, k.scopes.map(x => SCOPE_TEXT[x] || x).join(", ")),
+        h("td", { style: "font-size:12.5px" }, (k.cameras || []).length ? k.cameras.join(", ") : h("span", { class: "faint" }, "all")),
+        h("td", { style: "font-size:12.5px" }, k.last_used ? `${ago(k.last_used)} from ${k.last_ip}` : h("span", { class: "faint" }, "never")),
+        h("td", {}, k.revoked_at ? h("span", { class: "badge" }, "revoked") : k.expires_at ? fmtDate(k.expires_at) : h("span", { class: "faint" }, "no expiry")),
+        h("td", { style: "text-align:right" }, k.revoked_at ? null : h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Revoke ${k.name}? Systems using it stop at once.`)) return; await api(`/api-keys/${k.id}`, { method: "DELETE" }); render(); } }, "Revoke"))))))) :
+      h("div", { class: "empty" }, "No API keys yet."));
+
+  // Webhooks
+  const wName = h("input", { class: "input", id: "w-name", placeholder: "e.g. Control centre" });
+  const wUrl = h("input", { class: "input", id: "w-url", placeholder: "https://receiver.example.com/hss" });
+  const wEvents = hk.events.map(e => h("label", { class: "check" }, h("input", { type: "checkbox", value: e, checked: ["alert.created", "lockdown.started", "lockdown.ended"].includes(e) }), ` ${EVENT_TEXT[e]}`));
+  const wSev = h("select", { class: "input", id: "w-sev" }, [["warning", "Warning and critical"], ["critical", "Critical only"], ["info", "All, including info"]].map(([v, l]) => h("option", { value: v }, l)));
+  const wCams = h("input", { class: "input", id: "w-cams", placeholder: "All cameras, or patterns" });
+  const wErr = h("div", { class: "error", hidden: true });
+  const deliveries = async (w, box) => {
+    const d = await api(`/webhooks/${w.id}/deliveries`);
+    box.replaceChildren(d.deliveries.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["When", "Event", "Result", "Tries", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, d.deliveries.map(x => h("tr", {}, h("td", { style: "white-space:nowrap" }, fmtTime(x.created_at)), h("td", { class: "mono", style: "font-size:12px" }, x.type),
+        h("td", {}, h("span", { class: `badge ${x.status === "sent" ? "ok" : x.status === "failed" ? "bad" : "warn"}` }, x.status === "sent" ? `sent (${x.last_code})` : x.status === "failed" ? "gave up" : `retrying ${fmtTime(x.next_at)}`),
+          x.last_error ? h("div", { class: "faint", style: "font-size:12px" }, x.last_error) : null),
+        h("td", {}, x.attempts), h("td", {}, x.status === "failed" ? h("button", { class: "btn small", onclick: async () => { await api(`/webhooks/deliveries/${x.id}/retry`, { method: "POST", body: {} }); deliveries(w, box); } }, "Retry") : null)))))) :
+      h("div", { class: "faint" }, "No deliveries yet."));
+  };
+  const hookRow = w => {
+    const box = h("div", { hidden: true, style: "margin-top:8px" });
+    const s7 = w.last_7_days || {};
+    return h("div", { class: "an-cam", style: "margin-bottom:10px" },
+      h("div", { class: "an-head" }, h("div", {}, h("span", { style: "font-weight:600" }, w.name), " ", w.enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge bad", title: w.paused_reason }, "paused"),
+        h("div", { class: "faint mono", style: "font-size:12px" }, w.url)),
+        h("div", { class: "toolbar", style: "gap:6px" },
+          h("button", { class: "btn small", onclick: async () => { try { await api(`/webhooks/${w.id}/test`, { method: "POST", body: {} }); box.hidden = false; deliveries(w, box); } catch (ex) { toast(ex.message); } } }, "Test"),
+          h("button", { class: "btn small", onclick: () => { box.hidden = !box.hidden; if (!box.hidden) deliveries(w, box); } }, "Deliveries"),
+          h("button", { class: "btn small", onclick: async () => { await api(`/webhooks/${w.id}`, { method: "PUT", body: { ...w, enabled: !w.enabled } }); render(); } }, w.enabled ? "Pause" : "Resume"),
+          h("button", { class: "btn small", onclick: async () => { if (!confirm("Make a new signing secret? The receiver must be given it.")) return; const r = await api(`/webhooks/${w.id}/secret`, { method: "POST", body: {} }); showOnce("New signing secret", "Secret (shown only now)", r.secret, "Give it to the receiver; deliveries are signed with it from now on."); } }, "New secret"),
+          h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Delete the webhook ${w.name}?`)) return; await api(`/webhooks/${w.id}`, { method: "DELETE" }); render(); } }, "Delete"))),
+      h("div", { class: "faint", style: "font-size:12.5px" }, `${w.events.map(e => EVENT_TEXT[e] || e).join(", ")} · ${w.min_severity === "critical" ? "critical only" : w.min_severity === "info" ? "all severities" : "warning and critical"} · ${(w.cameras || []).length ? w.cameras.join(", ") : "all cameras"}`,
+        ` · last 7 days: ${s7.sent || 0} sent, ${s7.pending || 0} retrying, ${s7.failed || 0} failed`),
+      w.paused_reason ? h("div", { class: "error", style: "margin-top:6px" }, w.paused_reason) : null, box);
+  };
+  const hooksCard = card("Webhooks", h("span", { class: "muted", style: "font-size:12.5px" }, "Push alerts and lockdowns to other systems as they happen, signed"),
+    h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "w-name" }, "Name"), wName), h("div", { class: "field", style: "grid-column:span 2" }, h("label", { for: "w-url" }, "Receiver URL"), wUrl),
+      h("div", { class: "field" }, h("label", { for: "w-sev" }, "Alerts of"), wSev), h("div", { class: "field" }, h("label", { for: "w-cams" }, "Cameras"), wCams)),
+    h("div", { class: "field" }, h("label", {}, "Send"), h("div", { style: "display:flex;flex-wrap:wrap;gap:4px 14px" }, wEvents)),
+    h("button", { class: "btn primary", onclick: async () => {
+      wErr.hidden = true;
+      try { const r = await api("/webhooks", { method: "POST", body: { name: wName.value.trim(), url: wUrl.value.trim(), events: wEvents.map(l => l.querySelector("input")).filter(i => i.checked).map(i => i.value), min_severity: wSev.value, cameras: pats(wCams) } });
+        showOnce("Webhook added", "Signing secret (shown only now)", r.secret, "Give the receiver this secret so it can check the X-HSS-Signature header on each delivery (docs/api.md shows how). Then press Test."); }
+      catch (ex) { wErr.textContent = ex.message; wErr.hidden = false; }
+    } }, "Add webhook"), wErr,
+    h("div", { style: "margin-top:12px" }, hk.hooks.length ? hk.hooks.map(hookRow) : h("div", { class: "empty" }, "No webhooks yet.")));
+  c.append(keysCard, hooksCard,
+    h("p", { class: "faint", style: "font-size:12.5px" }, "Face and plate matches are never sent or returned. Key and webhook changes are in the audit log. Systems outside the site reach the API only through the VPN or a published address you set up; they must trust the HSS certificate."));
 }
 
 /* ---------------- unusual activity: anomaly findings and each camera's usual day ---------------- */

@@ -73,6 +73,11 @@ class Broker:
         self.loop: asyncio.AbstractEventLoop | None = None
 
     def publish(self, message: dict) -> None:
+        try:                                   # webhooks get every message too (they pick what changed)
+            from .webhooks import enqueue
+            enqueue(message)
+        except Exception:
+            log.exception("webhooks: message not queued")
         if not self.loop:
             return
         data = json.dumps(message, default=str)

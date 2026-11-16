@@ -35,6 +35,10 @@ For the IT Manager and other administrators.
 
 Video needs a sign-in (admin, CSO or operator) or a wall screen key; every live view and playback is in **Viewing log**. The wall capacity test page (`/wall-test/`) now needs a signed-in tab in the same browser. Don't publish the gateway's RTSP port 8554 in compose: Docker-published ports bypass the server firewall.
 
+## API and webhooks
+
+Administration › **API and webhooks**: API keys for other systems (choose what each may do and which cameras; the key is shown once; revoke when no longer used) and webhooks that push alerts and lockdowns to a receiver, signed. The integrator's guide is docs/api.md. Check the deliveries list after adding a webhook; a paused webhook shows why.
+
 ## Backups
 
 Daily at 01:30, encrypted, kept 14 days; a restore test on the 1st of each month. Keep the passphrase offline and a second copy of backups off the server (docs/backup.md). A failed backup sends a WhatsApp message to the "system" topic.
