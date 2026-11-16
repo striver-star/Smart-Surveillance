@@ -21,7 +21,7 @@ from .db import connect
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 DEVICE = ("nvr_offline", "nvr_online", "camera_offline", "camera_online", "drive_fault", "drive_ok", "unit_offline",
-          "unit_online", "low_battery", "missed_patrol", "checkpoint_visit", "unusual_activity", "unusually_quiet")
+          "unit_online", "low_battery", "missed_patrol", "checkpoint_visit", "unusual_activity", "unusually_quiet", "access_device_offline", "intercom_call")
 MIN_ALERTS = 5            # a camera or rule needs this many reviewed alerts before it is judged
 NOISY = 0.6               # false alarm share at or above this is "noisy"
 

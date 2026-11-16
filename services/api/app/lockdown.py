@@ -134,6 +134,11 @@ def _publish(s: dict | None) -> None:
 def _after(title: str, body: str, outputs: list[str], on: bool, by: str, key: str) -> None:
     """Outputs and messages take seconds; do them after answering, then record what happened."""
     done = _outputs(outputs, on, by) if outputs else []
+    try:                                          # doors marked "lock in lockdown" (access_control.py)
+        from .access_control import lockdown_doors
+        done += lockdown_doors(on, by)
+    except Exception:
+        log.exception("lockdown doors failed")
     sent = _notify(title, body)
     try:
         s = _read("lockdown", {}) or {}

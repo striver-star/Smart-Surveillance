@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
+from . import access_control, alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
 from .reports import service as reports
 from .db import connect, migrate
 
@@ -25,9 +25,11 @@ async def lifespan(app: FastAPI):
     playback_sweep = asyncio.create_task(playback.background_loop())
     anomalies = asyncio.create_task(anomaly.background_loop())
     hooks = asyncio.create_task(webhooks.background_loop())
+    access_poll = asyncio.create_task(access_control.background_loop())
     yield
     anomalies.cancel()
     hooks.cancel()
+    access_poll.cancel()
     playback_sweep.cancel()
     retention.cancel()
     geo_checks.cancel()
@@ -61,6 +63,7 @@ app.include_router(search.router)
 app.include_router(anomaly.router)
 app.include_router(webhooks.router)
 app.include_router(publicapi.router)
+app.include_router(access_control.router)
 app.mount("/v1", publicapi.v1)
 app.include_router(alerts.router)
 app.include_router(devices.router)

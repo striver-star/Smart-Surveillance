@@ -53,6 +53,10 @@ Unacknowledged critical alerts escalate to the CSO and management after the time
 
 A **Face match** or **Plate match** alert shows the enrolled photo (or listed plate) beside the camera picture. A match is a lead, not proof: compare them carefully, then press **Confirm: same person** or **Not a match**. Never act on a match you haven't confirmed. Your verdicts are recorded and used to tune the system.
 
+## Doors and intercom
+
+**Doors** shows each door's state and who came through. **Open** a door from the console only after checking on camera who is there, and give the reason. When a door station rings, a pop-up shows its camera: talk on the indoor station or the app, then **Open door** or **Reject call**. A **Door forced open** alert is critical: look at the camera at once.
+
 ## Lockdown
 
 For a serious threat (intruders, armed robbery, unrest at the gate) press the red **Lockdown** button at the top and say what is happening. Every alert rule is armed, every alert becomes critical, the lockdown lights and sirens come on, and the CSO, management and IT are messaged. Then follow the emergency plan and call the police. Only the CSO or an administrator can end it.

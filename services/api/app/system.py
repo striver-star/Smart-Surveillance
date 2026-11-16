@@ -288,6 +288,7 @@ def apply_retention() -> dict:
             "AND NOT EXISTS (SELECT 1 FROM alerts a WHERE a.event_id = e.id AND a.status <> 'closed') RETURNING e.snapshot_ref",
             (days("HSS_RECOGNITION_DAYS", 30),)).fetchall()
         rows = list(rows) + list(rec)
+        conn.execute("DELETE FROM access_events WHERE at < now() - %s * interval '1 day'", (days("HSS_ACCESS_DAYS", 90),))
         views = conn.execute("DELETE FROM view_log WHERE started_at < now() - %s * interval '1 day'", (days("HSS_VIEW_LOG_DAYS", 365),)).rowcount
     files = 0
     for ref in [r for (r,) in rows if r]:

@@ -35,6 +35,10 @@ For the IT Manager and other administrators.
 
 Video needs a sign-in (admin, CSO or operator) or a wall screen key; every live view and playback is in **Viewing log**. The wall capacity test page (`/wall-test/`) now needs a signed-in tab in the same browser. Don't publish the gateway's RTSP port 8554 in compose: Docker-published ports bypass the server firewall.
 
+## Access control devices
+
+Add Hikvision access controllers and door stations in **Doors** › Access devices with a dedicated device user. Check the first real device's event codes against docs/access-control.md. For training without devices: `tools/simulators/hik-access-sim.py`.
+
 ## API and webhooks
 
 Administration › **API and webhooks**: API keys for other systems (choose what each may do and which cameras; the key is shown once; revoke when no longer used) and webhooks that push alerts and lockdowns to a receiver, signed. The integrator's guide is docs/api.md. Check the deliveries list after adding a webhook; a paused webhook shows why.

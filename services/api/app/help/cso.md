@@ -63,6 +63,10 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 Operators can start a lockdown with the red **Lockdown** button; you or an administrator end it with **End lockdown** on the red banner. In Settings › **Lockdown** choose the floodlights and sirens to switch on; add `lockdown` to the subscriptions of everyone who must be told in config/recipients.json (ask IT). Rehearse it once with the control room. Details: docs/lockdown.md.
 
+## Doors
+
+In **Doors** › Settings choose, for each door, its camera, whether operators may open it from the console, and whether it stays locked in a lockdown. Only you and administrators can keep a door locked or open. Who came through keeps 90 days of access events with names. Details: docs/access-control.md.
+
 ## Viewing log
 
 **Viewing log** shows who watched which camera, live or recorded, when and from where; search by camera, person or dates and export CSV. On an alert, **Who watched** opens it for that camera. Video can't be opened without signing in, so the log is complete for the console and the phone app (wall screens aren't logged per person). Check it after any incident where footage may have leaked.

@@ -88,6 +88,7 @@ const I = {
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+  door: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><circle cx="14" cy="12" r="1" fill="currentColor"/></svg>',
   plug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0z"/><path d="M12 16v5"/></svg>',
   pulse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M9 9.5c.6-1 1.8-1.5 3-1.2"/></svg>',
@@ -117,6 +118,7 @@ const PAGES = [
   { id: "search", title: "Smart search", icon: "search", roles: ["admin", "cso", "operator", "viewer"], view: viewSearch },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator", "viewer"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
+  { id: "doors", title: "Doors", icon: "door", roles: ["admin", "cso", "operator"], view: viewDoors },
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator", "viewer"], view: viewMap },
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
@@ -2038,6 +2040,8 @@ function startAlertStream() {
   es.addEventListener("alert", ev => {
     const msg = JSON.parse(ev.data);
     if (msg.kind === "lockdown") { drawLockdown(msg.lockdown); if (msg.lockdown) playAlertSound("critical"); return; }
+    if (msg.kind === "intercom") { intercomPopup(msg); return; }
+    if (msg.kind === "door") { window.dispatchEvent(new CustomEvent("hss-door", { detail: msg })); return; }
     if (msg.kind === "new") { popAlert(msg.alert); playAlertSound(msg.alert.severity); }
     refreshAlertCount();
     window.dispatchEvent(new CustomEvent("hss-alert", { detail: msg }));
@@ -2305,7 +2309,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", access_device_added: "Added an access device", access_device_deleted: "Removed an access device", door_changed: "Changed a door's settings", door_command: "Opened or locked a door from the console", intercom_reject: "Rejected an intercom call", intercom_hangup: "Ended an intercom call", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2313,6 +2317,121 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- access control and intercom ---------------- */
+const DOOR_TEXT = { locked: "Locked", unlocked: "Unlocked", closed: "Closed", open: "Open", normal: "Normal", stay_open: "Kept open", stay_locked: "Kept locked", sleep: "Sleep" };
+function doorCommand(door, cmd, done) {
+  const reason = h("input", { class: "input", id: "dc-reason", placeholder: cmd === "open" ? "e.g. Delivery at the gate, driver checked on camera" : "Why" });
+  const err = h("div", { class: "error", hidden: true });
+  const title = { open: `Open ${door.name}?`, stay_locked: `Keep ${door.name} locked?`, stay_open: `Keep ${door.name} open?`, normal: `${door.name} back to normal?` }[cmd];
+  modal(title, h("div", {}, err, h("p", { class: "muted", style: "margin-top:0" }, cmd === "open" ? "The door unlocks for its normal open time. Check who is there on camera first. Recorded with your name and reason."
+      : cmd === "normal" ? "The door goes back to its schedule: cards and faces open it." : "Until someone sets it back to normal. Recorded with your name and reason."),
+    h("div", { class: "field" }, h("label", { for: "dc-reason" }, "Reason"), reason)),
+    sc => [h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"), h("button", { class: `btn ${cmd === "open" ? "primary" : ""}`, onclick: async () => {
+      try { await api(`/access/doors/${door.id}/command`, { method: "POST", body: { cmd, reason: reason.value.trim() } }); sc.remove(); toast("Done"); done && done(); }
+      catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    } }, { open: "Open", stay_locked: "Keep locked", stay_open: "Keep open", normal: "Back to normal" }[cmd])]);
+}
+let intercomBox = null;
+function intercomPopup(msg) {
+  if (msg.status !== "ring") { if (intercomBox && intercomBox.dataset.dev === String(msg.device_id)) { intercomBox.player && intercomBox.player.close(); intercomBox.remove(); intercomBox = null; } return; }
+  if (intercomBox) { intercomBox.player && intercomBox.player.close(); intercomBox.remove(); }
+  playAlertSound("warning");
+  const video = h("video", { muted: true, autoplay: true, playsinline: true, class: "ic-video" }); video.muted = true;
+  const st = h("div", { class: "faint", style: "font-size:12px" }, "connecting…");
+  const close = () => { if (intercomBox) { intercomBox.player && intercomBox.player.close(); intercomBox.remove(); intercomBox = null; } };
+  intercomBox = h("div", { class: "intercom", role: "alertdialog", "aria-label": `${msg.name} is calling`, "data-dev": String(msg.device_id) },
+    h("div", { class: "toolbar" }, h("strong", {}, `${msg.name} is calling`), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: close }, "Hide")),
+    video, st,
+    h("p", { class: "faint", style: "font-size:12px;margin:6px 0" }, "Talk on the indoor station or the Hikvision app; open the door from here once you know who it is."),
+    h("div", { class: "toolbar", style: "gap:8px" },
+      msg.remote_open && msg.door_id ? h("button", { class: "btn primary", onclick: () => doorCommand({ id: msg.door_id, name: msg.name }, "open", close) }, "Open door") : null,
+      h("button", { class: "btn", onclick: async () => { try { await api(`/access/devices/${msg.device_id}/call`, { method: "POST", body: { action: "reject" } }); close(); } catch (ex) { toast(ex.message); } } }, "Reject call")));
+  intercomBox.dataset.dev = String(msg.device_id);
+  document.body.append(intercomBox);
+  intercomBox.player = new LivePlayer(video, msg.stream, (s2, info) => { st.textContent = s2 === "playing" ? "" : s2 === "error" ? `No video: ${info}` : s2; });
+}
+
+async function viewDoors(c) {
+  const box = h("div", {});
+  const evBox = h("div", {});
+  let paths = [];
+  const evFilter = { door: "", kind: "", person: "" };
+  const load = async () => {
+    const d = await api("/access");
+    if (!paths.length) paths = await api("/live/paths").catch(() => []);
+    const cams = [...new Map(paths.map(p => [p.path.replace(/-sub$/, ""), p.label])).entries()];
+    const devName = Object.fromEntries(d.devices.map(x => [x.id, x.name]));
+    const settings = door => {
+      const nm = h("input", { class: "input", id: "ds-name", value: door.name });
+      const cam = h("select", { class: "input", id: "ds-cam" }, h("option", { value: "" }, "No camera"), cams.map(([id, l]) => h("option", { value: id, selected: id === door.camera_id }, l === id ? id : `${l} (${id})`)));
+      const ro = h("input", { type: "checkbox", checked: door.remote_open }), ll = h("input", { type: "checkbox", checked: door.lock_in_lockdown });
+      const err = h("div", { class: "error", hidden: true });
+      modal(`Door settings: ${door.name}`, h("div", {}, err, h("div", { class: "field" }, h("label", { for: "ds-name" }, "Name"), nm),
+        h("div", { class: "field" }, h("label", { for: "ds-cam" }, "Camera that watches it (alerts show its picture and recording)"), cam),
+        h("label", { class: "check" }, ro, " Operators may open it from the console"), h("label", { class: "check", style: "display:flex;margin-top:6px" }, ll, " Keep it locked during a lockdown")),
+        sc => [h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+          try { await api(`/access/doors/${door.id}`, { method: "PUT", body: { name: nm.value.trim(), camera_id: cam.value || null, remote_open: ro.checked, lock_in_lockdown: ll.checked } }); sc.remove(); load(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; } } }, "Save")]);
+    };
+    const chip = (v, bad) => v ? h("span", { class: `badge ${bad ? "warn" : ""}` }, DOOR_TEXT[v] || v) : null;
+    box.replaceChildren(
+      d.doors.length ? h("div", { class: "door-grid" }, d.doors.map(door => h("div", { class: `door-card ${door.contact_state === "open" ? "is-open" : ""}` },
+        h("div", { class: "an-head" }, h("span", { style: "font-weight:650" }, door.name), d.can_manage ? h("button", { class: "btn small", onclick: () => settings(door) }, "Settings") : null),
+        h("div", { class: "faint", style: "font-size:12px" }, devName[door.device_id] || "", door.camera_id ? ` · camera ${door.camera_id}` : " · no camera linked"),
+        h("div", { class: "toolbar", style: "gap:6px;margin:8px 0" }, chip(door.lock_state, door.lock_state === "unlocked"), chip(door.contact_state, door.contact_state === "open"), chip(door.mode, door.mode && door.mode !== "normal"),
+          door.lock_in_lockdown ? h("span", { class: "badge", title: "Locked during a lockdown" }, "lockdown") : null),
+        h("div", { class: "toolbar", style: "gap:6px" },
+          door.remote_open ? h("button", { class: "btn small primary", onclick: () => doorCommand(door, "open", load) }, "Open") : null,
+          d.can_manage ? h("button", { class: "btn small", onclick: () => doorCommand(door, "stay_locked", load) }, "Keep locked") : null,
+          d.can_manage ? h("button", { class: "btn small", onclick: () => doorCommand(door, "stay_open", load) }, "Keep open") : null,
+          d.can_manage && door.mode && door.mode !== "normal" ? h("button", { class: "btn small", onclick: () => doorCommand(door, "normal", load) }, "Normal") : null,
+          door.camera_id ? h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(door.camera_id)}` }, "Recording") : null)))) :
+        h("div", { class: "empty" }, "No doors yet. An administrator adds Hikvision access controllers and door stations below."),
+      state.user.role === "admin" ? devicesCard(d.devices) : null);
+    loadEvents(d.doors);
+  };
+  const loadEvents = async doors => {
+    const q = new URLSearchParams({ limit: 200 }); if (evFilter.door) q.set("door_id", evFilter.door); if (evFilter.kind) q.set("kind", evFilter.kind); if (evFilter.person) q.set("person", evFilter.person);
+    const rows = await api(`/access/events?${q}`);
+    const doorSel = h("select", { class: "input", style: "width:auto", onchange: e => { evFilter.door = e.target.value; loadEvents(doors); } }, h("option", { value: "" }, "All doors"), doors.map(x => h("option", { value: x.id, selected: String(x.id) === evFilter.door }, x.name)));
+    const kindSel = h("select", { class: "input", style: "width:auto", onchange: e => { evFilter.kind = e.target.value; loadEvents(doors); } },
+      [["", "Everything"], ["granted", "Granted"], ["denied", "Refused"], ["forced", "Forced"], ["held_open", "Held open"], ["remote", "Console commands"], ["call", "Intercom calls"]].map(([v, l]) => h("option", { value: v, selected: v === evFilter.kind }, l)));
+    const who = h("input", { class: "input", style: "width:180px", placeholder: "Person", value: evFilter.person, onchange: e => { evFilter.person = e.target.value.trim(); loadEvents(doors); } });
+    evBox.replaceChildren(card("Who came through", h("div", { class: "toolbar", style: "gap:8px" }, doorSel, kindSel, who),
+      rows.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Time", "Door", "What", "Person", "How", ""].map(t => h("th", {}, t)))),
+        h("tbody", {}, rows.map(r => h("tr", {}, h("td", { style: "white-space:nowrap" }, fmtTime(r.at)), h("td", {}, r.door || r.device),
+          h("td", {}, h("span", { class: `badge ${["forced", "held_open"].includes(r.kind) ? "bad" : r.kind === "denied" ? "warn" : r.kind === "granted" ? "ok" : ""}` }, r.what)),
+          h("td", {}, r.person || (r.by ? `console: ${r.by}` : "—"), r.employee_no ? h("div", { class: "faint", style: "font-size:11.5px" }, r.employee_no) : null),
+          h("td", { class: "faint", style: "font-size:12px" }, [r.verify, r.card].filter(Boolean).join(" · ") || "—"),
+          h("td", {}, r.camera_id ? h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(r.camera_id)}&t=${encodeURIComponent(new Date(new Date(r.at) - 10000).toISOString())}` }, "Play") : null)))))) :
+        h("div", { class: "empty" }, "No access events yet.")));
+  };
+  const devicesCard = devs => {
+    const f = { name: h("input", { class: "input", id: "ad-name", placeholder: "e.g. Main gate controller" }), kind: h("select", { class: "input", id: "ad-kind" }, h("option", { value: "controller" }, "Access controller or face/card terminal"), h("option", { value: "doorstation" }, "Video intercom door station")),
+      address: h("input", { class: "input", id: "ad-addr", placeholder: "10.1.5.20" }), user: h("input", { class: "input", id: "ad-user", placeholder: "A dedicated device user" }), pass: h("input", { class: "input", id: "ad-pass", type: "password", autocomplete: "new-password" }) };
+    const err = h("div", { class: "error", hidden: true });
+    return card("Access devices", h("span", { class: "muted", style: "font-size:12.5px" }, "Hikvision DS-K controllers and terminals, DS-KV/KD door stations (ISAPI)"),
+      devs.length ? h("div", { class: "list", style: "margin-bottom:12px" }, devs.map(v => h("div", { class: "item" }, h("span", { class: `dot ${v.online ? "ok" : v.online === false ? "bad" : ""}` }),
+        h("div", { class: "grow" }, h("div", { class: "title" }, v.name, " ", h("span", { class: "faint", style: "font-weight:400" }, v.kind === "doorstation" ? "door station" : "access controller")),
+          h("div", { class: "faint", style: "font-size:12px" }, `${v.address} · ${(v.info || {}).model || ""}${v.last_error ? ` · ${v.last_error}` : ""}`)),
+        h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Remove ${v.name} and its doors?`)) return; await api(`/access/devices/${v.id}`, { method: "DELETE" }); load(); } }, "Remove")))) : null,
+      h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "ad-name" }, "Name"), f.name), h("div", { class: "field" }, h("label", { for: "ad-kind" }, "Kind"), f.kind),
+        h("div", { class: "field" }, h("label", { for: "ad-addr" }, "Address"), f.address), h("div", { class: "field" }, h("label", { for: "ad-user" }, "User"), f.user),
+        h("div", { class: "field" }, h("label", { for: "ad-pass" }, "Password"), f.pass),
+        h("div", { class: "field", style: "align-self:end" }, h("button", { class: "btn primary", onclick: async () => {
+          err.hidden = true;
+          try { const r = await api("/access/devices", { method: "POST", body: { name: f.name.value.trim(), kind: f.kind.value, address: f.address.value.trim(), username: f.user.value.trim(), password: f.pass.value } });
+            toast(`Added: ${r.info.model || "device"}, ${r.doors} door${r.doors > 1 ? "s" : ""}`); load(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "Add device"))), err);
+  };
+  c.append(box, evBox);
+  await load();
+  const onDoor = () => load();
+  window.addEventListener("hss-door", onDoor); state.cleanup.push(() => window.removeEventListener("hss-door", onDoor));
+  const t = setInterval(load, 15000); state.cleanup.push(() => clearInterval(t));
 }
 
 /* ---------------- open API keys and webhooks (administrators) ---------------- */
