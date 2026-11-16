@@ -7,7 +7,7 @@ For control-room operators. You watch cameras, handle alerts and record what you
 - **Overview**: today's events, devices and the latest alerts.
 - **Alerts**: everything that needs a person. New alerts also pop up at the top of every page with a sound (the speaker button at the top turns sound on or off).
 - **Playback**: pick a camera and day, click the timeline to play the recording; **Play recording** on an alert opens it 10 seconds before.
-- **Live view**: pick cameras on the left; 1, 4, 9 or 16 at a time. Double-click a tile for full screen. Click a PTZ camera's tile to steer it: hold an arrow to move, + and − to zoom, or pick a preset and press Go. If someone else is steering it, wait 30 seconds.
+- **Live view**: pick cameras on the left; 1, 4, 9 or 16 at a time. Double-click a tile for full screen. Click a PTZ camera's tile to steer it: hold an arrow to move, + and − to zoom, or pick a preset and press Go. If someone else is steering it, wait 30 seconds. If the camera is on a **patrol tour**, just steer it: the tour waits and carries on 2 minutes after your last move. To keep the camera still for longer, **Pause** the tour (15 minutes to 4 hours) and **Resume** it when you're done.
 - **Smart search**: find people or vehicles by colour (red top, blue trousers; white car) in the pictures of past events; click Play to see the recording.
 - **Events**: everything the cameras and NVRs reported, including what didn't raise an alert.
 - **Site map**: cameras, zones and guards on the site plan. Click a camera to watch it.

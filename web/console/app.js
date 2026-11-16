@@ -551,9 +551,84 @@ async function ptzPanel(cameraId, label) {
         } catch (ex) { err.textContent = ex.message; err.hidden = false; }
       } }, "Save")]);
   } }, "Save view") : null;
+  const tourBox = h("div", { class: "ptz-tours" });
+  const drawTours = () => patrolTours(cameraId, label, info, tourBox).catch(() => tourBox.replaceChildren());
+  drawTours();
+  const tt = setInterval(drawTours, 5000); state.cleanup.push(() => clearInterval(tt));
   return h("div", { class: "ptz" }, h("div", { class: "ptz-title" }, "PTZ · ", label), h("div", { class: "ptz-row" }, pad, zoom),
     h("label", { class: "ptz-speed" }, h("span", { class: "faint" }, "Speed"), sp),
-    h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg);
+    h("div", { class: "toolbar", style: "gap:6px;margin-top:6px" }, presetSel, goBtn, save), msg, tourBox);
+}
+
+/* PTZ patrol tours: shown under the PTZ controls; operators pause and resume, the CSO and administrators set them up. */
+const DAY_TEXT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+function tourHours(t) {
+  const days = t.days.length === 7 ? "every day" : t.days.length === 5 && t.days.every(d => d <= 5) ? "weekdays" : t.days.map(d => DAY_TEXT[d - 1]).join(" ");
+  return `${days}, ${t.start_local ? `${t.start_local}–${t.end_local}` : "all day"}`;
+}
+async function patrolTours(cameraId, label, info, box) {
+  const d = await api(`/ptz-tours?camera_id=${encodeURIComponent(cameraId)}`);
+  if (!d.tours.length && !d.can_manage) { box.replaceChildren(); return; }
+  const pname = id => (info.presets.find(p => p.id === id) || {}).name || `preset ${id}`;
+  const redraw = () => patrolTours(cameraId, label, info, box);
+  const act = async (url, body) => { try { await api(url, { method: "POST", body: body || {} }); redraw(); } catch (ex) { toast(ex.message); } };
+  const pauseBtn = t => {
+    const sel = h("select", { class: "input", style: "width:auto", "aria-label": "Pause for" }, [[15, "15 min"], [60, "1 hour"], [240, "4 hours"]].map(([v, l]) => h("option", { value: v }, l)));
+    return [sel, h("button", { class: "btn small", onclick: () => act(`/ptz-tours/${t.id}/pause`, { minutes: Number(sel.value) }) }, "Pause")];
+  };
+  box.replaceChildren(h("div", { class: "ptz-title", style: "margin-top:8px" }, "Patrol"),
+    ...d.tours.map(t => {
+      const paused = t.paused_until && new Date(t.paused_until) > new Date();
+      const live = t.status === "running";
+      return h("div", { class: "tour" },
+        h("div", { class: "an-head" }, h("span", { style: "font-weight:600" }, t.name), h("span", { class: `badge ${live ? "ok" : paused || /waiting/.test(t.status || "") ? "warn" : /reach/.test(t.status || "") ? "bad" : ""}` },
+          live ? `step ${t.step} of ${t.steps.length}` : paused ? "paused" : t.status || "")),
+        h("div", { class: "faint", style: "font-size:12px" }, live && t.at_preset ? `At ${pname(t.at_preset)} · ` : "", tourHours(t),
+          paused ? ` · paused by ${t.paused_by} until ${fmtTime(t.paused_until)}` : "", /waiting/.test(t.status || "") ? ` · ${t.status.replace("waiting: ", "")}; carries on ${Math.round(d.resume_s / 60)} min after the last move` : "",
+          t.error ? ` · ${t.error}` : ""),
+        h("div", { class: "toolbar", style: "gap:6px;margin-top:4px" },
+          t.enabled ? (paused ? h("button", { class: "btn small primary", onclick: () => act(`/ptz-tours/${t.id}/resume`) }, "Resume") : pauseBtn(t)) : h("span", { class: "faint", style: "font-size:12px" }, "Off"),
+          d.can_manage ? h("button", { class: "btn small", onclick: () => tourEditor(cameraId, label, info, t, redraw) }, "Edit") : null));
+    }),
+    d.can_manage ? h("button", { class: "btn small", style: "justify-self:start", disabled: info.presets.length < 2, title: info.presets.length < 2 ? "Save at least two presets first" : "",
+      onclick: () => tourEditor(cameraId, label, info, null, redraw) }, "New patrol tour") : null);
+}
+function tourEditor(cameraId, label, info, t, done) {
+  const err = h("div", { class: "error", hidden: true });
+  const name = h("input", { class: "input", id: "tr-name", maxlength: 40, value: t ? t.name : "", placeholder: "e.g. Fence sweep" });
+  const steps = h("div", { class: "tour-steps" });
+  const addStep = (preset, dwell) => {
+    const row = h("div", { class: "tour-step" },
+      h("select", { class: "input", "aria-label": "Preset" }, info.presets.map(p => h("option", { value: p.id, selected: p.id === preset }, `${p.id}. ${p.name}`))),
+      h("input", { class: "input", type: "number", min: 10, max: 3600, value: dwell || 20, "aria-label": "Seconds there", style: "width:90px" }), h("span", { class: "faint" }, "s"),
+      h("button", { class: "btn small", title: "Remove", "aria-label": "Remove this step", onclick: () => row.remove() }, "✕"));
+    steps.append(row);
+  };
+  (t ? t.steps : info.presets.slice(0, 4).map(p => ({ preset: p.id, dwell_s: 20 }))).forEach(s => addStep(s.preset, s.dwell_s));
+  const days = DAY_TEXT.map((l, i) => h("label", { class: "check" }, h("input", { type: "checkbox", value: i + 1, checked: t ? t.days.includes(i + 1) : true }), ` ${l}`));
+  const allDay = h("input", { type: "checkbox", checked: t ? !t.start_local : true });
+  const from = h("input", { class: "input", type: "time", value: t && t.start_local ? t.start_local : "18:00", "aria-label": "From", style: "width:auto" });
+  const to = h("input", { class: "input", type: "time", value: t && t.end_local ? t.end_local : "06:00", "aria-label": "To", style: "width:auto" });
+  const on = h("input", { type: "checkbox", checked: t ? t.enabled : true });
+  const syncHours = () => { from.disabled = to.disabled = allDay.checked; };
+  allDay.addEventListener("change", syncHours); syncHours();
+  modal(t ? `Patrol tour: ${t.name}` : `New patrol tour on ${label}`, h("div", {}, err,
+    h("p", { class: "muted", style: "margin:0 0 10px" }, "HSS takes the camera round these presets in order, waiting the given time at each (include the time it takes to turn). It waits while an operator or an alert rule has the camera."),
+    h("div", { class: "field" }, h("label", { for: "tr-name" }, "Name"), name),
+    h("div", { class: "field" }, h("label", {}, "Presets, in order"), steps, h("button", { class: "btn small", style: "margin-top:6px", onclick: () => addStep(info.presets[0].id, 20) }, "Add a preset")),
+    h("div", { class: "field" }, h("label", {}, "Days"), h("div", { class: "toolbar", style: "gap:10px" }, days)),
+    h("div", { class: "field" }, h("label", { class: "check" }, allDay, " All day"), h("div", { class: "toolbar", style: "gap:8px;margin-top:6px" }, "From", from, "to", to, h("span", { class: "faint", style: "font-size:12px" }, "(an end before the start runs overnight)"))),
+    h("label", { class: "check" }, on, " On")),
+    sc => [t ? h("button", { class: "btn danger", style: "margin-right:auto", onclick: async () => { if (!confirm(`Delete the tour ${t.name}?`)) return; await api(`/ptz-tours/${t.id}`, { method: "DELETE" }); sc.remove(); done(); } }, "Delete") : null,
+      h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        const body = { camera_id: cameraId, name: name.value.trim(), enabled: on.checked,
+          steps: [...steps.children].map(r => ({ preset: Number(r.children[0].value), dwell_s: Number(r.children[1].value) })),
+          days: days.map(l => l.querySelector("input")).filter(x => x.checked).map(x => Number(x.value)),
+          start_local: allDay.checked ? null : from.value, end_local: allDay.checked ? null : to.value };
+        try { await api(t ? `/ptz-tours/${t.id}` : "/ptz-tours", { method: t ? "PUT" : "POST", body }); sc.remove(); toast("Patrol tour saved"); done(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
 }
 
 /* ---------------- false alarm tuning ---------------- */
@@ -2309,7 +2384,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", access_device_added: "Added an access device", access_device_deleted: "Removed an access device", door_changed: "Changed a door's settings", door_command: "Opened or locked a door from the console", intercom_reject: "Rejected an intercom call", intercom_hangup: "Ended an intercom call", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", access_device_added: "Added an access device", access_device_deleted: "Removed an access device", door_changed: "Changed a door's settings", door_command: "Opened or locked a door from the console", intercom_reject: "Rejected an intercom call", intercom_hangup: "Ended an intercom call", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", ptz_tour_added: "Added a PTZ patrol tour", ptz_tour_changed: "Changed a PTZ patrol tour", ptz_tour_deleted: "Deleted a PTZ patrol tour", ptz_tour_paused: "Paused a PTZ patrol tour", ptz_tour_resumed: "Resumed a PTZ patrol tour", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

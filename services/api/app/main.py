@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import access_control, zkteco, alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
+from . import access_control, zkteco, ptz_tours, alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
 from .reports import service as reports
 from .db import connect, migrate
 
@@ -26,10 +26,12 @@ async def lifespan(app: FastAPI):
     anomalies = asyncio.create_task(anomaly.background_loop())
     hooks = asyncio.create_task(webhooks.background_loop())
     access_poll = asyncio.create_task(access_control.background_loop())
+    patrols = asyncio.create_task(ptz_tours.background_loop())
     yield
     anomalies.cancel()
     hooks.cancel()
     access_poll.cancel()
+    patrols.cancel()
     playback_sweep.cancel()
     retention.cancel()
     geo_checks.cancel()
@@ -48,6 +50,7 @@ app.include_router(eventsetup.router)
 app.include_router(geo.router)
 app.include_router(system.router)
 app.include_router(help.router)
+app.include_router(ptz_tours.router)
 app.include_router(ptz.router)
 app.include_router(playback.router)
 app.include_router(outputs.router)

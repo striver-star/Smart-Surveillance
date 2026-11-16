@@ -293,6 +293,11 @@ a.setup-banner .bar { margin-top: 8px; }
 .ptz-btn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .ptz-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .ptz-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); place-self: center; }
+.ptz-tours { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+.tour { display: grid; gap: 2px; }
+.tour-steps { display: grid; gap: 6px; }
+.tour-step { display: flex; gap: 6px; align-items: center; }
+.tour-step select { flex: 1; min-width: 0; }
 .ptz-zoom { display: grid; grid-template-rows: 40px auto 40px; gap: 4px; justify-items: center; font-size: 11px; }
 .ptz-zoom .ptz-btn { width: 40px; height: 40px; }
 .ptz-speed { display: flex; gap: 8px; align-items: center; font-size: 12.5px; }

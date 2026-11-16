@@ -12,7 +12,7 @@ Rules are checked top to bottom; the first that matches decides. Each rule sets:
 - sirens, strobes and floodlights to switch on (**Switch on**, by the output's name; acknowledging silences them);
 - PTZ cameras to turn to a preset when it fires (for example `nvr4-ch05:3`: the yard PTZ looks at the fence).
 
-Save PTZ presets from Live view (select the camera, aim it, **Save view**). You and administrators can take over a PTZ camera that someone else is steering.
+Save PTZ presets from Live view (select the camera, aim it, **Save view**). You and administrators can take over a PTZ camera that someone else is steering. **Patrol tours** take a PTZ camera round its presets on a schedule (Live view › the camera › Patrol › New patrol tour); they wait while an operator or an alert rule has the camera. Details: docs/ptz.md.
 
 Start strict at night and at the perimeter, lighter in busy daytime areas. Review the **False alarms** page weekly at first: it marks the noisy rules and cameras and says what to try, with links to play the recent false alarms.
 

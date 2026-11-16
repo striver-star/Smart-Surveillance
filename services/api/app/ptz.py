@@ -11,6 +11,8 @@ Safety and fairness:
 - One person steers a camera at a time. Someone else's move is refused for 30 s after the last
   command, except for the CSO and administrators, who can always take over.
 - Alert rules can send PTZ cameras to presets when they fire ("nvr4-ch05:3" = preset 3 on that camera).
+- Patrol tours (ptz_tours.py) take a camera round its presets; they never block a person, and wait while a person
+  or an alert rule has the camera.
 """
 from __future__ import annotations
 
@@ -147,7 +149,7 @@ class Control:
         now = now if now is not None else time.monotonic()
         with self.lock:
             who, at = self.holder.get(camera, ("", 0.0))
-            if who and who != user["username"] and now - at < HOLD_S and user["role"] not in OVERRIDE:
+            if who and not who.startswith("tour:") and who != user["username"] and now - at < HOLD_S and user["role"] not in OVERRIDE:
                 raise HTTPException(status_code=409, detail=f"{who} is steering this camera; try again in {int(HOLD_S - (now - at)) + 1} s.")
             self.holder[camera] = (user["username"], now)
 
@@ -198,7 +200,7 @@ def info(camera_id: str, user: dict = Depends(require(*OPERATORS))) -> dict:
     if not d.supported():
         return {"camera_id": camera_id, "supported": False, "presets": []}
     who, at = control.holder.get(camera_id, ("", 0.0))
-    busy = who if who and who != user["username"] and time.monotonic() - at < HOLD_S else None
+    busy = who if who and not who.startswith("tour:") and who != user["username"] and time.monotonic() - at < HOLD_S else None
     return {"camera_id": camera_id, "supported": True, "presets": d.presets(), "held_by": busy,
             "can_save_presets": user["role"] in OVERRIDE}
 

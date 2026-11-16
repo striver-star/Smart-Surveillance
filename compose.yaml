@@ -65,6 +65,9 @@ services:
       HSS_RECOGNITION_DAYS: ${HSS_RECOGNITION_DAYS:-30}
       # Days access control events (who came through which door) are kept
       HSS_ACCESS_DAYS: ${HSS_ACCESS_DAYS:-90}
+      # PTZ patrol tours wait this long after a person (or an alert rule) last turned the camera
+      HSS_PTZ_RESUME_S: ${HSS_PTZ_RESUME_S:-120}
+      HSS_PTZ_ALERT_HOLD_S: ${HSS_PTZ_ALERT_HOLD_S:-300}
       # The server's own LAN address: Devices › Find devices starts from its network
       HSS_SERVER_IP: ${HSS_SERVER_IP:-}
     volumes:
