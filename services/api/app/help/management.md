@@ -15,6 +15,10 @@ For the General Manager and other management accounts. You see the overview, dev
 - **Repeat alerts**: the same place alerting again and again usually means a camera or rule needs fixing.
 - **Open items**: drive faults, offline cameras, clocks, failed message deliveries. Each one has an owner (normally IT).
 
+## Incident heat map
+
+In the console, **Incident heat map** with *Real incidents* shows where and at what hours real trouble happens: the basis for patrol and lighting decisions.
+
 ## Questions management should ask each month
 
 1. Were all critical alerts acknowledged within the target time?

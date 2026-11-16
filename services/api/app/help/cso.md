@@ -49,6 +49,10 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 **Phone app** (`https://<server>/m/`): guards check in at checkpoints with the phone's GPS and hold **SOS** for 2 seconds to raise a critical alert with their position. Supervisors also see open alerts there and can acknowledge and close them. Keep the Traccar Client app for guards who must be tracked all shift: the phone app only knows where a guard is when they check in.
 
+## Heat map
+
+**Incident heat map** shows where (on the site plan) and when (day and hour) alerts happen. Use *Real incidents* to plan patrol routes, patrol times and lighting; click a camera to see its busiest hours. Place every camera on the site plan so the map is complete.
+
 ## Lockdown
 
 Operators can start a lockdown with the red **Lockdown** button; you or an administrator end it with **End lockdown** on the red banner. In Settings › **Lockdown** choose the floodlights and sirens to switch on; add `lockdown` to the subscriptions of everyone who must be told in config/recipients.json (ask IT). Rehearse it once with the control room. Details: docs/lockdown.md.

@@ -123,3 +123,76 @@ def false_alarms(days: int = 30, _: dict = Depends(require("admin", "cso", "mana
         "by_camera": breakdown(rows, "camera_id", rules, lambda k: camera_label(k) or k)[:30],
         "by_hour": hours,
     }
+
+
+# ------------------------------------------------------------------ incident heat map (release 2.0, second batch)
+
+def heat(rows: list[dict]) -> dict:
+    """Counts by place and by weekday x hour (pure, tested). rows: {camera_id, zone, reason, severity, weekday 0=Mon, hour}."""
+    grid = [[0] * 24 for _ in range(7)]
+    cams: dict[str, Counter] = defaultdict(Counter)
+    zones: dict[str, Counter] = defaultdict(Counter)
+    for r in rows:
+        grid[r["weekday"]][r["hour"]] += 1
+        for table, key in ((cams, r["camera_id"]), (zones, r["zone"])):
+            if not key:
+                continue
+            c = table[key]
+            c["alerts"] += 1
+            c["real"] += r["reason"] == "real_incident"
+            c["false"] += r["reason"] == "false_alarm"
+            c["critical"] += r["severity"] == "critical"
+            c[f"h{r['hour']}"] += 1
+    def pack(table):
+        out = []
+        for k, c in table.items():
+            peak = max(range(24), key=lambda h: c[f"h{h}"])
+            out.append({"key": k, "alerts": c["alerts"], "real": c["real"], "false": c["false"], "critical": c["critical"],
+                        "peak_hour": peak if c[f"h{peak}"] else None})
+        return sorted(out, key=lambda x: (-x["alerts"], x["key"]))
+    return {"grid": grid, "cameras": pack(cams), "zones": pack(zones), "total": len(rows)}
+
+
+@router.get("/heatmap")
+def heatmap(days: int = 30, only: str = "all", severity: str = "", place: str = "", plan_id: int | None = None,
+            _: dict = Depends(require("admin", "cso", "operator", "management"))) -> dict:
+    """Alerts by place on the site plan and by weekday and hour. only: all | real (closed as real incident) |
+    not_false (everything except false alarms). place: 'camera:<id>' or 'zone:<name>' narrows the grid."""
+    days = max(1, min(days, 365))
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    zone_tz = tz()
+    sql = ("SELECT e.camera_id, e.zone, a.close_reason, a.severity, a.created_at FROM alerts a JOIN events e ON e.id = a.event_id "
+           "WHERE a.created_at >= %s AND NOT (e.type = ANY(%s))")
+    args: list = [since, [t for t in DEVICE if t not in ("missed_patrol",)]]
+    if only == "real":
+        sql += " AND a.close_reason = 'real_incident'"
+    elif only == "not_false":
+        sql += " AND a.close_reason IS DISTINCT FROM 'false_alarm'"
+    if severity in ("warning", "critical"):
+        sql += " AND a.severity = %s"
+        args.append(severity)
+    with connect() as conn:
+        raw = conn.execute(sql, args).fetchall()
+    rows = []
+    for cam, z, reason, sev, at in raw:
+        local = at.astimezone(zone_tz)
+        rows.append({"camera_id": cam, "zone": z, "reason": reason, "severity": sev, "weekday": local.weekday(), "hour": local.hour})
+    out = heat(rows)
+    if place:
+        kind, _, key = place.partition(":")
+        sub = [r for r in rows if (kind == "camera" and r["camera_id"] == key) or (kind == "zone" and r["zone"] == key)]
+        out["grid"] = heat(sub)["grid"]
+        out["place_total"] = len(sub)
+    from .alerts import camera_label
+    for c in out["cameras"]:
+        c["label"] = camera_label(c["key"]) or c["key"]
+    plan = None
+    if plan_id:
+        from .geo import _plan, list_zones
+        p = _plan(plan_id)
+        with connect() as conn:
+            cams = conn.execute("SELECT camera_id, x, y FROM camera_geo WHERE plan_id = %s", (plan_id,)).fetchall()
+        plan = {"id": p["id"], "name": p["name"], "width": p["width"], "height": p["height"],
+                "cameras": [{"camera_id": c, "x": x, "y": y} for c, x, y in cams],
+                "zones": [{"name": z["name"], "kind": z["kind"], "points": z["points"]} for z in list_zones(plan_id, _) if z["points"]]}
+    return {"days": days, "since": since, "timezone": str(zone_tz), "only": only, "severity": severity, "place": place, **out, "plan": plan}

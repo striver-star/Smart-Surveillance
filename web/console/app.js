@@ -86,6 +86,7 @@ const I = {
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+  heat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".35"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
   noise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M9 20V4M14 20v-7M19 20v-11"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
   legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
@@ -115,6 +116,7 @@ const PAGES = [
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
   { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
   { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
+  { id: "heatmap", title: "Incident heat map", icon: "heat", roles: ["admin", "cso", "operator", "management"], view: viewHeatmap },
   { id: "false-alarms", title: "False alarms", icon: "noise", roles: ["admin", "cso", "management"], view: viewFalseAlarms },
   { id: "planner", title: "Camera planner", icon: "planner", roles: ["admin", "cso", "management"], view: viewPlanner },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
@@ -2146,6 +2148,121 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- incident heat map: where and when alerts happen ---------------- */
+async function viewHeatmap(c) {
+  const saved = (() => { try { return JSON.parse(localStorage.getItem("hss.heat") || "{}"); } catch (_) { return {}; } })();
+  const st = { days: 30, only: "all", severity: "", place: "", plan: null, ...saved, place: "" };
+  let plans = [];
+  try { plans = await api("/geo/plans"); } catch (_) { /* no map module */ }
+  if (!plans.some(p => p.id === st.plan)) st.plan = plans[0] ? plans[0].id : null;
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hh = n => `${String(n).padStart(2, "0")}:00`;
+  const tip = h("div", { class: "hm-tip", hidden: true });
+  document.body.append(tip); state.cleanup.push(() => tip.remove());
+  const showTip = (ev, text) => { tip.textContent = text; tip.hidden = false; const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = `${x}px`; tip.style.top = `${ev.clientY + 14}px`; };
+  const hideTip = () => { tip.hidden = true; };
+  const seg = (key, opts) => h("div", { class: "seg" }, opts.map(([v, l]) => h("button", { class: String(st[key]) === String(v) ? "on" : null, onclick: () => { st[key] = v; if (key !== "place") st.place = ""; save(); load(); } }, l)));
+  const save = () => { try { localStorage.setItem("hss.heat", JSON.stringify({ days: st.days, only: st.only, severity: st.severity, plan: st.plan })); } catch (_) { /* fine */ } };
+  const bar = h("div", { class: "toolbar hm-filters" });
+  const body = h("div", { class: "grid", style: "gap:14px" });
+  c.append(bar, body);
+  const shade = (n, max) => n ? `color-mix(in oklab, var(--seq-hi) ${Math.round(18 + 82 * n / max)}%, var(--seq-lo))` : null;
+
+  function mapCard(d) {
+    const p = d.plan;
+    if (!p) return card("Site map", null, h("p", { class: "muted" }, plans.length ? "Pick a plan above." : "Add a site plan in Site map to see alerts by place."));
+    const NS = "http://www.w3.org/2000/svg", k = Math.max(p.width, p.height) / 1000;
+    const sv = (tag, attrs, ...kids) => { const n = document.createElementNS(NS, tag); for (const [a, v] of Object.entries(attrs)) if (v !== null && v !== undefined) n.setAttribute(a, v); kids.forEach(x => x && n.append(x)); return n; };
+    const svg = sv("svg", { viewBox: `0 0 ${p.width} ${p.height}`, class: "hm-map", role: "img", "aria-label": `Alerts by place on ${p.name}` });
+    svg.append(sv("image", { href: `/api/geo/plans/${p.id}/image`, x: 0, y: 0, width: p.width, height: p.height, opacity: .55 }));
+    const zc = Object.fromEntries(d.zones.map(z => [z.key, z])), cc = Object.fromEntries(d.cameras.map(x => [x.key, x]));
+    const zmax = Math.max(1, ...p.zones.map(z => (zc[z.name] || {}).alerts || 0));
+    for (const z of p.zones) {
+      const n = (zc[z.name] || {}).alerts || 0;
+      const poly = sv("polygon", { class: `hm-zone ${st.place === `zone:${z.name}` ? "sel" : ""}`, points: z.points.map(q => q.join(",")).join(" "), "stroke-width": 2 * k,
+        style: n ? `fill:${shade(n, zmax)};fill-opacity:.55` : null });
+      poly.addEventListener("mousemove", ev => showTip(ev, `${z.name}: ${n} alert${n === 1 ? "" : "s"}`)); poly.addEventListener("mouseleave", hideTip);
+      poly.addEventListener("click", () => { st.place = st.place === `zone:${z.name}` ? "" : `zone:${z.name}`; load(); });
+      svg.append(poly);
+    }
+    const cmax = Math.max(1, ...p.cameras.map(x => (cc[x.camera_id] || {}).alerts || 0));
+    const placed = p.cameras.map(x => ({ ...x, s: cc[x.camera_id] })).sort((a, b) => ((b.s || {}).alerts || 0) - ((a.s || {}).alerts || 0));
+    const labelled = new Set(placed.filter(x => x.s).slice(0, 5).map(x => x.camera_id));
+    for (const x of [...placed].reverse()) {
+      const n = x.s ? x.s.alerts : 0;
+      const r = (n ? 10 + 34 * Math.sqrt(n / cmax) : 5) * k;
+      const g = sv("g", { class: `hm-cam ${st.place === `camera:${x.camera_id}` ? "sel" : ""}` },
+        sv("circle", { cx: x.x, cy: x.y, r, "stroke-width": 2 * k, style: n ? `fill:${shade(n, cmax)}` : null, class: n ? null : "zero" }),
+        labelled.has(x.camera_id) ? sv("text", { x: x.x, y: x.y + 5 * k, "font-size": 15 * k, "text-anchor": "middle" }, document.createTextNode(String(n))) : null);
+      const name = x.s ? x.s.label : x.camera_id;
+      g.addEventListener("mousemove", ev => showTip(ev, n ? `${name}: ${n} alert${n === 1 ? "" : "s"} · ${x.s.real} real · ${x.s.false} false · busiest ${hh(x.s.peak_hour)}` : `${name}: no alerts`));
+      g.addEventListener("mouseleave", hideTip);
+      g.addEventListener("click", () => { st.place = st.place === `camera:${x.camera_id}` ? "" : `camera:${x.camera_id}`; load(); });
+      svg.append(g);
+    }
+    const unplaced = d.cameras.filter(x => !p.cameras.some(y => y.camera_id === x.key)).length;
+    return card(`Where · ${p.name}`, null,
+      h("p", { class: "muted", style: "margin:0 0 10px;font-size:12.5px" }, "Bubble size and colour = alerts at that camera; zones shaded the same way. Click one to see its hours."),
+      h("div", { class: "hm-map-wrap" }, svg),
+      unplaced ? h("p", { class: "faint", style: "margin:8px 0 0;font-size:12.5px" }, `${unplaced} camera${unplaced === 1 ? "" : "s"} with alerts ${unplaced === 1 ? "isn't" : "aren't"} placed on this plan; see the table below.`) : null);
+  }
+
+  function gridCard(d) {
+    const max = Math.max(1, ...d.grid.flat());
+    const placeName = st.place ? (st.place.startsWith("camera:") ? ((d.cameras.find(x => `camera:${x.key}` === st.place) || {}).label || st.place.slice(7)) : st.place.slice(5)) : "";
+    const cells = [h("div", {}), ...Array.from({ length: 24 }, (_, i) => h("div", { class: "hm-hh" }, i % 3 === 0 ? String(i).padStart(2, "0") : ""))];
+    d.grid.forEach((row, wd) => {
+      cells.push(h("div", { class: "hm-day" }, DAYS[wd]));
+      row.forEach((n, hr) => {
+        const cell = h("div", { class: `hm-cell ${n ? "" : "zero"}`, style: n ? `background:${shade(n, max)}` : null, "aria-label": `${DAYS[wd]} ${hh(hr)}: ${n}` });
+        cell.addEventListener("mousemove", ev => showTip(ev, `${DAYS[wd]} ${hh(hr)}–${hh((hr + 1) % 24)}: ${n} alert${n === 1 ? "" : "s"}`)); cell.addEventListener("mouseleave", hideTip);
+        cells.push(cell);
+      });
+    });
+    const byHour = Array.from({ length: 24 }, (_, i) => d.grid.reduce((a, r) => a + r[i], 0));
+    const peak = byHour.indexOf(Math.max(...byHour));
+    const night = byHour.slice(18).concat(byHour.slice(0, 6)).reduce((a, b) => a + b, 0), all = byHour.reduce((a, b) => a + b, 0);
+    return card(placeName ? `When · ${placeName}` : "When · whole site", placeName ? h("button", { class: "btn small", onclick: () => { st.place = ""; load(); } }, "Whole site") : null,
+      all ? h("p", { class: "hm-lead" }, `Busiest hour ${hh(peak)}–${hh((peak + 1) % 24)}; ${Math.round(100 * night / all)}% of alerts between 18:00 and 06:00.`) : h("p", { class: "muted" }, "No alerts in this period."),
+      h("div", { class: "hm-grid", role: "img", "aria-label": "Alerts by day of week and hour" }, cells),
+      h("div", { class: "hm-legend" }, h("span", { class: "faint" }, "fewer"), h("span", { class: "hm-ramp" }), h("span", { class: "faint" }, `more (max ${max} in an hour)`), h("span", { class: "faint", style: "margin-left:auto" }, `Times in ${d.timezone}`)),
+      h("div", { class: "hm-sub" }, "All days, by hour"),
+      h("div", { class: "hm-bars", role: "img", "aria-label": "Alerts by hour, all days" }, h("div", {}),
+        byHour.map((n, i) => { const b = h("div", { class: "hm-bar-col" }, h("div", { class: `hm-bar ${i === peak && n ? "peak" : ""}`, style: `height:${n ? Math.max(3, 100 * n / Math.max(...byHour)) : 0}%` }));
+          b.addEventListener("mousemove", ev => showTip(ev, `${hh(i)}–${hh((i + 1) % 24)}: ${n} alert${n === 1 ? "" : "s"}`)); b.addEventListener("mouseleave", hideTip); return b; })));
+  }
+
+  function tableCard(d) {
+    const rows = d.cameras.slice(0, 15);
+    return card("Places with the most alerts", null, rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Camera", "Alerts", "Critical", "Real", "False", "Busiest hour", ""].map(t => h("th", {}, t)))),
+      h("tbody", {}, rows.map(r => h("tr", { class: st.place === `camera:${r.key}` ? "sel-row" : null },
+        h("td", {}, h("span", { style: "font-weight:600" }, r.label), r.label !== r.key ? h("div", { class: "faint mono", style: "font-size:11.5px" }, r.key) : null),
+        h("td", {}, r.alerts), h("td", {}, r.critical || "—"), h("td", {}, r.real || "—"), h("td", {}, r.false || "—"),
+        h("td", {}, r.peak_hour === null ? "—" : hh(r.peak_hour)),
+        h("td", { style: "text-align:right" }, h("button", { class: "btn small", onclick: () => { st.place = `camera:${r.key}`; load(); } }, "Its hours"))))))) : h("p", { class: "muted" }, "No alerts in this period."));
+  }
+
+  async function load() {
+    bar.replaceChildren(
+      seg("days", [[7, "7 days"], [30, "30 days"], [90, "90 days"], [365, "1 year"]]),
+      seg("only", [["all", "All alerts"], ["not_false", "Without false alarms"], ["real", "Real incidents"]]),
+      seg("severity", [["", "Any severity"], ["critical", "Critical"]]),
+      plans.length > 1 ? h("select", { class: "input", style: "width:auto", "aria-label": "Site plan", onchange: e => { st.plan = Number(e.target.value); save(); load(); } },
+        plans.map(p => h("option", { value: p.id, selected: p.id === st.plan }, p.name))) : null);
+    const q = new URLSearchParams({ days: st.days, only: st.only, severity: st.severity, place: st.place });
+    if (st.plan) q.set("plan_id", st.plan);
+    try {
+      const d = await api(`/insights/heatmap?${q}`);
+      body.replaceChildren(
+        h("div", { class: "grid kpis" }, kpi("Alerts", d.total, `last ${d.days} days`), kpi("Places", d.cameras.length, "cameras with alerts"),
+          kpi("Busiest place", d.cameras[0] ? d.cameras[0].label : "—", d.cameras[0] ? `${d.cameras[0].alerts} alerts` : "")),
+        h("div", { class: "hm-two" }, mapCard(d), gridCard(d)), tableCard(d));
+    } catch (ex) { body.replaceChildren(h("div", { class: "error" }, ex.message)); }
+  }
+  load();
 }
 
 /* ---------------- viewing log: who watched which camera ---------------- */
