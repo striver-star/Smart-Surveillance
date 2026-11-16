@@ -916,6 +916,7 @@ async function viewDevices(c) {
     h("div", { style: "flex:1" }),
     h("span", { class: "muted" }, dev.live_checked_at ? `Live status, checked ${ago(dev.live_checked_at)}; models and classes from the camera survey`
       : dev.probed_at ? `From the probe of ${fmtTime(dev.probed_at)}${dev.cameras_surveyed_at ? ` and the camera survey of ${fmtTime(dev.cameras_surveyed_at)}` : ""}` : "No device data on the server yet"),
+    isAdmin ? h("button", { class: "btn", onclick: () => findDevices(c) }, "Find devices") : null,
     isAdmin ? h("button", { class: "btn primary", onclick: () => nvrForm({}, false) }, "Add NVR") : null),
     dev.live_checked_at ? null : h("div", { class: "note" }, "Showing the latest probe files. Start the edge service (docs/edge.md) for live status checked every minute."),
     dev.nvrs.length ? box : h("div", { class: "empty" }, isAdmin ? "No NVRs yet. Use Add NVR to connect the first one." : "No NVRs have been added yet."));
@@ -989,6 +990,68 @@ function outputForm(o, regs) {
         try { await api(editing ? `/outputs/${o.id}` : "/outputs", { method: editing ? "PUT" : "POST", body: b }); close.remove(); toast("Saved"); render(); }
         catch (ex) { err.textContent = ex.message; err.hidden = false; }
       } }, "Save")]);
+}
+
+/* Network discovery: scan the site's private ranges for Hikvision NVRs and cameras, identify, add. */
+async function findDevices(c) {
+  let panel = document.getElementById("discovery");
+  if (panel) { panel.scrollIntoView({ behavior: "smooth" }); return; }
+  const sug = await api("/discovery/suggest").catch(() => ({ ranges: [], ports: [80, 443, 8000, 554] }));
+  const targets = h("input", { class: "input", id: "dc-targets", value: sug.ranges.join(", "), placeholder: "e.g. 10.1.3.0/24, 10.1.4.10-60" });
+  const progress = h("div", { class: "muted", style: "font-size:12.5px;margin:6px 0" });
+  const results = h("div", {});
+  const err = h("div", { class: "error", hidden: true });
+  const KIND = { nvr: "NVR", camera: "Camera", hikvision: "Hikvision device", other_camera: "Other camera (RTSP)", other: "Other device" };
+  let timer = null;
+  const stop = () => { clearInterval(timer); timer = null; };
+  state.cleanup.push(stop);
+  const draw = sc => {
+    const sm = sc.summary || {};
+    progress.textContent = sc.state === "running" ? `Scanning… ${sc.done} of ${sc.total} addresses checked, ${sc.devices.length} answered`
+      : sc.state === "done" ? `Done: ${sc.total} addresses checked in ${Math.round((sc.finished - sc.started))} s. ${sm.nvrs} NVR${sm.nvrs === 1 ? "" : "s"} (${sm.new_nvrs} new), ${sm.cameras} camera${sm.cameras === 1 ? "" : "s"}${sm.not_activated ? `, ${sm.not_activated} not activated` : ""}.`
+      : sc.state;
+    const hik = sc.devices.filter(d => d.vendor === "hikvision"), other = sc.devices.filter(d => d.vendor !== "hikvision");
+    const row = d => h("tr", {},
+      h("td", { class: "mono" }, d.address), h("td", {}, KIND[d.kind] || d.kind, d.model_hint ? h("div", { class: "faint mono", style: "font-size:11.5px" }, d.model_hint) : null),
+      h("td", { class: "faint", style: "font-size:12px" }, d.ports.join(", ")),
+      h("td", { style: "font-size:12.5px;max-width:320px;white-space:normal" },
+        d.registered ? h("span", { class: "badge ok" }, `added as ${d.registered}`) : d.activated === false ? h("span", { class: "badge bad" }, "not activated") : d.vendor === "hikvision" ? h("span", { class: "badge" }, "new") : null,
+        d.notes.map(n => h("div", { class: "faint" }, n)), d.identified ? h("div", {}, `${d.identified.model} · ${d.identified.firmware}${d.identified.channels ? ` · ${d.identified.channels} channels (${d.identified.online} online)` : ""}`) : null),
+      h("td", { style: "text-align:right;white-space:nowrap" },
+        d.vendor === "hikvision" && d.activated !== false ? h("button", { class: "btn small", onclick: () => identify(d, sc) }, "Identify") : null, " ",
+        d.kind === "nvr" && !d.registered && d.activated !== false ? h("button", { class: "btn small primary", onclick: () => nvrForm({ address: d.address, name: (d.identified || {}).name || "", registered: { scheme: d.scheme, username: (d.identified || {}).username } }, false) }, "Add as NVR") : null));
+    const table = rows => h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Address", "What", "Ports", "Status", ""].map(t => h("th", {}, t)))), h("tbody", {}, rows.map(row))));
+    results.replaceChildren(
+      hik.length ? table(hik) : sc.state !== "running" ? h("div", { class: "empty" }, "No Hikvision devices answered in these ranges. Check the ranges, that the server can reach that network, or use tools/discovery/hss-sadp.py on the camera VLAN.") : null,
+      other.length ? h("details", { style: "margin-top:10px" }, h("summary", { class: "muted" }, `${other.length} other device${other.length === 1 ? "" : "s"} answered`), table(other)) : null,
+      h("p", { class: "faint", style: "font-size:12px;margin:10px 0 0" }, "Cameras plugged into an NVR's own PoE ports sit on the NVR's internal network and aren't seen here; they appear under the NVR once it's added. Devices on default or unknown addresses: run tools/discovery/hss-sadp.py on the server."));
+  };
+  const identify = (d, sc) => {
+    const user = h("input", { class: "input", id: "id-user", autocomplete: "off", placeholder: "admin or a viewer user" });
+    const pass = h("input", { class: "input", id: "id-pass", type: "password", autocomplete: "new-password" });
+    const e2 = h("div", { class: "error", hidden: true });
+    modal(`Identify ${d.address}`, h("div", {}, e2, h("p", { class: "muted", style: "margin-top:0" }, "Logs in once to read the model, serial, firmware and channels. The password isn't stored. Several wrong passwords can lock the user on the device."),
+      h("div", { class: "field" }, h("label", { for: "id-user" }, "User"), user), h("div", { class: "field" }, h("label", { for: "id-pass" }, "Password"), pass)),
+      close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+        try { d.identified = { ...(await api("/discovery/identify", { method: "POST", body: { address: d.address, scheme: d.scheme, username: user.value.trim(), password: pass.value } })), username: user.value.trim() };
+          if (d.identified.kind === "nvr") d.kind = "nvr";
+          close.remove(); draw(sc); }
+        catch (ex) { e2.textContent = ex.message; e2.hidden = false; }
+      } }, "Identify")]);
+  };
+  const go = h("button", { class: "btn primary", onclick: async () => {
+    err.hidden = true; stop();
+    try {
+      const r = await api("/discovery/scans", { method: "POST", body: { targets: targets.value } });
+      const poll = async () => { try { const sc = await api(`/discovery/scans/${r.id}`); draw(sc); if (sc.state !== "running") stop(); } catch (ex) { stop(); err.textContent = ex.message; err.hidden = false; } };
+      timer = setInterval(poll, 1500); poll();
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+  } }, "Scan");
+  panel = h("section", { class: "card", id: "discovery" }, h("div", { class: "head" }, h("h2", {}, "Find devices"), h("div", { class: "spacer" }),
+      h("button", { class: "btn small", onclick: () => { stop(); panel.remove(); } }, "Close")),
+    h("p", { class: "muted", style: "margin-top:0" }, "Scans the site's network for Hikvision NVRs and cameras (ports 80, 443, 8000 and 554), without logging in. Only private addresses, at most a /20 (4,096 addresses) at a time; the scan is recorded in the audit log."),
+    h("div", { class: "toolbar" }, h("label", { for: "dc-targets", class: "muted" }, "Ranges"), targets, go), err, progress, results);
+  c.prepend(panel);
 }
 
 function nvrForm(n, editing) {
@@ -2236,7 +2299,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

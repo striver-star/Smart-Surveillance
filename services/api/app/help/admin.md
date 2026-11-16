@@ -24,6 +24,8 @@ For the IT Manager and other administrators.
 
 ## Devices
 
+- **Find devices** (Devices page) scans the site's network for Hikvision NVRs and cameras, shows which are new, already added or not activated, and can identify and add them. For devices on unknown addresses run `python3 tools/discovery/hss-sadp.py` on the server. See docs/discovery.md.
+
 - **Add NVR**: address, a dedicated NVR user (not admin), password. The login is tested before saving; passwords are stored encrypted.
 - **Event setup**: check each NVR's event settings; tick Notify Surveillance Center for events marked amber.
 - **AI tier**: click a camera's tier to override it, with a reason.
