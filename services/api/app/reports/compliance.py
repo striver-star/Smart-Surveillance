@@ -162,6 +162,20 @@ def collect(start: datetime, end: datetime, tzinfo, site_name: str, label: str, 
         rows += [["Accepted by", f"{acc['full_name']} ({acc['position']}) on {acc['accepted_at'].astimezone(tzinfo):%d %B %Y}"],
                  ["Legal opinion", f"{acc['reviewer_name']}, {acc['reviewer_firm']}, ref {acc['opinion_ref']}"],
                  ["DPIA reference", acc["dpia_ref"] or "—"], ["Expires", f"{acc['expires_at'].astimezone(tzinfo):%d %B %Y}"]]
+    with connect() as conn:
+        wl = conn.execute("SELECT count(*) FILTER (WHERE active AND expires_at >= current_date), "
+                          "count(*) FILTER (WHERE active AND expires_at >= current_date AND expires_at < current_date + 14) FROM watch_people").fetchone()
+        wp = conn.execute("SELECT count(*) FILTER (WHERE active AND expires_at >= current_date) FROM watch_plates").fetchone()
+        vd = conn.execute("SELECT verdict, count(*) FROM recognition_verdicts WHERE at >= %s AND at < %s GROUP BY 1", (start, end)).fetchall()
+    verdicts = dict(vd)
+    rows += [["Watchlists", f"{wl[0]} people, {wp[0]} plates in force"],
+             ["Operator verdicts", f"{verdicts.get('confirmed', 0)} confirmed, {verdicts.get('rejected', 0)} not a match" if vd else "none this period"]]
+    if wl[1]:
+        checks.append(Check(ATTENTION, "Watchlists", f"{n_of(wl[1], 'watchlist entry', 'watchlist entries')} expire within 14 days.",
+                            "Renew them with a current reason and authority, or let them lapse (Face & plate › Face watchlist)."))
+    if verdicts.get("rejected", 0) > verdicts.get("confirmed", 0) and sum(verdicts.values()) >= 10:
+        checks.append(Check(ATTENTION, "Recognition accuracy", "Operators marked more matches 'not a match' than confirmed this period.",
+                            "Raise the face threshold (Face & plate › Accuracy shows a suggestion) or review camera placement."))
     rows += [["DPIA review due", f"{due:%d %B %Y}" if due else "not recorded"],
              ["Signs last checked", cfg["signs_checked_on"] or "not recorded"], ["Data Protection Officer", cfg["dpo_name"] or "not recorded"]]
     by_scope = Counter()

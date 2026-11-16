@@ -33,6 +33,8 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 - Never list someone on suspicion alone, or for ethnicity, religion, politics, union membership or health.
 - **Withdraw and lock** (Face & plate page) stops recognition at once if there's a complaint or doubt.
 
+**Live recognition** (stage 4): Face & plate › Face watchlist and Plate watchlist (every entry needs a reason, an authority reference and an expiry date), Cameras and thresholds, and Accuracy (operators' verdicts, a suggested threshold). Details: docs/recognition.md.
+
 ## Planning cameras
 
 **Camera planner** shows, for a camera, lens and distance, the pixels per metre on the target, whether faces and plates will be big enough, and how far each level (detect, observe, recognise, identify) reaches. Use it before buying or moving a camera; confirm with the suitability tests.

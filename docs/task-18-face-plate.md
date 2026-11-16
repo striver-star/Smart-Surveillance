@@ -2,7 +2,7 @@
 
 **Status (2026-11-14):** engine and trial tool built and tested on sample photos and synthetic
 plates (14 AI worker tests pass, licence scan passes with two waivers for the legal reviewer).
-**Stage 1 (camera suitability, no identification) approved 2026-11-14; tool ready.** Stages 2 to 4 wait on the legal gate (task 4).
+**Stage 1 (camera suitability, no identification) approved 2026-11-14; tool ready.** Legal review, DPIA and signs completed and accepted 2026-11-16 (face and plate unlocked). Stage 3 (volunteer walk test) under way; **stage 4 (live recognition) built 2026-11-16, see docs/recognition.md**: enrol stage 3 volunteers on the Trial list and use their results to set the threshold.
 
 This is engineering guidance, not legal advice. Every step marked "legal" needs the legal
 reviewer's approval first.

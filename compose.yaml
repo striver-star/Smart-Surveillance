@@ -61,6 +61,8 @@ services:
       HSS_RECORDING_DAYS: ${HSS_RECORDING_DAYS:-30}
       # Days the viewing log (who watched which camera) is kept
       HSS_VIEW_LOG_DAYS: ${HSS_VIEW_LOG_DAYS:-365}
+      # Days face and plate match records are kept (unless their alert is still open)
+      HSS_RECOGNITION_DAYS: ${HSS_RECOGNITION_DAYS:-30}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).
@@ -104,6 +106,28 @@ services:
     volumes:
       - ./models:/models:ro
       - ${HSS_WORKER_CONFIG_FILE:-./config/worker.json}:/config/worker.json:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+
+  recognition:
+    # Face and plate recognition (stage 4), on the cameras approved in the console (Face & plate). It runs only
+    # while the legal review is in force, and sends matches only. Start with: docker compose --profile recognition up -d
+    profiles: ["recognition"]
+    build: ./services/ai-worker
+    command: ["python", "-m", "worker.recognition"]
+    restart: unless-stopped
+    environment:
+      HSS_API_URL: http://api:8000
+      HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
+      HSS_MODELS_DIR: /models
+      HSS_RTSP_BASE: rtsp://gateway:8554
+      HSS_RECOGNITION_FPS: ${HSS_RECOGNITION_FPS:-3}
+      HSS_TZ: ${HSS_TZ}
+    volumes:
+      - ./models:/models:ro
     depends_on:
       api:
         condition: service_healthy

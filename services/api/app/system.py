@@ -282,6 +282,12 @@ def apply_retention() -> dict:
             "RETURNING e.snapshot_ref", (event_days,)).fetchall()
         positions = conn.execute("DELETE FROM unit_positions WHERE at < now() - %s * interval '1 day'", (pos_days,)).rowcount
         conn.execute("DELETE FROM legal_reads WHERE opened_at < now() - interval '30 days'")
+        # Recognition matches: kept HSS_RECOGNITION_DAYS (30) unless their alert is still open (DPIA)
+        rec = conn.execute(
+            "DELETE FROM events e WHERE e.type IN ('face_match', 'plate_match') AND e.occurred_at < now() - %s * interval '1 day' "
+            "AND NOT EXISTS (SELECT 1 FROM alerts a WHERE a.event_id = e.id AND a.status <> 'closed') RETURNING e.snapshot_ref",
+            (days("HSS_RECOGNITION_DAYS", 30),)).fetchall()
+        rows = list(rows) + list(rec)
         views = conn.execute("DELETE FROM view_log WHERE started_at < now() - %s * interval '1 day'", (days("HSS_VIEW_LOG_DAYS", 365),)).rowcount
     files = 0
     for ref in [r for (r,) in rows if r]:
@@ -295,7 +301,7 @@ def apply_retention() -> dict:
         if p.exists():
             p.unlink()
             clips += 1
-    return {"events": len(rows), "snapshots": files, "clips": clips, "positions": positions, "viewing_log": views}
+    return {"events": len(rows), "snapshots": files, "clips": clips, "positions": positions, "viewing_log": views, "recognition_matches": len(rec)}
 
 
 def retention_once() -> dict:

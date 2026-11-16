@@ -40,6 +40,7 @@ async function api(path, opts = {}) {
   return data;
 }
 const fmtTime = t => t ? new Date(t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "—";
+const fmtDate = d => d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString([], { dateStyle: "medium" }) : "—";
 const ago = t => {
   if (!t) return "never";
   const s = (Date.now() - new Date(t)) / 1000;
@@ -1254,6 +1255,7 @@ async function viewFacePlate(c) {
           catch (ex) { err.textContent = ex.message; err.hidden = false; }
         } }, "Withdraw and lock")]);
     } }, "Withdraw and lock")) : null));
+  if (unlocked && ["admin", "cso"].includes(state.user.role)) c.append(await recognitionPanel(st));
 
   // The document, with reading progress.
   const progress = h("span", {});
@@ -2082,10 +2084,12 @@ async function alertDrawer(id) {
     const reason = h("select", { class: "input", style: "width:auto" }, Object.entries(CLOSE_REASONS).map(([k, v]) => h("option", { value: k }, v)));
     const who = h("select", { class: "input", style: "width:auto", disabled: !canManage },
       people.map(p => h("option", { value: p.username, selected: p.username === (a.assigned_to || state.user.username) }, `${p.display_name} (${p.role})`)));
+    const recSlot = canAct && ["face_match", "plate_match"].includes(a.type) ? h("div", {}) : null;
+    if (recSlot) recognitionMatch(a, async () => draw(await api(`/alerts/${id}`))).then(el => recSlot.replaceChildren(el)).catch(ex => recSlot.replaceChildren(h("div", { class: "faint" }, ex.message)));
     drawer.replaceChildren(
       h("div", { class: "toolbar" }, h("span", { class: `badge ${SEV_BADGE[a.severity]}` }, a.severity), h("span", { class: `badge ${STATUS_BADGE[a.status]}` }, a.status),
         h("h2", {}, label(a.type)), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: () => scrim.remove() }, "Close")),
-      a.snapshot_url ? h("img", { class: "snapshot", src: a.snapshot_url, alt: `Snapshot from ${a.camera_id}` }) : h("div", { class: "empty card" }, "No snapshot."),
+      recSlot ? recSlot : a.snapshot_url ? h("img", { class: "snapshot", src: a.snapshot_url, alt: `Snapshot from ${a.camera_id}` }) : h("div", { class: "empty card" }, "No snapshot."),
       clipBox(a, id, draw),
       h("div", { class: "kv" },
         h("div", {}, "Where"), h("div", {}, [a.zone, a.camera_name, a.camera_id].filter(Boolean).join(" · ")),
@@ -2232,7 +2236,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2355,6 +2359,166 @@ async function viewHeatmap(c) {
     } catch (ex) { body.replaceChildren(h("div", { class: "error" }, ex.message)); }
   }
   load();
+}
+
+/* ---------------- face and plate recognition (stage 4): watchlists, cameras, accuracy ---------------- */
+async function recognitionPanel(st) {
+  const tabs = [["people", "Face watchlist", st.face], ["plates", "Plate watchlist", st.plate], ["cameras", "Cameras and thresholds", true], ["accuracy", "Accuracy", true]].filter(t => t[2]);
+  let tab = (() => { try { return sessionStorage.getItem("hss.rec.tab") || tabs[0][0]; } catch (_) { return tabs[0][0]; } })();
+  if (!tabs.some(t => t[0] === tab)) tab = tabs[0][0];
+  const body = h("div", {});
+  const segs = h("div", { class: "seg" });
+  const yearOn = () => { const d = new Date(); d.setMonth(d.getMonth() + 6); return d.toISOString().slice(0, 10); };
+  const draw = async () => {
+    segs.replaceChildren(...tabs.map(([k, l]) => h("button", { class: k === tab ? "on" : null, onclick: () => { tab = k; try { sessionStorage.setItem("hss.rec.tab", k); } catch (_) { /* fine */ } draw(); } }, l)));
+    body.replaceChildren(h("div", { class: "muted" }, "Loading…"));
+    try { body.replaceChildren(await ({ people: drawPeople, plates: drawPlates, cameras: drawCameras, accuracy: drawAccuracy })[tab]()); }
+    catch (ex) { body.replaceChildren(h("div", { class: "error" }, ex.message)); }
+  };
+  const cfg = await api("/recognition/config");
+
+  async function drawPeople() {
+    const people = await api("/recognition/people");
+    const listSel = h("select", { class: "input", id: "wp-list" }, Object.entries(cfg.face_lists).map(([k, v]) => h("option", { value: k }, `${v.label} (${v.severity} alert)`)));
+    const nm = h("input", { class: "input", id: "wp-name", placeholder: "Full name" });
+    const reason = h("input", { class: "input", id: "wp-reason", placeholder: "Why, e.g. dismissed for theft, barred from site (letter of 3 Nov 2026)" });
+    const auth = h("input", { class: "input", id: "wp-auth", placeholder: "Consent form no. or legal authority reference" });
+    const exp = h("input", { class: "input", type: "date", id: "wp-exp", value: yearOn() });
+    const err = h("div", { class: "error", hidden: true });
+    const add = h("button", { class: "btn primary", onclick: async () => {
+      err.hidden = true;
+      try { await api("/recognition/people", { method: "POST", body: { list: listSel.value, name: nm.value.trim(), reason: reason.value.trim(), authority_ref: auth.value.trim(), expires_at: exp.value } }); toast("Added; now add 2 to 5 photos"); draw(); }
+      catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    } }, "Add person");
+    const fileFor = p => { const inp = h("input", { type: "file", accept: "image/jpeg,image/png,image/webp", multiple: true, hidden: true });
+      inp.addEventListener("change", async () => {
+        for (const f of inp.files) {
+          const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+          try { await api(`/recognition/people/${p.id}/photos`, { method: "POST", body: { image_data_url: url } }); } catch (ex) { toast(`${f.name}: ${ex.message}`); }
+        }
+        toast("Photos added; they're checked within a minute"); draw();
+      });
+      return h("span", {}, inp, h("button", { class: "btn small", onclick: () => inp.click() }, "Add photos")); };
+    const faceChip = (p, f) => h("span", { class: "rec-face" },
+      h("img", { src: `/api/recognition/people/${p.id}/photos/${f.id}`, alt: "", loading: "lazy" }),
+      h("span", { class: `badge ${f.status === "ok" ? "ok" : f.status === "pending" ? "" : "bad"}`, title: f.problem || "" }, f.status === "ok" ? "used" : f.status === "pending" ? "checking" : "not usable"),
+      h("button", { class: "btn small", title: f.problem || "Delete this photo", onclick: async () => { if (!confirm("Delete this photo?")) return; await api(`/recognition/people/${p.id}/photos/${f.id}`, { method: "DELETE" }); draw(); } }, "×"));
+    return h("div", {},
+      h("p", { class: "muted", style: "margin-top:0" }, "Only these people are recognised; every other face is discarded at once. Each entry needs a reason, a consent or legal authority reference and an expiry date (at most 12 months). Use 2 to 5 clear, front-facing photos of one person."),
+      h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "wp-list" }, "List"), listSel), h("div", { class: "field" }, h("label", { for: "wp-name" }, "Name"), nm),
+        h("div", { class: "field", style: "grid-column:span 2" }, h("label", { for: "wp-reason" }, "Reason"), reason), h("div", { class: "field" }, h("label", { for: "wp-auth" }, "Consent or authority"), auth),
+        h("div", { class: "field" }, h("label", { for: "wp-exp" }, "Expires"), exp), h("div", { class: "field", style: "align-self:end" }, add)), err,
+      people.length ? h("div", { class: "table-wrap" }, h("table", {},
+        h("thead", {}, h("tr", {}, ["Person", "List", "Reason and authority", "Photos", "Expires", ""].map(t => h("th", {}, t)))),
+        h("tbody", {}, people.map(p => h("tr", { class: !p.active || p.expired ? "muted" : null },
+          h("td", {}, h("div", { style: "font-weight:600" }, p.name), h("div", { class: "faint", style: "font-size:12px" }, `added by ${p.added_by}, ${fmtTime(p.added_at)}`)),
+          h("td", {}, h("span", { class: `badge ${p.list === "barred" ? "bad" : p.list === "watch" ? "warn" : ""}` }, (cfg.face_lists[p.list] || {}).label || p.list)),
+          h("td", { style: "max-width:260px;white-space:normal;font-size:12.5px" }, p.reason, h("div", { class: "faint" }, p.authority_ref)),
+          h("td", {}, h("div", { class: "rec-faces" }, p.faces.map(f => faceChip(p, f)), p.faces.filter(f => f.status !== "rejected").length < 5 ? fileFor(p) : null),
+            !p.faces.some(f => f.status === "ok") ? h("div", { class: "faint", style: "font-size:12px" }, "Not matched until a photo is usable") : null),
+          h("td", {}, p.expired ? h("span", { class: "badge bad" }, "expired") : !p.active ? h("span", { class: "badge" }, "paused") : fmtDate(p.expires_at)),
+          h("td", { style: "text-align:right;white-space:nowrap" },
+            h("button", { class: "btn small", onclick: async () => { await api(`/recognition/people/${p.id}`, { method: "PUT", body: { active: !p.active } }); draw(); } }, p.active ? "Pause" : "Resume"), " ",
+            h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Delete ${p.name} and their photos and face data? This can't be undone.`)) return; await api(`/recognition/people/${p.id}`, { method: "DELETE" }); toast("Deleted"); draw(); } }, "Delete"))))))) : h("div", { class: "empty" }, "Nobody on a watchlist yet."));
+  }
+
+  async function drawPlates() {
+    const rows = await api("/recognition/plates");
+    const plate = h("input", { class: "input mono", id: "pl-plate", placeholder: "KJA 123 AB" });
+    const listSel = h("select", { class: "input", id: "pl-list" }, Object.entries(cfg.plate_lists).map(([k, v]) => h("option", { value: k }, v.severity ? `${v.label} (${v.severity} alert)` : `${v.label} (no alert)`)));
+    const nm = h("input", { class: "input", id: "pl-name", placeholder: "Owner or vehicle (optional)" });
+    const reason = h("input", { class: "input", id: "pl-reason", placeholder: "Why" });
+    const auth = h("input", { class: "input", id: "pl-auth", placeholder: "Authority or record reference" });
+    const exp = h("input", { class: "input", type: "date", id: "pl-exp", value: yearOn() });
+    const err = h("div", { class: "error", hidden: true });
+    return h("div", {},
+      h("p", { class: "muted", style: "margin-top:0" }, "Plates read on the recognition cameras are compared with this list only; plates not on it are discarded. Allowed plates raise nothing."),
+      h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "pl-plate" }, "Plate"), plate), h("div", { class: "field" }, h("label", { for: "pl-list" }, "List"), listSel),
+        h("div", { class: "field" }, h("label", { for: "pl-name" }, "Name"), nm), h("div", { class: "field" }, h("label", { for: "pl-reason" }, "Reason"), reason),
+        h("div", { class: "field" }, h("label", { for: "pl-auth" }, "Authority"), auth), h("div", { class: "field" }, h("label", { for: "pl-exp" }, "Expires"), exp),
+        h("div", { class: "field", style: "align-self:end" }, h("button", { class: "btn primary", onclick: async () => {
+          err.hidden = true;
+          try { await api("/recognition/plates", { method: "POST", body: { plate: plate.value, list: listSel.value, name: nm.value, reason: reason.value, authority_ref: auth.value, expires_at: exp.value } }); draw(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; }
+        } }, "Add plate"))), err,
+      rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+        h("thead", {}, h("tr", {}, ["Plate", "List", "Name", "Reason and authority", "Expires", ""].map(t => h("th", {}, t)))),
+        h("tbody", {}, rows.map(r => h("tr", { class: r.expired ? "muted" : null }, h("td", { class: "mono", style: "font-weight:700" }, r.plate),
+          h("td", {}, h("span", { class: `badge ${r.list === "block" ? "bad" : r.list === "watch" ? "warn" : "ok"}` }, cfg.plate_lists[r.list].label)), h("td", {}, r.name || "—"),
+          h("td", { style: "font-size:12.5px" }, r.reason, h("div", { class: "faint" }, r.authority_ref)),
+          h("td", {}, r.expired ? h("span", { class: "badge bad" }, "expired") : fmtDate(r.expires_at)),
+          h("td", { style: "text-align:right" }, h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Remove ${r.plate}?`)) return; await api(`/recognition/plates/${r.id}`, { method: "DELETE" }); draw(); } }, "Remove"))))))) : h("div", { class: "empty" }, "No plates listed yet."));
+  }
+
+  async function drawCameras() {
+    const paths = await api("/live/paths").catch(() => []);
+    const cams = [...new Map(paths.map(p => [p.path.replace(/-sub$/, ""), p.label])).entries()];
+    const cur = Object.fromEntries((cfg.cameras || []).map(x => [x.camera_id, x]));
+    const rows = cams.map(([id, label]) => ({ id, label, face: h("input", { type: "checkbox", checked: !!(cur[id] && cur[id].face), disabled: !st.face }),
+      plate: h("input", { type: "checkbox", checked: !!(cur[id] && cur[id].plate), disabled: !st.plate }),
+      roi: h("input", { class: "input mono", style: "width:150px;padding:6px 8px", placeholder: "whole frame", value: cur[id] && cur[id].roi ? cur[id].roi.join(",") : "" }) }));
+    const num = (id, v, step, min, max) => h("input", { class: "input", type: "number", id, value: v, step, min, max, style: "width:110px" });
+    const thr = num("rc-thr", cfg.face_threshold, 0.01, 0.30, 0.80), mar = num("rc-mar", cfg.face_margin, 0.01, 0, 0.3), pc = num("rc-pc", cfg.plate_min_confidence, 0.01, 0.5, 0.99), rep = num("rc-rep", cfg.repeat_s, 10, 10, 3600);
+    const w = cfg.worker || {};
+    return h("div", {},
+      h("p", { class: "muted", style: "margin-top:0" }, "Recognition runs only on the cameras ticked here, on their main stream. Use entrance cameras where the stage 1 suitability test showed faces of 40 pixels between the eyes or more. For plates, give the lane area as fractions x1,y1,x2,y2 (for example 0.2,0.4,0.8,0.9)."),
+      h("div", { class: "note", style: "margin-bottom:10px" }, w.online ? `Recognition service running (${w.note || ""}); last report ${fmtTime(w.last_seen)}.` : "The recognition service isn't running: start it with docker compose --profile recognition up -d."),
+      h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Camera", "Faces", "Plates", "Plate lane area", "Status"].map(t => h("th", {}, t)))),
+        h("tbody", {}, rows.map(r => { const live = (w.cameras || {})[r.id];
+          return h("tr", {}, h("td", {}, r.label, r.label !== r.id ? h("div", { class: "faint mono", style: "font-size:11.5px" }, r.id) : null), h("td", {}, r.face), h("td", {}, r.plate), h("td", {}, r.roi),
+            h("td", { style: "font-size:12px" }, live ? `${live.connected ? "connected" : "no video"} · ${live.good_faces || 0} usable faces · ${live.face_matches || 0} face, ${live.plate_matches || 0} plate matches` : h("span", { class: "faint" }, "—"))); })))),
+      h("div", { class: "rec-form", style: "margin-top:12px" },
+        h("div", { class: "field" }, h("label", { for: "rc-thr" }, "Face match threshold"), thr, h("div", { class: "faint", style: "font-size:12px" }, "Higher = fewer false matches, more missed")),
+        h("div", { class: "field" }, h("label", { for: "rc-mar" }, "Margin over the next person"), mar),
+        h("div", { class: "field" }, h("label", { for: "rc-pc" }, "Plate read confidence"), pc),
+        h("div", { class: "field" }, h("label", { for: "rc-rep" }, "Repeat a match after (s)"), rep)),
+      h("button", { class: "btn primary", onclick: async () => {
+        try {
+          const cameras = rows.filter(r => r.face.checked || r.plate.checked).map(r => ({ camera_id: r.id, face: r.face.checked, plate: r.plate.checked,
+            roi: r.roi.value.trim() ? r.roi.value.split(",").map(Number) : null }));
+          Object.assign(cfg, await api("/recognition/config", { method: "PUT", body: { cameras, face_threshold: Number(thr.value), face_margin: Number(mar.value), plate_min_confidence: Number(pc.value), repeat_s: Number(rep.value) } }));
+          toast("Saved; the recognition service picks it up within a minute");
+        } catch (ex) { toast(ex.message); }
+      } }, "Save"));
+  }
+
+  async function drawAccuracy() {
+    const s = await api("/recognition/stats?days=90");
+    return h("div", {},
+      h("p", { class: "muted", style: "margin-top:0" }, "From operators' verdicts on matches in the last 90 days: Confirm (the same person or plate) or Not a match. Use this, with the stage 3 walk test, to set the threshold."),
+      s.suggested_face_threshold ? h("div", { class: "note" }, `Suggested face threshold: ${s.suggested_face_threshold} (now ${s.face_threshold}). It removes every match operators rejected and keeps at least 90% of confirmed ones.`) : null,
+      s.waiting_for_verdict ? h("p", {}, h("span", { class: "badge warn" }, `${s.waiting_for_verdict} match${s.waiting_for_verdict === 1 ? "" : "es"} waiting for a verdict`)) : null,
+      s.by_camera.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Camera", "Kind", "Confirmed", "Not a match", "Right"].map(t => h("th", {}, t)))),
+        h("tbody", {}, s.by_camera.map(r => h("tr", {}, h("td", {}, r.camera), h("td", {}, r.kind), h("td", {}, r.confirmed), h("td", {}, r.rejected),
+          h("td", {}, r.precision === null ? "—" : h("span", { class: `badge ${r.precision >= 0.9 ? "ok" : r.precision >= 0.7 ? "warn" : "bad"}` }, `${Math.round(100 * r.precision)}%`))))))) : h("div", { class: "empty" }, "No verdicts yet."));
+  }
+
+  const el = card("Recognition", h("span", { class: "muted", style: "font-size:12.5px" }, "CSO and administrators"), h("div", { class: "toolbar", style: "margin-bottom:12px" }, segs), body);
+  draw();
+  return el;
+}
+
+/* A recognition match inside an alert: the enrolment photo beside the live picture, and the operator's verdict. */
+async function recognitionMatch(a, onDone) {
+  const m = await api(`/recognition/matches/${a.id}`);
+  const canAct = ["admin", "cso", "operator"].includes(state.user.role);
+  const note = h("input", { class: "input", id: "rv-note", placeholder: "Optional note" });
+  const verdict = async v => {
+    try { await api(`/recognition/matches/${a.id}/verdict`, { method: "POST", body: { verdict: v, note: note.value } }); toast(v === "confirmed" ? "Match confirmed" : "Marked not a match; alert closed"); onDone(); }
+    catch (ex) { toast(ex.message); }
+  };
+  const live = a.snapshot_url ? h("img", { src: a.snapshot_url, alt: "Live picture" }) : h("div", { class: "faint" }, "no picture");
+  return h("section", { class: "card rec-match" },
+    h("div", { class: "head" }, h("h2", {}, m.kind === "face" ? `Face match: ${m.name}` : `Plate match: ${m.plate}`), h("div", { class: "spacer" }),
+      h("span", { class: `badge ${m.list === "barred" || m.list === "block" ? "bad" : "warn"}` }, m.list_label)),
+    h("p", { class: "muted", style: "margin:0 0 10px" }, m.kind === "face" ? `Score ${m.score} (margin ${m.margin}). ${m.reason}` : `Read confidence ${m.read_confidence}. ${m.name || ""}`,
+      " A match is a lead, not proof: compare the pictures before acting."),
+    h("div", { class: "rec-compare" },
+      m.kind === "face" ? h("figure", {}, m.photos.length ? h("img", { src: m.photos[0], alt: "Enrolment photo" }) : h("div", { class: "faint" }, "photo deleted"), h("figcaption", {}, "Enrolled")) : null,
+      h("figure", {}, live, h("figcaption", {}, "Camera"))),
+    m.verdict ? h("p", {}, h("span", { class: `badge ${m.verdict.verdict === "confirmed" ? "ok" : ""}` }, m.verdict.verdict === "confirmed" ? "Confirmed" : "Not a match"), ` by ${m.verdict.username}, ${fmtTime(m.verdict.at)}${m.verdict.note ? ` · ${m.verdict.note}` : ""}`)
+      : canAct ? h("div", { class: "toolbar" }, note, h("button", { class: "btn primary", onclick: () => verdict("confirmed") }, m.kind === "face" ? "Confirm: same person" : "Confirm: same plate"),
+        h("button", { class: "btn", onclick: () => verdict("rejected") }, "Not a match")) : null);
 }
 
 /* ---------------- viewing log: who watched which camera ---------------- */
