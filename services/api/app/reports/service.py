@@ -3,7 +3,8 @@
 Schedule (off unless HSS_REPORT_TIME is set, for example "07:00", local time HSS_TZ):
 daily report every day for yesterday, weekly on Mondays for last week, monthly on the 1st for
 last month. Each is sent to the recipients subscribed to "daily", "weekly" or "monthly".
-HSS_REPORT_KINDS limits which run (default "daily,weekly,monthly"); HSS_REPORT_FORMATS picks what
+The compliance and privacy report runs on the 1st for last month and goes to "compliance" subscribers.
+HSS_REPORT_KINDS limits which run (default "daily,weekly,monthly,compliance"); HSS_REPORT_FORMATS picks what
 is attached (default "pdf"; "pdf,docx" sends both).
 """
 from __future__ import annotations
@@ -45,6 +46,8 @@ def generate(kind: str, *, created_by: str, on: date | None = None, start: date 
              end: date | None = None, camera: str | None = None) -> dict:
     from ..console import get_branding, load_devices
     from . import docx_render, pdf
+    if kind == "compliance":
+        return generate_compliance(created_by=created_by, on=on)
     period = period_for(kind, tz(), on=on, start=start, end=end)
     branding = get_branding()
     logo = data_dir() / "branding" / branding["logo"]["file"] if branding.get("logo") else None
@@ -70,6 +73,33 @@ def generate(kind: str, *, created_by: str, on: date | None = None, start: date 
     return get_report(report_id)
 
 
+def generate_compliance(*, created_by: str, on: date | None = None) -> dict:
+    """The monthly compliance and privacy report (reports/compliance.py), for the month containing `on`
+    (default: last month)."""
+    from ..console import get_branding
+    from . import compliance
+    period = period_for("monthly", tz(), on=on)
+    branding = get_branding()
+    logo = data_dir() / "branding" / branding["logo"]["file"] if branding.get("logo") else None
+    c = compliance.collect(period.start, period.end, tz(), branding["site_name"], period.label())
+    report_id = uuid.uuid4()
+    folder = data_dir() / "reports" / f"{period.start:%Y}" / f"{period.start:%m}"
+    folder.mkdir(parents=True, exist_ok=True)
+    stem = f"compliance-{period.start:%Y-%m}-{str(report_id)[:8]}"
+    pdf_path, docx_path = folder / f"{stem}.pdf", folder / f"{stem}.docx"
+    pdf_path.write_bytes(compliance.render_pdf(c, branding, logo))
+    docx_path.write_bytes(compliance.render_docx(c, branding, logo))
+    n = c.counts()
+    figures = {"label": period.label(), "actions": n[compliance.ACTION], "attention": n[compliance.ATTENTION], "ok": n[compliance.OK],
+               "checks": [{"status": x.status, "area": x.area, "text": x.text} for x in c.checks]}
+    with connect() as conn:
+        conn.execute("INSERT INTO reports (id, kind, title, period_start, period_end, timezone, created_by, summary, figures, "
+                     "pdf_path, docx_path) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                     (report_id, "compliance", "Compliance and privacy report", period.start, period.end, period.tz.key, created_by,
+                      compliance.summary(c), Jsonb(figures), str(pdf_path.relative_to(data_dir())), str(docx_path.relative_to(data_dir()))))
+    return get_report(report_id)
+
+
 COLS = "id, kind, title, period_start, period_end, timezone, created_at, created_by, summary, figures, sent"
 
 
@@ -92,8 +122,8 @@ def send(report_id, *, formats=("pdf",), topic: str | None = None) -> list[dict]
     from ..notify import Attachment, dispatch, load_recipients, record, senders
     rep = get_report(report_id)
     topic = topic or (rep["kind"] if rep["kind"] != "custom" else None)
-    if topic not in ("daily", "weekly", "monthly"):
-        raise HTTPException(status_code=422, detail="choose who receives it: daily, weekly or monthly subscribers")
+    if topic not in ("daily", "weekly", "monthly", "compliance"):
+        raise HTTPException(status_code=422, detail="choose who receives it: daily, weekly, monthly or compliance subscribers")
     with connect() as conn:
         paths = conn.execute("SELECT pdf_path, docx_path FROM reports WHERE id = %s", (report_id,)).fetchone()
     recipients = load_recipients()
@@ -119,8 +149,34 @@ def send(report_id, *, formats=("pdf",), topic: str | None = None) -> list[dict]
 
 # ------------------------------------------------------------------ endpoints
 
+class ComplianceIn(BaseModel):
+    dpia_review_due: date | None = None
+    signs_checked_on: date | None = None
+    dpo_name: str = Field(default="", max_length=120)
+    notes: str = Field(default="", max_length=1000)
+
+
+@router.get("/compliance/settings")
+def compliance_settings(_: dict = Depends(require("admin", "cso"))) -> dict:
+    from .compliance import settings
+    return settings()
+
+
+@router.put("/compliance/settings")
+def put_compliance_settings(body: ComplianceIn, request: Request, user: dict = Depends(require("admin", "cso"))) -> dict:
+    from .compliance import settings
+    value = {"dpia_review_due": body.dpia_review_due.isoformat() if body.dpia_review_due else None,
+             "signs_checked_on": body.signs_checked_on.isoformat() if body.signs_checked_on else None,
+             "dpo_name": body.dpo_name.strip(), "notes": body.notes.strip()}
+    with connect() as conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES ('compliance', %s) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                      (Jsonb(value),))
+    audit("compliance_settings_changed", user_id=user["id"], username=user["username"], ip=client_ip(request), **value)
+    return settings()
+
+
 class GenerateIn(BaseModel):
-    kind: str = Field(pattern="^(daily|weekly|monthly|custom)$")
+    kind: str = Field(pattern="^(daily|weekly|monthly|custom|compliance)$")
     on: date | None = None
     start: date | None = None
     end: date | None = None
@@ -142,7 +198,7 @@ def generate_endpoint(body: GenerateIn, request: Request, user: dict = Depends(r
 def list_reports(kind: str | None = None, q: str | None = None, limit: int = 50,
                  _: dict = Depends(require(*READERS, allow_admin_token=True))) -> list[dict]:
     sql, params = f"SELECT {COLS} FROM reports WHERE true", []
-    if kind in KINDS:
+    if kind in KINDS or kind == "compliance":
         sql += " AND kind = %s"
         params.append(kind)
     if q:
@@ -176,7 +232,7 @@ def report_file(report_id: uuid.UUID, fmt: str, request: Request, user: dict = D
 
 class SendIn(BaseModel):
     formats: list[str] = Field(default_factory=lambda: ["pdf"])
-    topic: str | None = Field(default=None, pattern="^(daily|weekly|monthly)$")
+    topic: str | None = Field(default=None, pattern="^(daily|weekly|monthly|compliance)$")
 
 
 @router.post("/{report_id}/send")
@@ -191,7 +247,7 @@ def send_endpoint(report_id: uuid.UUID, body: SendIn, request: Request,
 # ------------------------------------------------------------------ schedule
 
 def due_today(today: date) -> list[str]:
-    kinds = [k.strip() for k in os.environ.get("HSS_REPORT_KINDS", "daily,weekly,monthly").split(",") if k.strip()]
+    kinds = [k.strip() for k in os.environ.get("HSS_REPORT_KINDS", "daily,weekly,monthly,compliance").split(",") if k.strip()]
     due = []
     if "daily" in kinds:
         due.append("daily")
@@ -199,6 +255,8 @@ def due_today(today: date) -> list[str]:
         due.append("weekly")
     if "monthly" in kinds and today.day == 1:
         due.append("monthly")
+    if "compliance" in kinds and today.day == 1:
+        due.append("compliance")
     return due
 
 

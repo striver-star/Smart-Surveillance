@@ -43,7 +43,7 @@ services:
       HSS_NOTIFY_DAILY_TEST: ${HSS_NOTIFY_DAILY_TEST:-}
       # Scheduled reports: e.g. 07:00 (empty = off); daily every day, weekly Mondays, monthly on the 1st
       HSS_REPORT_TIME: ${HSS_REPORT_TIME:-}
-      HSS_REPORT_KINDS: ${HSS_REPORT_KINDS:-daily,weekly,monthly}
+      HSS_REPORT_KINDS: ${HSS_REPORT_KINDS:-daily,weekly,monthly,compliance}
       HSS_REPORT_FORMATS: ${HSS_REPORT_FORMATS:-pdf}
       HSS_RECIPIENTS: /config/recipients.json
       HSS_GATEWAY_API: http://gateway:9997
@@ -59,6 +59,8 @@ services:
       HSS_EVENT_DAYS: ${HSS_EVENT_DAYS:-365}
       HSS_POSITION_DAYS: ${HSS_POSITION_DAYS:-30}
       HSS_RECORDING_DAYS: ${HSS_RECORDING_DAYS:-30}
+      # Days the viewing log (who watched which camera) is kept
+      HSS_VIEW_LOG_DAYS: ${HSS_VIEW_LOG_DAYS:-365}
     volumes:
       - api-data:/data
       # Latest hss-probe / hss-cameras results, shown on the console's Devices page (read-only).

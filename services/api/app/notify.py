@@ -63,7 +63,7 @@ def mask(address: str) -> str:
     return "…" + digits[-4:] if digits else ""
 
 
-TOPICS = {"daily", "weekly", "monthly", "test", "critical", "device", "system", "escalation", "lockdown"}
+TOPICS = {"daily", "weekly", "monthly", "test", "critical", "device", "system", "escalation", "lockdown", "compliance"}
 _recipients_state: dict = {"good": None, "problem": "", "warnings": []}
 
 

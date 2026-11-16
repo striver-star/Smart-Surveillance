@@ -4,14 +4,14 @@
     "role": "management",
     "whatsapp": "+2348000000001",
     "email": "management@example.com",
-    "subscriptions": ["weekly", "monthly", "lockdown", "test"]
+    "subscriptions": ["weekly", "monthly", "lockdown", "compliance", "test"]
   },
   {
     "name": "CSO",
     "role": "cso",
     "whatsapp": "+2348000000002",
     "email": "cso@example.com",
-    "subscriptions": ["daily", "critical", "lockdown", "test"]
+    "subscriptions": ["daily", "critical", "lockdown", "compliance", "test"]
   },
   {
     "name": "IT Manager",

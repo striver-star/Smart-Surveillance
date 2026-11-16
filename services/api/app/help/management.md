@@ -19,6 +19,10 @@ For the General Manager and other management accounts. You see the overview, dev
 
 In the console, **Incident heat map** with *Real incidents* shows where and at what hours real trouble happens: the basis for patrol and lighting decisions.
 
+## Compliance report
+
+Each month you receive the **compliance and privacy report**. It should show no *Action* items; ask the CSO about any that appear, and about out-of-hours video viewing by anyone who doesn't work nights.
+
 ## Questions management should ask each month
 
 1. Were all critical alerts acknowledged within the target time?

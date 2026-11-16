@@ -61,6 +61,10 @@ Operators can start a lockdown with the red **Lockdown** button; you or an admin
 
 **Viewing log** shows who watched which camera, live or recorded, when and from where; search by camera, person or dates and export CSV. On an alert, **Who watched** opens it for that camera. Video can't be opened without signing in, so the log is complete for the console and the phone app (wall screens aren't logged per person). Check it after any incident where footage may have leaked.
 
+## Compliance report
+
+On the 1st the **compliance and privacy report** arrives (Reports › Compliance): a checklist of what needs action (legal review and DPIA dates, signs, retention, evidence, accounts) and who watched video. Keep Settings › **Compliance** up to date: the DPIA review date and the date you last checked the recognition signs. Deal with every *Action* before the next one.
+
 ## Each month
 
 - [ ] Security page: no red items

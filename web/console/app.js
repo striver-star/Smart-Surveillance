@@ -334,6 +334,22 @@ async function lockdownSettings() {
       catch (ex) { toast(ex.message); } } }, "Save") : null, last);
 }
 
+async function complianceSettings() {
+  const cfg = await api("/reports/compliance/settings");
+  const due = h("input", { class: "input", type: "date", id: "cp-dpia", value: cfg.dpia_review_due || "" });
+  const signs = h("input", { class: "input", type: "date", id: "cp-signs", value: cfg.signs_checked_on || "" });
+  const dpo = h("input", { class: "input", id: "cp-dpo", value: cfg.dpo_name || "", placeholder: "Name and phone or e-mail" });
+  return card("Compliance", null,
+    h("p", { class: "muted", style: "margin-top:0" }, "Dates the monthly compliance and privacy report checks against. Update them when the DPIA is reviewed and after each walk round the recognition signs."),
+    h("div", { style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px" },
+      h("div", { class: "field" }, h("label", { for: "cp-dpia" }, "DPIA review due"), due),
+      h("div", { class: "field" }, h("label", { for: "cp-signs" }, "Recognition signs last checked"), signs),
+      h("div", { class: "field" }, h("label", { for: "cp-dpo" }, "Data Protection Officer"), dpo)),
+    h("button", { class: "btn", onclick: async () => {
+      try { await api("/reports/compliance/settings", { method: "PUT", body: { dpia_review_due: due.value || null, signs_checked_on: signs.value || null, dpo_name: dpo.value } }); toast("Compliance dates saved"); }
+      catch (ex) { toast(ex.message); } } }, "Save"));
+}
+
 async function loadStatusPills(box) {
   if (!["admin", "cso"].includes(state.user.role)) return;
   try {
@@ -1820,7 +1836,7 @@ async function unitsCard() {
 }
 
 /* ---------------- reports ---------------- */
-const KIND_NAMES = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", custom: "Custom period" };
+const KIND_NAMES = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", custom: "Custom period", compliance: "Compliance and privacy" };
 async function viewReports(c) {
   const canSend = ["admin", "cso"].includes(state.user.role);
   let q = "", kind = "";
@@ -1835,9 +1851,12 @@ async function viewReports(c) {
         const delivered = (r.sent || []).filter(x => x.status === "sent").length;
         return h("tr", { class: "clickable", onclick: e => { if (!e.target.closest("a,button")) reportDrawer(r, canSend, load); } },
           h("td", {}, h("div", { style: "font-weight:600" }, r.title), h("span", { class: "badge" }, KIND_NAMES[r.kind])),
-          h("td", {}, f.label || ""), h("td", {}, f.events ?? "—"),
-          h("td", {}, f.critical ? h("span", { class: "badge bad" }, f.critical) : "0"),
-          h("td", {}, ch === null || ch === undefined ? h("span", { class: "faint" }, "—") : h("span", { class: `badge ${ch > 0 ? "warn" : ch < 0 ? "ok" : ""}` }, `${ch > 0 ? "+" : ""}${ch}%`)),
+          h("td", {}, f.label || ""),
+          r.kind === "compliance" ? h("td", { colspan: 3 }, f.actions ? h("span", { class: "badge bad" }, `${f.actions} action${f.actions > 1 ? "s" : ""}`) : null, " ",
+            f.attention ? h("span", { class: "badge warn" }, `${f.attention} attention`) : null, !f.actions && !f.attention ? h("span", { class: "badge ok" }, "all in order") : null) : null,
+          r.kind === "compliance" ? null : h("td", {}, f.events ?? "—"),
+          r.kind === "compliance" ? null : h("td", {}, f.critical ? h("span", { class: "badge bad" }, f.critical) : "0"),
+          r.kind === "compliance" ? null : h("td", {}, ch === null || ch === undefined ? h("span", { class: "faint" }, "—") : h("span", { class: `badge ${ch > 0 ? "warn" : ch < 0 ? "ok" : ""}` }, `${ch > 0 ? "+" : ""}${ch}%`)),
           h("td", { class: "muted", style: "font-size:12.5px" }, fmtTime(r.created_at), h("div", { class: "faint" }, r.created_by === "schedule" ? "by schedule" : `by ${r.created_by}`)),
           h("td", {}, (r.sent || []).length ? h("span", { class: `badge ${delivered ? "ok" : "bad"}` }, delivered ? `${delivered} delivered` : "failed") : h("span", { class: "faint" }, "not sent")),
           h("td", { style: "white-space:nowrap;text-align:right" },
@@ -1858,7 +1877,8 @@ async function viewReports(c) {
   const drawDates = () => {
     const k = kindSel.value;
     dates.replaceChildren(...(k === "custom" ? [h("span", { class: "muted" }, "From"), start, h("span", { class: "muted" }, "to"), end] : [h("span", { class: "muted" }, k === "daily" ? "Day" : k === "weekly" ? "Any day in the week" : "Any day in the month"), on]));
-    hint.textContent = { daily: "One day, midnight to midnight.", weekly: "Monday to Sunday.", monthly: "The whole calendar month, compared with the month before.", custom: "Up to 93 days." }[k];
+    hint.textContent = { daily: "One day, midnight to midnight.", weekly: "Monday to Sunday.", monthly: "The whole calendar month, compared with the month before.", custom: "Up to 93 days.",
+      compliance: "The calendar month: legal review and DPIA dates, retention, who watched video, evidence, accounts and exports. Sent on the 1st to “compliance” subscribers." }[k];
   };
   kindSel.addEventListener("change", drawDates); drawDates();
   const gen = h("button", { class: "btn primary", onclick: async () => {
@@ -1875,7 +1895,7 @@ async function viewReports(c) {
     card("New report", h("span", { class: "muted" }, "PDF and Word, in your branding"), err,
       h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Type"), kindSel, dates, gen), h("div", { style: "margin-top:8px" }, hint)),
     h("div", { class: "toolbar" },
-      h("div", { class: "seg", role: "group", "aria-label": "Type" }, [["", "All"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["custom", "Custom"]].map(([k, l]) =>
+      h("div", { class: "seg", role: "group", "aria-label": "Type" }, [["", "All"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["custom", "Custom"], ["compliance", "Compliance"]].map(([k, l]) =>
         h("button", { class: k === kind ? "on" : null, onclick: e => { kind = k; e.target.parentNode.querySelectorAll("button").forEach(b => b.classList.remove("on")); e.target.classList.add("on"); load(); } }, l))),
       h("input", { class: "input", type: "search", placeholder: "Search titles, periods and summaries", oninput: e => { q = e.target.value.trim(); clearTimeout(viewReports.t); viewReports.t = setTimeout(load, 300); } })),
     h("section", { class: "card", style: "padding:6px 8px" }, listBox));
@@ -1894,6 +1914,9 @@ function reportDrawer(r, canSend, reload) {
     h("div", { class: "drawer", role: "dialog", "aria-label": r.title },
       h("div", { class: "toolbar" }, h("span", { class: "badge" }, KIND_NAMES[r.kind]), h("h2", {}, r.title), h("div", { style: "flex:1" }), h("button", { class: "btn small", onclick: () => scrim.remove() }, "Close")),
       h("div", { class: "muted" }, f.label),
+      r.kind === "compliance" ? h("div", { class: "list" }, (f.checks || []).map(x => h("div", { class: "item" },
+        h("span", { class: `badge ${x.status === "Action" ? "bad" : x.status === "Attention" ? "warn" : "ok"}`, style: "min-width:78px;text-align:center" }, x.status),
+        h("div", { class: "grow" }, h("div", { class: "title" }, x.area), h("div", { class: "muted", style: "font-size:12.5px" }, x.text))))) :
       h("div", { class: "grid kpis", style: "grid-template-columns:repeat(4,1fr)" },
         [["Events", f.events], ["Critical", f.critical], ["Warnings", f.warning], ["Open items", f.open_items]].map(([l, v]) => h("div", { class: "card kpi", style: "padding:10px" }, h("div", { class: "label" }, l), h("div", { class: "value", style: "font-size:22px" }, v ?? "—")))),
       h("h3", {}, "Summary"), ...(r.summary || "").split("\n\n").map(p => h("p", { style: "margin:0" }, p)),
@@ -2140,7 +2163,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2549,6 +2572,7 @@ async function viewSettings(c) {
     card("Two-factor sign-in", me.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge warn" }, "off"), twoFactorBox(me))));
   if (["admin", "cso"].includes(me.role)) sections.push(await rulesEditor());
   if (["admin", "cso"].includes(me.role)) sections.push(await lockdownSettings());
+  if (["admin", "cso"].includes(me.role)) sections.push(await complianceSettings());
   if (["admin", "cso"].includes(me.role)) {
     const sh = await api("/logbook/shift");
     const inp = h("input", { class: "input", id: "shifts-in", value: sh.shifts.map(x => `${x[0]} ${x[1]}-${x[2]}`).join(", ") });

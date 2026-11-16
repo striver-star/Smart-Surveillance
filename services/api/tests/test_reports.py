@@ -34,8 +34,8 @@ def test_periods():
 def test_schedule_days(monkeypatch):
     monkeypatch.delenv("HSS_REPORT_KINDS", raising=False)
     assert due_today(date(2026, 11, 16)) == ["daily", "weekly"]              # Monday
-    assert due_today(date(2026, 12, 1)) == ["daily", "monthly"]              # 1st, a Tuesday
-    assert due_today(date(2027, 2, 1)) == ["daily", "weekly", "monthly"]     # Monday the 1st
+    assert due_today(date(2026, 12, 1)) == ["daily", "monthly", "compliance"]  # 1st, a Tuesday
+    assert due_today(date(2027, 2, 1)) == ["daily", "weekly", "monthly", "compliance"]  # Monday the 1st
     monkeypatch.setenv("HSS_REPORT_KINDS", "weekly")
     assert due_today(date(2026, 11, 17)) == []
 
