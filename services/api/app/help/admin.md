@@ -28,6 +28,10 @@ For the IT Manager and other administrators.
 - **AI tier**: click a camera's tier to override it, with a reason.
 - "Video kept" shows days of recording per camera; under 30 days needs more storage or lower bitrate.
 
+## Viewing log and video access
+
+Video needs a sign-in (admin, CSO or operator) or a wall screen key; every live view and playback is in **Viewing log**. The wall capacity test page (`/wall-test/`) now needs a signed-in tab in the same browser. Don't publish the gateway's RTSP port 8554 in compose: Docker-published ports bypass the server firewall.
+
 ## Backups
 
 Daily at 01:30, encrypted, kept 14 days; a restore test on the 1st of each month. Keep the passphrase offline and a second copy of backups off the server (docs/backup.md). A failed backup sends a WhatsApp message to the "system" topic.

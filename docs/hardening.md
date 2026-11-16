@@ -25,11 +25,14 @@ it can't see.
 | Camera VLAN | NVRs and cameras | Nothing outside; NVR PoE ports keep cameras off the LAN |
 | Security server VLAN | HSS server, wall PCs | Camera VLAN (ISAPI 80, RTSP 554), NTP |
 | Office LAN | Console users | Server 443 only |
-| Guard Wi-Fi | Guard phones | Server 5055 only |
+| Guard Wi-Fi | Guard phones | Server 443 (phone app) and 5055 (Traccar) only |
 
 - The server needs only 443 (console), 8189/udp (live video), 5055 (guard phones) open inbound; close
   everything else in the server firewall (`sudo ufw default deny incoming`, then allow those ports from
   the networks above, and 22 from the IT PC only).
+- Docker-published ports bypass `ufw`. `compose.yaml` publishes 80/443 (proxy), 8189/udp (video), 5055
+  (Traccar, geo profile) and 8090 (ntfy push, notify profile); the gateway's RTSP (8554) and API (9997) stay
+  inside Docker. Limit those by the VLAN rules above (switch or router ACLs), and don't add other `ports:` entries.
 - Wire the server at 1 Gbps to the camera VLAN (tasks 19 and 20).
 - No port forwarding from the internet. Remote access through a VPN only.
 

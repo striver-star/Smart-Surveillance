@@ -111,7 +111,7 @@ function drawPage() {
           p.state = s; tile.classList.toggle("playing", s === "playing");
           const down = /fetch|NetworkError|gateway 50[234]|abort/i.test(info || "");   // the server or gateway is restarting
           state.textContent = s === "error" ? `${t.label}\n${down ? "waiting for the video server" : info}` : s === "frozen" ? "reconnecting" : s === "playing" ? "" : s;
-        });
+        }, { headers: { "X-HSS-Wall": `${SID}:${KEY}` } });
       } else { state.textContent = `${t.label}\nnot in the stream gateway`; p.state = "error"; }
       players.set(t.path, p);
     }

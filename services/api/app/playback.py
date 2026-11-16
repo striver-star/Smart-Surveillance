@@ -182,6 +182,8 @@ def start(body: StartIn, request: Request, user: dict = Depends(require(*WATCHER
         raise HTTPException(status_code=502, detail=f"The stream gateway didn't accept the playback ({exc.__class__.__name__}).") from exc
     sid = str(uuid.uuid4())
     sessions.add(sid, {"path": path, "camera_id": body.camera_id, "user": user["username"], "start": body.start})
+    from .viewing import log_playback
+    log_playback(user, body.camera_id, body.start, client_ip(request))
     audit("playback", user_id=user["id"], username=user["username"], ip=client_ip(request), camera=body.camera_id,
           start=body.start.astimezone(tz()).strftime("%Y-%m-%d %H:%M:%S"))
     return {"session": sid, "path": path, "start": body.start, "keepalive_s": 30}

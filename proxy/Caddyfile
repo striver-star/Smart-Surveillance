@@ -12,7 +12,12 @@
 		uri strip_prefix /api
 		reverse_proxy api:8000
 	}
+	# Live and recorded video. Every request is checked by the API first: a signed-in person allowed to
+	# watch (and written to the viewing log), or a wall screen with its key. See services/api/app/viewing.py.
 	handle /stream/* {
+		forward_auth api:8000 {
+			uri /live/authorize
+		}
 		uri strip_prefix /stream
 		reverse_proxy gateway:8889
 	}

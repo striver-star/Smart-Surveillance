@@ -46,7 +46,7 @@ The wall keeps going on its own; nobody needs to touch the wall PCs.
 
 | What is down | What the TVs show |
 |---|---|
-| API only (upgrade, restart, database busy or being restored) | Cameras **keep playing**: video comes from the stream gateway, not the API. The last layout stays, page rotation continues, and a small amber note says *Platform unreachable since 21:49: showing the last layout*. Alert outlines are cleared while the note shows, because they can't be kept up to date. |
+| API only (upgrade, restart, database busy or being restored) | Cameras already playing **keep playing**: video comes from the stream gateway, not the API. Since the viewing log (docs/viewing-log.md) the API approves each new video connection, so a tile that drops, or a page reloaded during the outage, waits for the API (usually under a minute) before its video starts again. The last layout stays, page rotation continues, and a small amber note says *Platform unreachable since 21:49: showing the last layout*. Alert outlines are cleared while the note shows, because they can't be kept up to date. |
 | The whole server (reboot, power cut, `docker compose up -d --build`) | The layout stays; tiles show *waiting for the video server*. |
 | Either, and the wall browser or wall PC restarts meanwhile | The page opens from the copy kept on the wall PC, with the last layout, and carries on as above. |
 | Server back | Within about 10 seconds the note goes away, the cameras reconnect at once, and layout or alert changes made in the meantime are picked up. Tested in the sandbox: video back about 4 s after the server answered. |

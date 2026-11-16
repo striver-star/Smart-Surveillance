@@ -1,8 +1,9 @@
 /* WebRTC (WHEP) player for one gateway path, with the wall's self-healing reconnect and back-off. */
 "use strict";
 class LivePlayer {
-  constructor(video, path, onState) {
-    this.video = video; this.path = path; this.onState = onState || (() => {});
+  // opts.headers: extra request headers (the wall sends its screen key, since it has no sign-in).
+  constructor(video, path, onState, opts) {
+    this.video = video; this.path = path; this.onState = onState || (() => {}); this.headers = (opts && opts.headers) || {};
     this.pc = null; this.retry = 4; this.timer = null; this.closed = false; this.lastFrames = 0; this.stale = 0;
     this.connect();
     this.poller = setInterval(() => this.poll(), 2000);
@@ -22,8 +23,9 @@ class LivePlayer {
         setTimeout(res, 1500);
       });
       const r = await fetch(`/stream/${encodeURIComponent(this.path)}/whep`, {
-        method: "POST", headers: { "Content-Type": "application/sdp" }, body: pc.localDescription.sdp });
-      if (!r.ok) throw new Error(r.status === 404 ? "camera not configured" : `gateway ${r.status}`);
+        method: "POST", headers: { ...this.headers, "Content-Type": "application/sdp" }, body: pc.localDescription.sdp });
+      if (!r.ok) throw new Error(r.status === 404 ? "camera not configured" : r.status === 401 ? "sign in again to watch" :
+        r.status === 403 ? "not allowed to watch this camera" : `gateway ${r.status}`);
       await pc.setRemoteDescription({ type: "answer", sdp: await r.text() });
     } catch (e) {
       this.onState("error", String(e.message || e));

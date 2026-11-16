@@ -46,6 +46,8 @@ Unacknowledged critical alerts escalate to the CSO and management after the time
 
 ## Good practice
 
+- What you watch, live or recorded, is recorded in the viewing log with your name. Watch cameras for security work only.
+
 - Sign out when you leave the desk. Never share your account.
 - Don't film the screen with a phone or send pictures outside the system. Evidence goes through the vault.
 - Face and plate matches (if switched on) are leads, not facts. Compare the images, then call the CSO. Never stop anyone on a match alone.

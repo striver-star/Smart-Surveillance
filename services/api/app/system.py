@@ -282,6 +282,7 @@ def apply_retention() -> dict:
             "RETURNING e.snapshot_ref", (event_days,)).fetchall()
         positions = conn.execute("DELETE FROM unit_positions WHERE at < now() - %s * interval '1 day'", (pos_days,)).rowcount
         conn.execute("DELETE FROM legal_reads WHERE opened_at < now() - interval '30 days'")
+        views = conn.execute("DELETE FROM view_log WHERE started_at < now() - %s * interval '1 day'", (days("HSS_VIEW_LOG_DAYS", 365),)).rowcount
     files = 0
     for ref in [r for (r,) in rows if r]:
         p = data / ref
@@ -294,7 +295,7 @@ def apply_retention() -> dict:
         if p.exists():
             p.unlink()
             clips += 1
-    return {"events": len(rows), "snapshots": files, "clips": clips, "positions": positions}
+    return {"events": len(rows), "snapshots": files, "clips": clips, "positions": positions, "viewing_log": views}
 
 
 def retention_once() -> dict:

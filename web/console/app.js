@@ -124,6 +124,7 @@ const PAGES = [
   { id: "users", title: "Users", icon: "users", roles: ["admin"], view: viewUsers },
   { id: "security", title: "Security", icon: "shield", roles: ["admin", "cso"], view: viewSecurity },
   { id: "audit", title: "Audit log", icon: "audit", roles: ["admin"], view: viewAudit },
+  { id: "viewing", title: "Viewing log", icon: "audit", roles: ["admin", "cso"], view: viewViewing },
   { id: "help", title: "Help", icon: "help", roles: ["admin", "cso", "operator", "management"], view: viewHelp },
   { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management"], view: viewSettings },
 ];
@@ -1985,6 +1986,7 @@ async function alertDrawer(id) {
         a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
         h("a", { class: "btn", href: "#/live", onclick: () => scrim.remove() }, "Live view"),
         h("a", { class: "btn", href: `#/playback?cam=${encodeURIComponent(a.camera_id)}&t=${encodeURIComponent(new Date(new Date(a.occurred_at) - 10000).toISOString())}`, onclick: () => scrim.remove() }, "Play recording"),
+        canManage ? h("a", { class: "btn", href: `#/viewing?cam=${encodeURIComponent(a.camera_id)}&since=${encodeURIComponent(new Date(new Date(a.occurred_at) - 3600000).toISOString())}`, onclick: () => scrim.remove(), title: "Who watched this camera, live or recorded, from an hour before the alert" }, "Who watched") : null,
         canManage ? h("button", { class: "btn", onclick: () => sealForm(id, async () => draw(await api(`/alerts/${id}`))) }, "Seal evidence") : null,
         canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "", title: "A copy that is not kept in the vault" }, "Export copy") : null),
       h("div", { class: "field" }, h("label", {}, "Note"), comment),
@@ -2056,7 +2058,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2064,6 +2066,67 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- viewing log: who watched which camera ---------------- */
+async function viewViewing(c) {
+  const params = new URLSearchParams(location.hash.split("?")[1] || "");
+  const pad = n => String(n).padStart(2, "0");
+  const localInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  let cams = [];
+  try { const dev = await api("/devices"); cams = dev.nvrs.flatMap(n => (n.channels || []).map(ch => ({ id: ch.camera_id, name: ch.name || ch.camera_id }))).filter(x => x.id); } catch (_) { /* filter by id only */ }
+  const camSel = h("select", { class: "input", id: "vl-cam" }, h("option", { value: "" }, "All cameras"),
+    cams.map(x => h("option", { value: x.id, selected: x.id === params.get("cam") }, `${x.name} (${x.id})`)));
+  if (params.get("cam") && !cams.some(x => x.id === params.get("cam"))) camSel.append(h("option", { value: params.get("cam"), selected: true }, params.get("cam")));
+  const userIn = h("input", { class: "input", id: "vl-user", placeholder: "Any person", value: params.get("user") || "" });
+  const kindSel = h("select", { class: "input", id: "vl-kind" }, [["", "Live and recordings"], ["live", "Live only"], ["playback", "Recordings only"]].map(([v, l]) => h("option", { value: v }, l)));
+  const since0 = params.get("since") ? new Date(params.get("since")) : new Date(Date.now() - 7 * 86400000);
+  const fromIn = h("input", { class: "input", type: "datetime-local", id: "vl-from", value: localInput(since0), style: "min-width:0;width:100%" });
+  const toIn = h("input", { class: "input", type: "datetime-local", id: "vl-to", style: "min-width:0;width:100%", value: params.get("until") ? localInput(new Date(params.get("until"))) : "", title: "Leave empty for up to now" });
+  const out = h("div");
+  const query = () => {
+    const q = new URLSearchParams();
+    if (camSel.value) q.set("camera", camSel.value);
+    if (userIn.value.trim()) q.set("user", userIn.value.trim());
+    if (kindSel.value) q.set("kind", kindSel.value);
+    if (fromIn.value) q.set("since", new Date(fromIn.value).toISOString());
+    if (toIn.value) q.set("until", new Date(toIn.value).toISOString());
+    return q.toString();
+  };
+  const fmtSpan = r => {
+    if (r.kind !== "live") return fmtTime(r.started_at);
+    const a = new Date(r.started_at), b = new Date(r.last_at);
+    return b - a < 60000 ? fmtTime(a) : `${fmtTime(a)} – ${b.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  };
+  const load = async () => {
+    out.replaceChildren(h("div", { class: "muted" }, "Loading…"));
+    try {
+      const d = await api(`/viewing?${query()}`);
+      out.replaceChildren(
+        h("p", { class: "muted", style: "margin:4px 2px 10px" }, d.total ? `${d.total} viewing${d.total > 1 ? "s" : ""} by ${d.people} ${d.people > 1 ? "people" : "person"} of ${d.cameras} camera${d.cameras > 1 ? "s" : ""}` + (d.total > d.rows.length ? ` (showing the latest ${d.rows.length}; export for all)` : "") : "Nobody watched in this period."),
+        d.rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+          h("thead", {}, h("tr", {}, ["When", "Who", "Camera", "What", "From"].map(t => h("th", {}, t)))),
+          h("tbody", {}, d.rows.map(r => h("tr", {},
+            h("td", { style: "white-space:nowrap" }, fmtSpan(r)),
+            h("td", {}, h("span", { style: "font-weight:600" }, r.username), h("div", { class: "faint", style: "font-size:11.5px" }, ROLE_NAMES[r.role] || r.role || "")),
+            h("td", {}, r.camera, r.camera !== r.camera_id ? h("div", { class: "faint mono", style: "font-size:11.5px" }, r.camera_id) : null),
+            h("td", {}, r.kind === "live" ? h("span", { class: "badge" }, "Live") : h("span", {}, h("span", { class: "badge warn" }, "Recording"), " from ", fmtTime(r.recorded_at))),
+            h("td", { class: "mono" }, r.ip || "—")))))) : null);
+    } catch (ex) { out.replaceChildren(h("div", { class: "err" }, ex.message)); }
+  };
+  c.append(card("Who watched which camera", null,
+    h("p", { class: "muted", style: "margin-top:0" }, "Every live view and every recording played in the console or the phone app. Wall screens are shared displays and aren't listed. Opening the same camera again within 10 minutes extends the same line."),
+    h("div", { style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0 12px;align-items:end" },
+      h("div", { class: "field", style: "grid-column:span 2" }, h("label", { for: "vl-cam" }, "Camera"), camSel),
+      h("div", { class: "field" }, h("label", { for: "vl-user" }, "Person"), userIn),
+      h("div", { class: "field" }, h("label", { for: "vl-kind" }, "What"), kindSel),
+      h("div", { class: "field" }, h("label", { for: "vl-from" }, "From"), fromIn),
+      h("div", { class: "field" }, h("label", { for: "vl-to" }, "To (empty = now)"), toIn),
+      h("div", { style: "grid-column:1/-1;display:flex;gap:10px;margin-bottom:12px" },
+        h("button", { class: "btn primary", onclick: load }, "Search"),
+        h("button", { class: "btn", onclick: () => { location.href = `/api/viewing.csv?${query()}`; } }, "Export CSV"))),
+    out));
+  load();
 }
 
 /* ---------------- camera planner: will faces and plates be big enough? ---------------- */
