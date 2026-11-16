@@ -155,7 +155,7 @@ def heat(rows: list[dict]) -> dict:
 
 @router.get("/heatmap")
 def heatmap(days: int = 30, only: str = "all", severity: str = "", place: str = "", plan_id: int | None = None,
-            _: dict = Depends(require("admin", "cso", "operator", "management"))) -> dict:
+            _: dict = Depends(require("admin", "cso", "operator", "management", "viewer"))) -> dict:
     """Alerts by place on the site plan and by weekday and hour. only: all | real (closed as real incident) |
     not_false (everything except false alarms). place: 'camera:<id>' or 'zone:<name>' narrows the grid."""
     days = max(1, min(days, 365))
@@ -171,6 +171,10 @@ def heatmap(days: int = 30, only: str = "all", severity: str = "", place: str = 
     if severity in ("warning", "critical"):
         sql += " AND a.severity = %s"
         args.append(severity)
+    from .access import allowed, sql as cam_sql
+    w, a = cam_sql(_, "e.camera_id")
+    sql += w
+    args += a
     with connect() as conn:
         raw = conn.execute(sql, args).fetchall()
     rows = []
@@ -193,6 +197,6 @@ def heatmap(days: int = 30, only: str = "all", severity: str = "", place: str = 
         with connect() as conn:
             cams = conn.execute("SELECT camera_id, x, y FROM camera_geo WHERE plan_id = %s", (plan_id,)).fetchall()
         plan = {"id": p["id"], "name": p["name"], "width": p["width"], "height": p["height"],
-                "cameras": [{"camera_id": c, "x": x, "y": y} for c, x, y in cams],
+                "cameras": [{"camera_id": c, "x": x, "y": y} for c, x, y in cams if allowed(_, c)],
                 "zones": [{"name": z["name"], "kind": z["kind"], "points": z["points"]} for z in list_zones(plan_id, _) if z["points"]]}
     return {"days": days, "since": since, "timezone": str(zone_tz), "only": only, "severity": severity, "place": place, **out, "plan": plan}

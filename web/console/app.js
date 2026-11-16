@@ -48,7 +48,8 @@ const ago = t => {
 };
 const delay = ms => { const s = ms / 1000; return s < 60 ? `${s.toFixed(1)} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`; };
 const initials = u => (u.display_name || u.username || "?").split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
-const ROLE_NAMES = { admin: "Administrator", cso: "Chief Security Officer", operator: "Operator", management: "Management", guard: "Guard (phone app only)" };
+const ROLE_NAMES = { admin: "Administrator", cso: "Chief Security Officer", operator: "Operator", management: "Management", guard: "Guard (phone app only)",
+  viewer: "Viewer (watch and read only)", client: "Client (their cameras only)" };
 function toast(msg) {
   let box = document.getElementById("toasts");
   if (!box) { box = h("div", { id: "toasts", class: "toasts", "aria-live": "polite" }); document.body.append(box); }
@@ -105,18 +106,18 @@ const PAGES = [
   { group: "Monitor" },
   { id: "overview", title: "Overview", icon: "overview", roles: ["admin", "cso", "operator", "management"], view: viewOverview },
   { id: "start", title: "Getting started", icon: "start", roles: ["admin", "cso"], view: viewStart },
-  { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator"], view: viewAlerts },
-  { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator"], view: viewLive },
+  { id: "alerts", title: "Alerts", icon: "alert", roles: ["admin", "cso", "operator", "viewer"], view: viewAlerts },
+  { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator", "viewer", "client"], view: viewLive },
   { id: "logbook", title: "Logbook", icon: "logbook", roles: ["admin", "cso", "operator", "management"], view: viewLogbook },
-  { id: "playback", title: "Playback", icon: "playback", roles: ["admin", "cso", "operator"], view: viewPlayback },
-  { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator"], view: viewEvents },
+  { id: "playback", title: "Playback", icon: "playback", roles: ["admin", "cso", "operator", "viewer", "client"], playback: true, view: viewPlayback },
+  { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator", "viewer"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
-  { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator"], view: viewMap },
+  { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator", "viewer"], view: viewMap },
   { group: "Manage" },
   { id: "devices", title: "Devices", icon: "devices", roles: ["admin", "cso", "operator", "management"], view: viewDevices },
-  { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], view: viewEventSetup },
+  { id: "event-setup", title: "Event setup", icon: "setup", roles: ["admin", "cso", "operator"], allCameras: true, view: viewEventSetup },
   { id: "face-plate", title: "Face & plate", icon: "legal", roles: ["admin", "cso", "management"], view: viewFacePlate },
-  { id: "heatmap", title: "Incident heat map", icon: "heat", roles: ["admin", "cso", "operator", "management"], view: viewHeatmap },
+  { id: "heatmap", title: "Incident heat map", icon: "heat", roles: ["admin", "cso", "operator", "management", "viewer"], view: viewHeatmap },
   { id: "false-alarms", title: "False alarms", icon: "noise", roles: ["admin", "cso", "management"], view: viewFalseAlarms },
   { id: "planner", title: "Camera planner", icon: "planner", roles: ["admin", "cso", "management"], view: viewPlanner },
   { id: "walls", title: "Video walls", icon: "walls", roles: ["admin", "cso"], view: viewWalls },
@@ -127,13 +128,16 @@ const PAGES = [
   { id: "security", title: "Security", icon: "shield", roles: ["admin", "cso"], view: viewSecurity },
   { id: "audit", title: "Audit log", icon: "audit", roles: ["admin"], view: viewAudit },
   { id: "viewing", title: "Viewing log", icon: "audit", roles: ["admin", "cso"], view: viewViewing },
-  { id: "help", title: "Help", icon: "help", roles: ["admin", "cso", "operator", "management"], view: viewHelp },
-  { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management"], view: viewSettings },
+  { id: "help", title: "Help", icon: "help", roles: ["admin", "cso", "operator", "management", "viewer", "client"], view: viewHelp },
+  { id: "settings", title: "Settings", icon: "settings", roles: ["admin", "cso", "operator", "management", "viewer", "client"], view: viewSettings },
 ];
-const allowed = p => p.view && p.roles.includes(state.user.role);
+// Per-camera access: a user limited to some cameras doesn't get pages that work on every camera at once,
+// and Playback only when the account may watch recordings (access.py on the server enforces both).
+const limitedCams = () => !["admin", "cso"].includes(state.user.role) && (state.user.cameras || []).length > 0;
+const allowed = p => p.view && p.roles.includes(state.user.role) && !(p.allCameras && limitedCams()) && !(p.playback && state.user.can_playback === false);
 function currentPage() {
-  const id = location.hash.replace(/^#\/?/, "").split("?")[0] || "overview";
-  return PAGES.find(p => p.id === id && allowed(p)) || PAGES.find(p => p.id === "overview");
+  const id = location.hash.replace(/^#\/?/, "").split("?")[0];
+  return PAGES.find(p => p.id === id && allowed(p)) || PAGES.find(p => p.id === "overview" && allowed(p)) || PAGES.find(p => allowed(p));
 }
 window.addEventListener("hashchange", () => render());
 
@@ -244,7 +248,11 @@ function viewShell(page) {
   const u = state.user;
   const nav = h("nav", { class: "nav", "aria-label": "Main" });
   for (const p of PAGES) {
-    if (p.group) { if (!p.roles || p.roles.includes(u.role)) nav.append(h("div", { class: "group" }, p.group)); continue; }
+    if (p.group) {                      // a heading only when something under it is shown
+      const i = PAGES.indexOf(p), next = PAGES.slice(i + 1), end = next.findIndex(x => x.group);
+      if ((!p.roles || p.roles.includes(u.role)) && next.slice(0, end < 0 ? undefined : end).some(allowed)) nav.append(h("div", { class: "group" }, p.group));
+      continue;
+    }
     if (!allowed(p)) continue;
     nav.append(h("a", { href: `#/${p.id}`, class: p === page ? "active" : null, "aria-current": p === page ? "page" : null },
       icon(p.icon), p.title, p.preview ? h("span", { class: "tag" }, "preview") : null,
@@ -487,6 +495,7 @@ function eventDrawer(e) {
 /* ---------------- PTZ control ---------------- */
 const ptzCache = {};
 async function ptzPanel(cameraId, label) {
+  if (!["admin", "cso", "operator"].includes(state.user.role)) return h("div");      // viewers and clients only watch
   let info = ptzCache[cameraId];
   if (!info) {
     try { info = await api(`/ptz/${encodeURIComponent(cameraId)}`); } catch (ex) { info = { supported: false, why: ex.message }; }
@@ -1938,7 +1947,7 @@ function reportDrawer(r, canSend, reload) {
 const SEV_BADGE = { critical: "bad", warning: "warn", info: "info" };
 const STATUS_BADGE = { open: "bad", acknowledged: "warn", closed: "ok" };
 const CLOSE_REASONS = { real_incident: "Real incident", false_alarm: "False alarm", test: "Test", duplicate: "Duplicate", other: "Other" };
-const alertsAllowed = () => state.user && ["admin", "cso", "operator"].includes(state.user.role);
+const alertsAllowed = () => state.user && ["admin", "cso", "operator", "viewer"].includes(state.user.role);
 const prefs = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) { /* private mode */ } } };
 
 async function refreshAlertCount() {
@@ -2062,6 +2071,7 @@ async function alertDrawer(id) {
   const drawer = h("div", { class: "drawer", role: "dialog", "aria-label": "Alert" }, h("div", { class: "muted" }, "Loading…"));
   scrim.append(drawer); document.body.append(scrim);
   const canManage = ["admin", "cso"].includes(state.user.role);
+  const canAct = ["admin", "cso", "operator"].includes(state.user.role);         // viewers read only
   const people = await api("/alerts/assignees").catch(() => []);
   const draw = a => {
     const act = async (body, msg) => {
@@ -2087,19 +2097,19 @@ async function alertDrawer(id) {
         a.escalation_level ? h("div", {}, "Escalated") : null, a.escalation_level ? h("div", { style: "color:var(--bad)" }, `${a.escalation_level} time${a.escalation_level > 1 ? "s" : ""}`) : null,
         a.close_reason ? h("div", {}, "Closed as") : null, a.close_reason ? h("div", {}, CLOSE_REASONS[a.close_reason]) : null),
       h("div", { class: "toolbar" },
-        a.status === "open" ? h("button", { class: "btn primary", onclick: () => act({ action: "acknowledge", text: comment.value }, "Acknowledged") }, "Acknowledge") : null,
-        a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
+        canAct && a.status === "open" ? h("button", { class: "btn primary", onclick: () => act({ action: "acknowledge", text: comment.value }, "Acknowledged") }, "Acknowledge") : null,
+        canAct && a.status === "closed" ? h("button", { class: "btn", onclick: () => act({ action: "reopen", text: comment.value }, "Reopened") }, "Reopen") : null,
         h("a", { class: "btn", href: "#/live", onclick: () => scrim.remove() }, "Live view"),
         h("a", { class: "btn", href: `#/playback?cam=${encodeURIComponent(a.camera_id)}&t=${encodeURIComponent(new Date(new Date(a.occurred_at) - 10000).toISOString())}`, onclick: () => scrim.remove() }, "Play recording"),
         canManage ? h("a", { class: "btn", href: `#/viewing?cam=${encodeURIComponent(a.camera_id)}&since=${encodeURIComponent(new Date(new Date(a.occurred_at) - 3600000).toISOString())}`, onclick: () => scrim.remove(), title: "Who watched this camera, live or recorded, from an hour before the alert" }, "Who watched") : null,
         canManage ? h("button", { class: "btn", onclick: () => sealForm(id, async () => draw(await api(`/alerts/${id}`))) }, "Seal evidence") : null,
         canManage ? h("a", { class: "btn", href: `/api/alerts/${id}/evidence`, download: "", title: "A copy that is not kept in the vault" }, "Export copy") : null),
-      h("div", { class: "field" }, h("label", {}, "Note"), comment),
-      h("div", { class: "toolbar" },
+      canAct ? h("div", { class: "field" }, h("label", {}, "Note"), comment) : null,
+      canAct ? h("div", { class: "toolbar" },
         h("button", { class: "btn", onclick: () => comment.value.trim() ? act({ action: "comment", text: comment.value }, "Note added") : toast("Write a note first") }, "Add note"),
         h("span", { class: "muted" }, "Assign"), who,
-        h("button", { class: "btn", onclick: () => act({ action: "assign", assignee: canManage ? who.value : state.user.username, text: comment.value }, "Assigned") }, canManage ? "Assign" : "Take it")),
-      a.status !== "closed" ? h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Close as"), reason,
+        h("button", { class: "btn", onclick: () => act({ action: "assign", assignee: canManage ? who.value : state.user.username, text: comment.value }, "Assigned") }, canManage ? "Assign" : "Take it")) : null,
+      canAct && a.status !== "closed" ? h("div", { class: "toolbar" }, h("span", { class: "muted" }, "Close as"), reason,
         h("button", { class: "btn", onclick: () => act({ action: "close", reason: reason.value, text: comment.value }, "Closed") }, "Close alert")) : null,
       h("h3", {}, "Timeline"),
       h("div", { class: "list" }, (a.timeline || []).slice().reverse().map(t => h("div", { class: "item" },
@@ -2112,8 +2122,52 @@ async function alertDrawer(id) {
 }
 
 /* ---------------- users ---------------- */
+/* Camera access for one user: every camera, or a chosen list (whole NVRs or single cameras, plus patterns). */
+function cameraAccess(paths, cur = [], canPlay = true) {
+  const cams = [...new Map(paths.map(p => [p.path.replace(/-sub$/, ""), p])).entries()].map(([id, p]) => ({ id, label: p.label, nvr: p.nvr }));
+  const byNvr = {};
+  cams.forEach(x => (byNvr[x.nvr] ||= []).push(x));
+  const chosen = new Set(cur);
+  const mode = h("select", { class: "input", id: "ca-mode" }, h("option", { value: "all", selected: !cur.length }, "Every camera"),
+    h("option", { value: "some", selected: cur.length > 0 }, "Only the cameras below"));
+  const extra = h("input", { class: "input", id: "ca-extra", placeholder: "Other patterns, comma-separated (e.g. nvr9-*)",
+    value: cur.filter(p => !cams.some(x => x.id === p) && !Object.keys(byNvr).some(n => p === `${n}-*`)).join(", ") });
+  const play = h("input", { type: "checkbox", id: "ca-play", checked: canPlay });
+  const box = h("div", { class: "pick-list", style: "max-height:260px" }, Object.entries(byNvr).map(([nvr, list]) => {
+    const all = h("input", { type: "checkbox", checked: chosen.has(`${nvr}-*`) });
+    const items = list.map(x => h("label", { class: "check", style: "display:flex;margin-left:18px" },
+      h("input", { type: "checkbox", value: x.id, checked: chosen.has(x.id) || chosen.has(`${nvr}-*`), disabled: chosen.has(`${nvr}-*`) }),
+      ` ${x.label}${x.label !== x.id ? ` ` : ""}`, x.label !== x.id ? h("span", { class: "faint mono" }, x.id) : null));
+    all.addEventListener("change", () => items.forEach(l => { const i = l.querySelector("input"); i.checked = all.checked || i.checked; i.disabled = all.checked; }));
+    return h("div", { style: "margin-bottom:6px" }, h("label", { class: "check", style: "display:flex;font-weight:650" }, all, ` All of ${nvr} (${list.length})`, h("span", { class: "faint mono", style: "margin-left:6px" }, `${nvr}-*`)), items);
+  }));
+  const sync = () => { box.hidden = extra.hidden = mode.value === "all"; };
+  mode.addEventListener("change", sync); sync();
+  const el = h("div", {},
+    h("div", { class: "field" }, h("label", { for: "ca-mode" }, "Cameras"), mode, h("div", { class: "faint", style: "font-size:12px" }, "Administrators and the CSO always see every camera.")),
+    box, h("div", { class: "field", style: "margin-top:8px" }, h("label", { for: "ca-extra" }, "Patterns (* matches anything; for example nvr4-* or nvr1-ch0?)"), extra),
+    h("label", { class: "check" }, play, " Can watch recordings (Playback)"));
+  const value = () => {
+    if (mode.value === "all") return { cameras: [], can_playback: play.checked };
+    const out = [];
+    box.querySelectorAll(":scope > div").forEach(group => {
+      const all = group.querySelector("label input");
+      const nvrPat = group.querySelector("label .mono").textContent;
+      if (all.checked) out.push(nvrPat);
+      else group.querySelectorAll("label[style*='margin-left'] input:checked").forEach(i => out.push(i.value));
+    });
+    extra.value.split(",").map(x => x.trim()).filter(Boolean).forEach(x => out.includes(x) || out.push(x));
+    return { cameras: out, can_playback: play.checked };
+  };
+  return { el, value };
+}
+const accessText = u => ["admin", "cso"].includes(u.role) ? h("span", { class: "faint" }, "all (always)")
+  : (u.cameras || []).length ? h("span", { title: u.cameras.join(", ") }, `${u.cameras.length} ${u.cameras.length === 1 ? "entry" : "entries"}: ${u.cameras.slice(0, 2).join(", ")}${u.cameras.length > 2 ? "…" : ""}`)
+  : h("span", { class: "faint" }, "all");
+
 async function viewUsers(c) {
   const users = await api("/users");
+  const paths = await api("/live/paths").catch(() => []);
   const showTemp = (title, who, temp) => modal(title,
     h("div", { class: "grid", style: "gap:10px" }, h("p", { class: "muted", style: "margin:0" }, `Give this temporary password to ${who} in person. It's shown only once; they choose their own at first sign-in.`),
       h("div", { class: "secret" }, temp)),
@@ -2124,18 +2178,23 @@ async function viewUsers(c) {
         const dn = h("input", { class: "input", placeholder: "e.g. John Okafor" });
         const role = h("select", { class: "input" }, Object.entries(ROLE_NAMES).map(([k, v]) => h("option", { value: k, selected: k === "operator" }, v)));
         const err = h("div", { class: "error", hidden: true });
+        const acc = cameraAccess(paths);
+        const accBox = h("div", {}, acc.el);
+        const syncRole = () => { accBox.hidden = ["admin", "cso", "management", "guard"].includes(role.value); };
+        role.addEventListener("change", syncRole); syncRole();
         modal("Add a user", h("div", {}, err, h("div", { class: "field" }, h("label", {}, "Username"), un), h("div", { class: "field" }, h("label", {}, "Full name"), dn),
-          h("div", { class: "field" }, h("label", {}, "Role"), role)),
+          h("div", { class: "field" }, h("label", {}, "Role"), role), accBox),
           close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
             h("button", { class: "btn primary", onclick: async () => {
               try {
-                const res = await api("/users", { method: "POST", body: { username: un.value.trim(), display_name: dn.value.trim(), role: role.value } });
+                const a = accBox.hidden ? { cameras: [], can_playback: true } : acc.value();
+                const res = await api("/users", { method: "POST", body: { username: un.value.trim(), display_name: dn.value.trim(), role: role.value, ...a } });
                 close.remove(); showTemp("User added", res.user.display_name || res.user.username, res.temporary_password);
               } catch (ex) { err.textContent = ex.message; err.hidden = false; }
             } }, "Add user")]);
       } }, "Add user")),
     h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["User", "Role", "Two-factor", "Status", "Last sign-in", ""].map(t => h("th", {}, t)))),
+      h("thead", {}, h("tr", {}, ["User", "Role", "Cameras", "Two-factor", "Status", "Last sign-in", ""].map(t => h("th", {}, t)))),
       h("tbody", {}, users.map(u => {
         const me = u.id === state.user.id;
         const roleSel = h("select", { class: "input", style: "width:auto;padding:6px 8px", disabled: me, onchange: async e => {
@@ -2145,6 +2204,16 @@ async function viewUsers(c) {
           h("td", {}, h("div", { style: "display:flex;gap:10px;align-items:center" }, h("div", { class: "avatar" }, initials(u)),
             h("div", {}, h("div", { style: "font-weight:600" }, u.display_name || u.username, me ? h("span", { class: "faint" }, " (you)") : null), h("div", { class: "faint mono" }, u.username)))),
           h("td", {}, roleSel),
+          h("td", { style: "font-size:12.5px;max-width:220px" }, accessText(u), u.can_playback === false ? h("div", { class: "faint" }, "live only") : null,
+            ["admin", "cso", "management", "guard"].includes(u.role) ? null : h("div", {}, h("button", { class: "btn small", style: "margin-top:4px", onclick: () => {
+              const acc = cameraAccess(paths, u.cameras || [], u.can_playback !== false);
+              const err = h("div", { class: "error", hidden: true });
+              modal(`Cameras for ${u.display_name || u.username}`, h("div", {}, err, acc.el), close => [h("button", { class: "btn", onclick: () => close.remove() }, "Cancel"),
+                h("button", { class: "btn primary", onclick: async () => {
+                  try { await api(`/users/${u.id}`, { method: "PATCH", body: acc.value() }); close.remove(); toast("Camera access saved; it applies from their next action"); render(); }
+                  catch (ex) { err.textContent = ex.message; err.hidden = false; }
+                } }, "Save")]);
+            } }, "Change"))),
           h("td", {}, u.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge" }, "off")),
           h("td", {}, u.disabled ? h("span", { class: "badge bad" }, "disabled") : u.locked ? h("span", { class: "badge warn" }, "locked") : u.must_change_password ? h("span", { class: "badge info" }, "new") : h("span", { class: "badge ok" }, "active")),
           h("td", { class: "muted" }, ago(u.last_login_at)),
@@ -2162,7 +2231,7 @@ async function viewUsers(c) {
 async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
-    user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
+    user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
     alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},

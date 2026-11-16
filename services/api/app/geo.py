@@ -35,7 +35,7 @@ from .db import connect
 
 log = logging.getLogger("hss.geo")
 router = APIRouter(prefix="/geo", tags=["geo"])
-VIEWERS = ("admin", "cso", "operator")
+VIEWERS = ("admin", "cso", "operator", "viewer")
 EDITORS = ("admin", "cso")
 EARTH_R = 6371008.8
 PLAN_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
@@ -653,6 +653,8 @@ def simulate(uid: int, body: SimIn, request: Request, user: dict = Depends(requi
 
 @router.get("/live")
 def live(plan_id: int, _: dict = Depends(require(*VIEWERS))) -> dict:
+    """The plan with cameras (limited to the user's, access.py), zones and guards."""
+    from .access import allowed
     p = _plan(plan_id)
     g = georef(p["refs"])
     from .console import load_devices
@@ -679,5 +681,5 @@ def live(plan_id: int, _: dict = Depends(require(*VIEWERS))) -> dict:
                           "on_plan": -0.1 * p["width"] <= x <= 1.1 * p["width"] and -0.1 * p["height"] <= y <= 1.1 * p["height"]})
     return {"plan": {k: p[k] for k in ("id", "name", "width", "height", "refs")}, "georeferenced": bool(g),
             "cameras": [{"camera_id": c, "x": x, "y": y, "bearing": b, "fov": f, "reach": r, **status.get(c, {"name": c, "online": None, "tier": "?"}),
-                         "alert": alerts.get(c)} for c, x, y, b, f, r in cams],
+                         "alert": alerts.get(c)} for c, x, y, b, f, r in cams if allowed(_, c)],
             "zones": list_zones(plan_id, _), "units": out_units}

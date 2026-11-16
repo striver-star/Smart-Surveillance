@@ -8,7 +8,8 @@ from .auth import require
 router = APIRouter(prefix="/help", tags=["help"])
 DIR = Path(__file__).parent / "help"
 GUIDES = {"operator": ("Operator guide", ("admin", "cso", "operator")), "cso": ("CSO guide", ("admin", "cso")),
-          "admin": ("Administrator guide", ("admin",)), "management": ("Management guide", ("admin", "cso", "management"))}
+          "admin": ("Administrator guide", ("admin",)), "management": ("Management guide", ("admin", "cso", "management")),
+          "viewer": ("Viewer and client guide", ("admin", "cso", "viewer", "client"))}
 
 
 @router.get("")

@@ -34,7 +34,7 @@ from .db import connect
 
 log = logging.getLogger("hss.playback")
 router = APIRouter(prefix="/playback", tags=["playback"])
-WATCHERS = ("admin", "cso", "operator")
+WATCHERS = ("admin", "cso", "operator", "viewer", "client")
 IDLE_S = 180
 CAMERA = re.compile(r"^([a-z][a-z0-9]{1,19})-ch(\d{2,3})$")
 
@@ -116,6 +116,13 @@ def _nvr(camera_id: str) -> dict:
             "password": vault.decrypt(secret), "scheme": scheme, "rtsp_port": port, "channel": int(m.group(2))}
 
 
+def _may_play(user: dict, camera_id: str) -> None:
+    from .access import can_play_back, check
+    if not can_play_back(user):
+        raise HTTPException(status_code=403, detail="Your account can watch live video only, not recordings.")
+    check(user, camera_id)
+
+
 # ------------------------------------------------------------------ sessions in the gateway
 
 class Sessions:
@@ -170,6 +177,7 @@ def start(body: StartIn, request: Request, user: dict = Depends(require(*WATCHER
         raise HTTPException(status_code=422, detail="start needs a time zone")
     if body.start > datetime.now(timezone.utc) - timedelta(seconds=5):
         raise HTTPException(status_code=422, detail="That time hasn't been recorded yet; use Live view.")
+    _may_play(user, body.camera_id)
     n = _nvr(body.camera_id)
     path = f"pb-{secrets.token_hex(8)}"
     source = playback_source(n["host"], n["rtsp_port"], n["user"], n["password"], n["channel"], body.start, tz())
@@ -238,6 +246,7 @@ async def background_loop() -> None:
 
 @router.get("/timeline")
 def timeline(camera_id: str, day: date, user: dict = Depends(require(*WATCHERS))) -> dict:
+    _may_play(user, camera_id)
     zone = tz()
     n = _nvr(camera_id)
     spans, note = [], ""

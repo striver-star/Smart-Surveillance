@@ -192,6 +192,8 @@ control = Control()
 
 @router.get("/{camera_id}")
 def info(camera_id: str, user: dict = Depends(require(*OPERATORS))) -> dict:
+    from .access import check
+    check(user, camera_id)
     d = Device(camera_id)
     if not d.supported():
         return {"camera_id": camera_id, "supported": False, "presets": []}
@@ -209,6 +211,8 @@ class MoveIn(BaseModel):
 
 @router.post("/{camera_id}/move")
 def move(camera_id: str, body: MoveIn, request: Request, user: dict = Depends(require(*OPERATORS))) -> dict:
+    from .access import check
+    check(user, camera_id)
     d = Device(camera_id)
     control.claim(camera_id, user)
     d.move(body.pan, body.tilt, body.zoom)
@@ -220,6 +224,8 @@ def move(camera_id: str, body: MoveIn, request: Request, user: dict = Depends(re
 
 @router.post("/{camera_id}/stop")
 def stop(camera_id: str, user: dict = Depends(require(*OPERATORS))) -> dict:
+    from .access import check
+    check(user, camera_id)
     d = Device(camera_id)
     control.disarm(camera_id)
     d.stop()
@@ -230,6 +236,8 @@ def stop(camera_id: str, user: dict = Depends(require(*OPERATORS))) -> dict:
 def goto(camera_id: str, pid: int, request: Request, user: dict = Depends(require(*OPERATORS))) -> dict:
     if not 1 <= pid <= 300:
         raise HTTPException(status_code=422, detail="preset numbers run from 1 to 300")
+    from .access import check
+    check(user, camera_id)
     d = Device(camera_id)
     control.claim(camera_id, user)
     d.goto(pid)

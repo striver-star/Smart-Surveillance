@@ -92,15 +92,20 @@ def ingest_event(event: EventIn, response: Response) -> dict:
     return {"id": str(event_id), "received_at": received_at.isoformat(), "latency_ms": latency_ms, "alert_id": alert_id}
 
 
-@router.get("/events", dependencies=[Depends(require("admin", "cso", "operator", allow_admin_token=True))])
-def list_events(limit: int = 50, camera_id: str | None = None) -> list[dict]:
+@router.get("/events")
+def list_events(limit: int = 50, camera_id: str | None = None,
+                user: dict = Depends(require("admin", "cso", "operator", "viewer", allow_admin_token=True))) -> list[dict]:
+    from .access import sql as cam_sql
     limit = max(1, min(limit, 500))
     sql = ("SELECT id, camera_id, source_kind, source_ref, tier, type, object_class, zone, severity, confidence, "
-           "occurred_at, received_at, snapshot_ref, raw FROM events")
+           "occurred_at, received_at, snapshot_ref, raw FROM events WHERE true")
     params: list = []
     if camera_id:
-        sql += " WHERE camera_id = %s"
+        sql += " AND camera_id = %s"
         params.append(camera_id)
+    where, args = cam_sql(user, "camera_id")
+    sql += where
+    params += args
     sql += " ORDER BY occurred_at DESC LIMIT %s"
     params.append(limit)
     with connect() as conn:
@@ -114,11 +119,12 @@ def list_events(limit: int = 50, camera_id: str | None = None) -> list[dict]:
     return rows
 
 
-@router.get("/events/{event_id}/snapshot", dependencies=[Depends(require("admin", "cso", "operator", allow_admin_token=True))])
-def event_snapshot(event_id: uuid.UUID):
+@router.get("/events/{event_id}/snapshot")
+def event_snapshot(event_id: uuid.UUID, user: dict = Depends(require("admin", "cso", "operator", "viewer", allow_admin_token=True))):
+    from .access import allowed
     with connect() as conn:
-        row = conn.execute("SELECT snapshot_ref FROM events WHERE id = %s", (event_id,)).fetchone()
-    if not row or not row[0]:
+        row = conn.execute("SELECT snapshot_ref, camera_id FROM events WHERE id = %s", (event_id,)).fetchone()
+    if not row or not row[0] or not allowed(user, row[1]):
         raise HTTPException(status_code=404, detail="no snapshot")
     path = (snapshot_dir().parent / row[0]).resolve()
     if not path.is_relative_to(snapshot_dir().resolve()) or not path.exists():

@@ -62,6 +62,10 @@ def clips_for(alert_id) -> list[dict]:
 
 @router.post("/alerts/{alert_id}/clip")
 def ask_for_clip(alert_id: uuid.UUID, request: Request, user: dict = Depends(require("admin", "cso", "operator"))) -> dict:
+    from .access import check
+    with connect() as conn:
+        cam = conn.execute("SELECT e.camera_id FROM alerts a JOIN events e ON e.id = a.event_id WHERE a.id = %s", (alert_id,)).fetchone()
+    check(user, cam[0] if cam else None)
     with connect() as conn:
         row = conn.execute("SELECT e.id, e.camera_id, e.occurred_at FROM alerts a JOIN events e ON e.id = a.event_id "
                            "WHERE a.id = %s", (alert_id,)).fetchone()
@@ -134,10 +138,11 @@ def failed(clip_id: uuid.UUID, body: FailIn) -> dict:
 
 
 @router.get("/clips/{clip_id}/video")
-def video(clip_id: uuid.UUID, _: dict = Depends(require("admin", "cso", "operator"))):
+def video(clip_id: uuid.UUID, user: dict = Depends(require("admin", "cso", "operator", "viewer"))):
+    from .access import allowed
     with connect() as conn:
-        row = conn.execute("SELECT path FROM clips WHERE id = %s AND status = 'done'", (clip_id,)).fetchone()
-    if not row:
+        row = conn.execute("SELECT path, camera_id FROM clips WHERE id = %s AND status = 'done'", (clip_id,)).fetchone()
+    if not row or not allowed(user, row[1]):
         raise HTTPException(status_code=404, detail="clip not ready")
     path = (clip_dir().parent / row[0]).resolve()
     if not path.is_relative_to(clip_dir().resolve()) or not path.exists():

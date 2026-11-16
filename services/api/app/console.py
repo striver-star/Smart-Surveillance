@@ -101,9 +101,11 @@ def set_branding(body: BrandingIn, request: Request, admin: dict = Depends(requi
 # ------------------------------------------------------------------ live view
 
 @router.get("/live/paths")
-def live_paths(_: dict = Depends(require("admin", "cso", "operator"))) -> list[dict]:
-    """Camera paths configured in the gateway (names only; source URLs hold passwords and stay hidden)."""
-    return gateway_paths()
+def live_paths(user: dict = Depends(require("admin", "cso", "operator", "viewer", "client"))) -> list[dict]:
+    """Camera paths configured in the gateway (names only; source URLs hold passwords and stay hidden),
+    limited to the user's cameras (access.py)."""
+    from .access import allowed
+    return [p for p in gateway_paths() if allowed(user, p["path"])]
 
 
 def gateway_paths() -> list[dict]:
@@ -286,18 +288,29 @@ def merge_live(nvrs: list[dict]) -> str | None:
 
 
 @router.get("/devices")
-def devices(_: dict = Depends(require(*ANY_ROLE))) -> dict:
-    return load_devices()
+def devices(user: dict = Depends(require(*ANY_ROLE, "viewer", "client"))) -> dict:
+    from .access import allowed, restricted
+    d = load_devices()
+    if not restricted(user):
+        return d
+    nvrs = []
+    for n in d["nvrs"]:
+        chans = [c for c in n["channels"] if allowed(user, c.get("camera_id"))]
+        if chans:
+            nvrs.append({**n, "channels": chans, "total": len(chans), "online": sum(1 for c in chans if c.get("online"))})
+    return {**d, "nvrs": nvrs}
 
 
 # ------------------------------------------------------------------ overview
 
 @router.get("/overview")
 def overview(user: dict = Depends(require(*ANY_ROLE))) -> dict:
-    dev = load_devices()
+    from .access import sql as cam_sql
+    dev = devices(user)                       # limited to the user's cameras
+    w, a = cam_sql(user, "camera_id")
     with connect() as conn:
-        sev = dict(conn.execute("SELECT severity, count(*) FROM events WHERE occurred_at > now() - interval '24 hours' "
-                                "GROUP BY severity").fetchall())
+        sev = dict(conn.execute("SELECT severity, count(*) FROM events WHERE occurred_at > now() - interval '24 hours'" + w
+                                + " GROUP BY severity", a).fetchall())
         walls = conn.execute("SELECT count(*), count(*) FILTER (WHERE last_seen > now() - interval '60 seconds') "
                              "FROM wall_nodes").fetchone()
         gw = conn.execute("SELECT status, at FROM gateway_events ORDER BY at DESC LIMIT 1").fetchone()

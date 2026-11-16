@@ -31,7 +31,7 @@ from .db import connect
 
 log = logging.getLogger("hss.viewing")
 router = APIRouter(tags=["viewing"])
-WATCHERS = ("admin", "cso", "operator")
+WATCHERS = ("admin", "cso", "operator", "viewer", "client")
 READERS = ("admin", "cso")
 MERGE_S = 600
 WHEP = re.compile(r"^(?:/stream)?/([A-Za-z0-9_.~-]{1,80})/whep(?:/[A-Za-z0-9_-]{1,80})?/?$")
@@ -158,6 +158,9 @@ def authorize(request: Request) -> Response:
         if not mine:
             raise HTTPException(status_code=403, detail="this recording was opened by someone else")
         return Response(status_code=204)
+    from .access import allowed
+    if not allowed(user, path):
+        raise HTTPException(status_code=403, detail="you don't have access to this camera")
     if method.upper() == "POST":
         try:
             log_live(user, camera_of(path), client_ip(request))

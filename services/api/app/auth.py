@@ -27,6 +27,7 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from psycopg.types.json import Jsonb
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
@@ -34,7 +35,7 @@ from .db import connect
 
 router = APIRouter(tags=["auth"])
 
-ROLES = ("admin", "cso", "operator", "management", "guard")
+ROLES = ("admin", "cso", "operator", "management", "guard", "viewer", "client")
 COOKIE = "hss_session"
 MIN_PASSWORD = 12
 MAX_FAILED, LOCK_MINUTES = 5, 15
@@ -132,7 +133,7 @@ def client_ip(request: Request) -> str:
 # ------------------------------------------------------------------ sessions
 
 USER_COLS = ("id, username, display_name, role, must_change_password, totp_enabled, disabled, "
-             "last_login_at, created_at")
+             "last_login_at, created_at, cameras, can_playback")
 
 
 def _row_user(row) -> dict:
@@ -350,6 +351,8 @@ class UserIn(BaseModel):
     username: str = Field(pattern=r"^[A-Za-z0-9._@-]{3,40}$")
     display_name: str = Field(default="", max_length=80)
     role: str
+    cameras: list[str] = Field(default_factory=list, max_length=200)   # empty = every camera (access.py)
+    can_playback: bool = True
 
 
 class UserPatch(BaseModel):
@@ -357,6 +360,8 @@ class UserPatch(BaseModel):
     role: str | None = None
     disabled: bool | None = None
     reset_password: bool = False
+    cameras: list[str] | None = Field(default=None, max_length=200)
+    can_playback: bool | None = None
 
 
 def _temp_password() -> str:
@@ -380,19 +385,25 @@ def list_users(_: dict = Depends(require("admin", allow_admin_token=True))) -> l
 def create_user(body: UserIn, request: Request, admin: dict = Depends(require("admin", allow_admin_token=True))) -> dict:
     if body.role not in ROLES:
         raise HTTPException(status_code=422, detail=f"role must be one of {', '.join(ROLES)}")
+    from .access import clean_patterns
+    cams = clean_patterns(body.cameras)
+    if cams and body.role in ("admin", "cso"):
+        raise HTTPException(status_code=422, detail="Administrators and the CSO always see every camera; leave the camera list empty.")
+    if body.role in ("client",) and not cams:
+        raise HTTPException(status_code=422, detail="A client account needs a camera list (the cameras they may watch).")
     temp = _temp_password()
     try:
         with connect() as conn:
-            row = conn.execute("INSERT INTO users (username, display_name, role, password_hash, must_change_password) "
-                               f"VALUES (%s, %s, %s, %s, true) RETURNING {USER_COLS}",
-                               (body.username, body.display_name, body.role, hash_password(temp))).fetchone()
+            row = conn.execute("INSERT INTO users (username, display_name, role, password_hash, must_change_password, cameras, can_playback) "
+                               f"VALUES (%s, %s, %s, %s, true, %s, %s) RETURNING {USER_COLS}",
+                               (body.username, body.display_name, body.role, hash_password(temp), Jsonb(cams), body.can_playback)).fetchone()
     except Exception as exc:
         if "users_tenant_username" in str(exc):
             raise HTTPException(status_code=409, detail="That username is taken.") from exc
         raise
     user = _row_user(row)
     audit("user_created", user_id=admin["id"], username=admin["username"], ip=client_ip(request),
-          target=body.username, role=body.role)
+          target=body.username, role=body.role, cameras=cams or "all", can_playback=body.can_playback)
     return {"user": user, "temporary_password": temp}
 
 
@@ -404,11 +415,15 @@ def update_user(user_id: uuid.UUID, body: UserPatch, request: Request,
     if str(user_id) == admin["id"] and (body.disabled or (body.role and body.role != "admin")):
         raise HTTPException(status_code=422, detail="You can't disable yourself or remove your own admin role.")
     sets, params, out = [], [], {}
-    for col in ("display_name", "role", "disabled"):
+    for col in ("display_name", "role", "disabled", "can_playback"):
         val = getattr(body, col)
         if val is not None:
             sets.append(f"{col} = %s")
             params.append(val)
+    if body.cameras is not None:
+        from .access import clean_patterns
+        sets.append("cameras = %s")
+        params.append(Jsonb(clean_patterns(body.cameras)))
     if body.reset_password:
         temp = _temp_password()
         sets += ["password_hash = %s", "must_change_password = true", "failed_attempts = 0", "locked_until = NULL",
@@ -424,6 +439,11 @@ def update_user(user_id: uuid.UUID, body: UserPatch, request: Request,
             raise HTTPException(status_code=404, detail="no such user")
         if body.disabled or body.reset_password or body.role:
             conn.execute("DELETE FROM sessions WHERE user_id = %s", (user_id,))
+        u = _row_user(row)
+        if u["role"] in ("admin", "cso") and u["cameras"]:
+            raise HTTPException(status_code=422, detail="Administrators and the CSO always see every camera; clear the camera list first.")
+        if u["role"] == "client" and not u["cameras"]:
+            raise HTTPException(status_code=422, detail="A client account needs a camera list (the cameras they may watch).")
     out["user"] = _row_user(row)
     audit("user_changed", user_id=admin["id"], username=admin["username"], ip=client_ip(request),
           target=out["user"]["username"], **body.model_dump(exclude_none=True))

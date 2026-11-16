@@ -19,6 +19,7 @@ For the IT Manager and other administrators.
 - One account per person; the role decides what they see. Administrators and the CSO must use two-factor.
 - **Reset password** gives a one-time password and clears two-factor; hand it over in person.
 - Disable accounts on the day someone leaves.
+- **Camera lists**: Users › Cameras › Change limits an operator, viewer or client to some cameras (whole NVRs, single cameras, or patterns like `nvr4-*`). Administrators and the CSO always see all. **Viewer** = watch and read alerts only; **Client** = an outside party, live (and optionally recorded) video of their cameras only. See docs/camera-access.md.
 - **Guard (phone app only)**: for patrol guards. They use the phone app at `/m/` (check-ins, SOS, logbook) and can't open the console. The phone needs the HSS root certificate installed before the app will install. See the Phone app guide in docs/mobile.md.
 
 ## Devices

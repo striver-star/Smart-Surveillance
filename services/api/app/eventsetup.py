@@ -86,6 +86,8 @@ def overview(_: dict = Depends(require("admin", "cso"))) -> dict:
 
 @router.get("/walk")
 def walk(since: datetime, _: dict = Depends(require("admin", "cso", "operator"))) -> list[dict]:
+    from .access import need_all_cameras
+    need_all_cameras(_)
     """Cameras that sent an event since `since`, with the first one and whether it raised an alert."""
     if since.tzinfo is None:
         raise HTTPException(status_code=422, detail="since needs a timezone")

@@ -38,7 +38,8 @@ from .db import connect
 
 log = logging.getLogger("alerts")
 router = APIRouter(prefix="/alerts", tags=["alerts"])
-WATCHERS = ("admin", "cso", "operator")
+WATCHERS = ("admin", "cso", "operator")              # act on alerts
+READERS = WATCHERS + ("viewer",)                     # see alerts (viewers read only); all limited to their cameras
 SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
 CHANNELS = ("screen", "sound", "push", "whatsapp")
 MAX_ESCALATIONS = 3
@@ -365,7 +366,9 @@ async def background_loop() -> None:
 # ------------------------------------------------------------------ endpoints
 
 @router.get("/stream")
-async def stream(request: Request, _: dict = Depends(require(*WATCHERS))):
+async def stream(request: Request, user: dict = Depends(require(*READERS))):
+    from .access import allowed, restricted
+    limited = restricted(user)
     q: asyncio.Queue = asyncio.Queue(maxsize=500)
     broker.loop = asyncio.get_running_loop()
     broker.queues.add(q)
@@ -376,6 +379,10 @@ async def stream(request: Request, _: dict = Depends(require(*WATCHERS))):
             while not await request.is_disconnected():
                 try:
                     data = await asyncio.wait_for(q.get(), timeout=20)
+                    if limited:                     # only alerts on this user's cameras
+                        a = json.loads(data).get("alert")
+                        if a is not None and not allowed(user, a.get("camera_id")):
+                            continue
                     yield f"event: alert\ndata: {data}\n\n"
                 except asyncio.TimeoutError:
                     yield ": keep-alive\n\n"
@@ -387,8 +394,10 @@ async def stream(request: Request, _: dict = Depends(require(*WATCHERS))):
 
 @router.get("")
 def list_alerts(status: str | None = None, severity: str | None = None, limit: int = 100,
-                _: dict = Depends(require(*WATCHERS, allow_admin_token=True))) -> dict:
-    sql, params = f"SELECT {ALERT_COLS} FROM alerts a JOIN events e ON e.id = a.event_id WHERE true", []
+                user: dict = Depends(require(*READERS, allow_admin_token=True))) -> dict:
+    from .access import sql as cam_sql
+    cam_where, cam_args = cam_sql(user, "e.camera_id")
+    sql, params = f"SELECT {ALERT_COLS} FROM alerts a JOIN events e ON e.id = a.event_id WHERE true" + cam_where, list(cam_args)
     if status == "active":
         sql += " AND a.status <> 'closed'"
     elif status in ("open", "acknowledged", "closed"):
@@ -401,7 +410,8 @@ def list_alerts(status: str | None = None, severity: str | None = None, limit: i
     params.append(max(1, min(limit, 500)))
     with connect() as conn:
         rows = [_alert_row(r) for r in conn.execute(sql, params).fetchall()]
-        counts = dict(conn.execute("SELECT status, count(*) FROM alerts GROUP BY status").fetchall())
+        counts = dict(conn.execute("SELECT a.status, count(*) FROM alerts a JOIN events e ON e.id = a.event_id WHERE true"
+                                   + cam_where + " GROUP BY a.status", cam_args).fetchall())
     return {"alerts": rows, "counts": {"open": counts.get("open", 0), "acknowledged": counts.get("acknowledged", 0),
                                        "closed": counts.get("closed", 0)}}
 
@@ -441,8 +451,10 @@ def put_rules(rules: list[Rule], request: Request, user: dict = Depends(require(
 
 
 @router.get("/{alert_id}")
-def alert_detail(alert_id: uuid.UUID, _: dict = Depends(require(*WATCHERS, allow_admin_token=True))) -> dict:
+def alert_detail(alert_id: uuid.UUID, user: dict = Depends(require(*READERS, allow_admin_token=True))) -> dict:
+    from .access import check
     a = get_alert(alert_id)
+    check(user, a["camera_id"])
     with connect() as conn:
         a["timeline"] = [{"at": t, "username": u, "kind": k, "text": x} for t, u, k, x in conn.execute(
             "SELECT at, username, kind, text FROM alert_timeline WHERE alert_id = %s ORDER BY at, id", (alert_id,)).fetchall()]
@@ -460,7 +472,9 @@ class ActionIn(BaseModel):
 
 @router.post("/{alert_id}/action")
 def alert_action(alert_id: uuid.UUID, body: ActionIn, request: Request, user: dict = Depends(require(*WATCHERS))) -> dict:
+    from .access import check
     a = get_alert(alert_id)
+    check(user, a["camera_id"])
     who = user["username"]
     with connect() as conn:
         if body.action == "acknowledge":
