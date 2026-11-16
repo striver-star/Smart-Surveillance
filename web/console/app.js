@@ -88,6 +88,7 @@ const I = {
   planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-7v14L4 12z"/><circle cx="4" cy="12" r="1.5"/></svg>',
   playback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M3 12h2"/></svg>',
   logbook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M9 9.5c.6-1 1.8-1.5 3-1.2"/></svg>',
   heat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".35"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
   noise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M9 20V4M14 20v-7M19 20v-11"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
@@ -111,6 +112,7 @@ const PAGES = [
   { id: "live", title: "Live view", icon: "live", roles: ["admin", "cso", "operator", "viewer", "client"], view: viewLive },
   { id: "logbook", title: "Logbook", icon: "logbook", roles: ["admin", "cso", "operator", "management"], view: viewLogbook },
   { id: "playback", title: "Playback", icon: "playback", roles: ["admin", "cso", "operator", "viewer", "client"], playback: true, view: viewPlayback },
+  { id: "search", title: "Smart search", icon: "search", roles: ["admin", "cso", "operator", "viewer"], view: viewSearch },
   { id: "events", title: "Events", icon: "events", roles: ["admin", "cso", "operator", "viewer"], view: viewEvents },
   { id: "evidence", title: "Evidence vault", icon: "vault", roles: ["admin", "cso"], view: viewEvidence },
   { id: "map", title: "Site map", icon: "map", roles: ["admin", "cso", "operator", "viewer"], view: viewMap },
@@ -2299,7 +2301,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2307,6 +2309,61 @@ async function viewAudit(c) {
       h("td", {}, r.action === "login_failed" ? h("span", { class: "badge warn" }, what[r.action]) : what[r.action] || r.action),
       h("td", { class: "muted", style: "font-size:12.5px" }, Object.entries(r.detail || {}).map(([k, v]) => `${k}: ${v}`).join(" · ")),
       h("td", { class: "mono" }, r.ip || "—"))))))));
+}
+
+/* ---------------- smart search: people and vehicles by colour ---------------- */
+const SWATCH = { black: "#111827", white: "#f8fafc", grey: "#9ca3af", red: "#dc2626", orange: "#f97316", yellow: "#facc15", green: "#16a34a",
+  blue: "#2563eb", purple: "#7c3aed", pink: "#f472b6", brown: "#7c4a21" };
+async function viewSearch(c) {
+  const pad = n => String(n).padStart(2, "0");
+  const localInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const st = { what: "person", upper: new Set(), lower: new Set(), body: new Set() };
+  const paths = await api("/live/paths").catch(() => []);
+  const cams = [...new Map(paths.map(p => [p.path.replace(/-sub$/, ""), p.label])).entries()];
+  const camSel = h("select", { class: "input", id: "ss-cam" }, h("option", { value: "" }, "All cameras"), cams.map(([id, l]) => h("option", { value: id }, l === id ? id : `${l} (${id})`)));
+  const from = h("input", { class: "input", type: "datetime-local", id: "ss-from", value: localInput(new Date(Date.now() - 86400000)), style: "min-width:0;width:100%" });
+  const to = h("input", { class: "input", type: "datetime-local", id: "ss-to", style: "min-width:0;width:100%", title: "Leave empty for up to now" });
+  const out = h("div", {});
+  const colourRow = (label, key) => h("div", { class: "field" }, h("label", {}, label), h("div", { class: "swatches", role: "group", "aria-label": label },
+    Object.entries(SWATCH).map(([name, hex]) => { const b = h("button", { class: `swatch ${st[key].has(name) ? "on" : ""}`, title: name, "aria-label": name, "aria-pressed": String(st[key].has(name)),
+      onclick: () => { st[key].has(name) ? st[key].delete(name) : st[key].add(name); b.classList.toggle("on"); b.setAttribute("aria-pressed", String(st[key].has(name))); } },
+      h("span", { style: `background:${hex}` }), h("small", {}, name)); return b; })));
+  const colours = h("div", {});
+  const drawColours = () => colours.replaceChildren(...(st.what === "person" ? [colourRow("Top (any of)", "upper"), colourRow("Bottom (any of)", "lower")]
+    : st.what === "vehicle" ? [colourRow("Colour (any of)", "body")] : []));
+  const whatSeg = h("div", { class: "seg" }, [["person", "Person"], ["vehicle", "Vehicle"], ["any", "Anything"]].map(([k, l]) =>
+    h("button", { class: k === st.what ? "on" : null, onclick: e => { st.what = k; whatSeg.querySelectorAll("button").forEach(b => b.classList.remove("on")); e.target.classList.add("on"); drawColours(); } }, l)));
+  drawColours();
+  const run = async () => {
+    out.replaceChildren(h("div", { class: "muted" }, "Searching…"));
+    const q = new URLSearchParams({ what: st.what, upper: [...st.upper].join(","), lower: [...st.lower].join(","), body: [...st.body].join(","), camera: camSel.value });
+    if (from.value) q.set("since", new Date(from.value).toISOString());
+    if (to.value) q.set("until", new Date(to.value).toISOString());
+    try {
+      const d = await api(`/search?${q}`);
+      const chips = r => (r.class === "human" ? [["top", r.upper], ["bottom", r.lower]] : [["", r.body]]).filter(([, cs]) => cs.length).map(([part, cs]) =>
+        h("span", { class: "faint", style: "font-size:11.5px;margin-right:6px" }, part ? `${part} ` : "", cs.map(x => h("i", { class: "dot-sw", title: x, style: `background:${SWATCH[x]}` }))));
+      out.replaceChildren(
+        h("p", { class: "muted", style: "margin:0 0 10px" }, `${d.results.length} found in ${d.analysed} analysed pictures` + (d.pictures > d.analysed ? ` (${d.pictures - d.analysed} still being analysed)` : "") + "."),
+        d.results.length ? h("div", { class: "ss-grid" }, d.results.map(r => h("figure", { class: "ss-tile" },
+          h("img", { src: r.crop_url, alt: `${r.class} at ${r.camera}`, loading: "lazy" }),
+          h("figcaption", {}, h("div", { style: "font-weight:600" }, r.camera), h("div", { class: "faint", style: "font-size:12px" }, fmtTime(r.at)), chips(r),
+            r.fixed ? h("div", { class: "badge", style: "margin-top:4px", title: "The same spot in many pictures: probably parked or a fixed object" }, `in ${r.seen} pictures: parked?`) : r.seen > 1 ? h("div", { class: "faint", style: "font-size:11.5px" }, `+${r.seen - 1} more at this spot`) : null,
+            h("div", { class: "toolbar", style: "margin-top:6px;gap:6px" },
+              h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(r.camera_id)}&t=${encodeURIComponent(new Date(new Date(r.at) - 10000).toISOString())}` }, "Play"),
+              r.alert_id ? h("button", { class: "btn small", onclick: () => alertDrawer(r.alert_id) }, "Alert") : null))))) :
+          h("div", { class: "empty" }, "Nothing matches. Try fewer colours (colours look different at night and under infrared), a longer time or all cameras."));
+    } catch (ex) { out.replaceChildren(h("div", { class: "error" }, ex.message)); }
+  };
+  const status = await api("/search/status").catch(() => null);
+  c.append(card("Find people and vehicles", null,
+    h("p", { class: "muted", style: "margin-top:0" }, "Searches the pictures of stored events (any camera that sends a picture with its events) by clothing and vehicle colour. Nobody is identified, and every search is recorded. At night under infrared, colours read as grey or black."),
+    status && status.waiting ? h("div", { class: "note" }, `${status.waiting} event pictures are waiting to be analysed${status.service_running ? "; this runs in the background" : ": start the AI services (docker compose --profile ai up -d)"}.`) : null,
+    h("div", { class: "toolbar", style: "margin-bottom:10px" }, whatSeg), colours,
+    h("div", { style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px;align-items:end" },
+      h("div", { class: "field" }, h("label", { for: "ss-cam" }, "Camera"), camSel), h("div", { class: "field" }, h("label", { for: "ss-from" }, "From"), from),
+      h("div", { class: "field" }, h("label", { for: "ss-to" }, "To (empty = now)"), to), h("div", { class: "field" }, h("button", { class: "btn primary", onclick: run }, "Search")))),
+    out);
 }
 
 /* ---------------- incident heat map: where and when alerts happen ---------------- */

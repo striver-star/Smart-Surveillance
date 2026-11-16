@@ -20,6 +20,10 @@ watch is recorded in the viewing log with your name.
   but acknowledging and closing alerts is for the control room.
 - **Site map** shows your cameras and the guards on patrol.
 
+## Viewers only: smart search
+
+**Smart search** finds people or vehicles by colour in the pictures of past events on your cameras. Searches are recorded.
+
 ## Good practice
 
 - Watch for the purpose your account was given; don't film the screen or share what you see.

@@ -114,6 +114,23 @@ services:
       gateway:
         condition: service_started
 
+  attributes:
+    # Smart search: people and vehicles, and their colours, in each event's picture. Starts with the AI worker:
+    # docker compose --profile ai up -d
+    profiles: ["ai"]
+    build: ./services/ai-worker
+    command: ["python", "-m", "worker.attributes"]
+    restart: unless-stopped
+    environment:
+      HSS_API_URL: http://api:8000
+      HSS_WORKER_TOKEN: ${HSS_WORKER_TOKEN}
+      HSS_MODEL_PATH: /models/${HSS_MODEL:-yolox_s.onnx}
+    volumes:
+      - ./models:/models:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
   recognition:
     # Face and plate recognition (stage 4), on the cameras approved in the console (Face & plate). It runs only
     # while the legal review is in force, and sends matches only. Start with: docker compose --profile recognition up -d
