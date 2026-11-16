@@ -46,6 +46,7 @@ section { display: grid; gap: 12px; }
 .row h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
 .row p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
 .track { height: 6px; border-radius: 3px; background: var(--todo-bg); margin-top: 9px; overflow: hidden; }
+.row a { color: var(--accent); font-weight: 600; }
 .track i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .state { text-align: right; display: grid; gap: 6px; justify-items: end; }
 .state small { color: var(--muted); font-size: 12px; }
@@ -68,16 +69,16 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Security Surveillance System · status as of 15 November 2026</div>
+    <div class="eyebrow">Security Surveillance System · status as of 16 November 2026</div>
     <h1>Where the HSS programme stands</h1>
-    <p class="lede">The platform is live on the site server: operators sign in, watch cameras on PC and iPhone, and WhatsApp messages reach the GM, CSO and IT Manager. Alerts, reports, the NVR event link and the face and plate engine are built and tested, waiting for site runs. The main blockers are a wired server connection, one NVR drive, and decisions on legal review and a GPU server.</p>
+    <p class="lede">The platform is live on the site server: operators sign in, watch cameras on PC and iPhone, and WhatsApp messages reach the GM, CSO and IT Manager. Release 2.0 is built, and face and plate recognition are unlocked after the legal review and DPIA. Next is a three-day test on the site's own equipment before go-live. The main blockers are a wired server connection, one NVR drive and the GPU server.</p>
   </header>
 
   <div class="strip" role="list">
     <div role="listitem"><b>4</b><span>NVRs surveyed, 112 channels (7 planned)</span></div>
     <div role="listitem"><b>103</b><span>cameras online at the last survey</span></div>
     <div role="listitem"><b>268</b><span>software components licence-checked, all pass</span></div>
-    <div role="listitem"><b>109</b><span>automated tests run on every change</span></div>
+    <div role="listitem"><b>140</b><span>automated tests run on every change</span></div>
   </div>
 
   <section aria-labelledby="phases">
@@ -91,10 +92,21 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <div class="row"><div class="ph">Phase 4</div><div><h3>Server AI for non-AI cameras</h3><p>Detection worker works on sample video. Benchmark and comparison need the GPU server.</p><div class="track"><i style="width:25%"></i></div></div><div class="state"><span class="chip c-stop">Blocked</span><small>GPU purchase</small></div></div>
       <div class="row"><div class="ph">Phase 5</div><div><h3>Maps and guard tracking</h3><p>Built: site plans tied to GPS, cameras on the map with live status, restricted zones, perimeter and patrol checkpoints, guard phones tracked through Traccar, with alerts for zone breaches, SOS, missed patrols and phones going offline.</p><div class="track"><i style="width:85%"></i></div></div><div class="state"><span class="chip c-wait">Awaiting site test</span><small>Guard phones walk-through</small></div></div>
       <div class="row"><div class="ph">Phase 6</div><div><h3>Reports and delivery</h3><p>Daily, weekly and monthly reports in PDF and Word, with archive and scheduled WhatsApp sending. Seven-day delivery trial ends 19 November.</p><div class="track"><i style="width:90%"></i></div></div><div class="state"><span class="chip c-ok">Built</span><small>Trial ends 19 Nov</small></div></div>
-      <div class="row"><div class="ph">Phase 7</div><div><h3>Face and number plate</h3><p>Engine built. The lawyer has given an opinion; the DPIA, notices and recognition signs are drafted. The first camera tests were cut short by the server's Wi-Fi link (now handled by the test tool); the one complete result showed faces too small at the gate. Retest in daylight once the server is wired.</p><div class="track"><i style="width:40%"></i></div></div><div class="state"><span class="chip c-wait">DPIA and signs</span><small>Retest cameras</small></div></div>
+      <div class="row"><div class="ph">Phase 7</div><div><h3>Face and number plate</h3><p>Legal review, DPIA and signs completed; face and plate recognition unlocked. Live recognition is built: watchlists with a reason, authority and expiry for every entry, matches only on approved cameras, and an operator confirms each match before anyone acts. The volunteer walk test (stage 3) sets the accuracy threshold; Gate Arrival 02 showed faces too small, so the closer entrance cameras are used.</p><div class="track"><i style="width:75%"></i></div></div><div class="state"><span class="chip c-run">Trial</span><small>Volunteer walk test</small></div></div>
       <div class="row"><div class="ph">Phase 8</div><div><h3>Hardening and licensing</h3><p>Built: encrypted daily backups with monthly restore tests, a Security page that checks the system against the security checklist, per-site perpetual licences, data retention, and a load test that handles 20 NVRs with room to spare.</p><div class="track"><i style="width:85%"></i></div></div><div class="state"><span class="chip c-wait">Awaiting site test</span><small>Security page all green</small></div></div>
       <div class="row"><div class="ph">Phase 9</div><div><h3>Installers and go-live</h3><p>Built: one-command installer (also offline), a Getting started checklist in the console, guides for each role, a training plan, a 20-point acceptance test and the go-live plan. The hosted multi-site option comes after the pilot.</p><div class="track"><i style="width:75%"></i></div></div><div class="state"><span class="chip c-wait">Pilot</span><small>Acceptance test on site</small></div></div>
-      <div class="row"><div class="ph">Phase 10</div><div><h3>Release 2.0</h3><p>Remaining growth features, chosen at a prioritisation session.</p><div class="track"><i style="width:0%"></i></div></div><div class="state"><span class="chip c-todo">Later</span></div></div>
+      <div class="row"><div class="ph">Phase 10</div><div><h3>Release 2.0</h3><p>Three batches built. <strong>Operations:</strong> recorded playback, sirens and lights on alerts, shift logbook, phone app with check-ins and SOS, a lockdown button, a control-room status board. <strong>Insight:</strong> false alarm dashboard, incident heat map, unusual activity, smart search by colour, monthly compliance report. <strong>Control:</strong> who watched which camera, per-camera permissions with viewer and client accounts, walls that keep running through restarts, network discovery, an open API with webhooks.</p><div class="track"><i style="width:90%"></i></div></div><div class="state"><span class="chip c-wait">Awaiting site test</span><small>3-day test plan</small></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="test">
+    <h2 id="test">Site test before go-live</h2>
+    <div class="board">
+      <div class="row"><div class="ph">Before</div><div><h3>10 prerequisites</h3><p>Server wired, every service running, clocks on NTP, NVR4 drives replaced, a fresh backup, test accounts, two phones, messages working, and a quiet window booked with the control room.</p></div><div class="state"><span class="chip c-todo">Not started</span><small>IT Manager</small></div></div>
+      <div class="row"><div class="ph">Day 1</div><div><h3>Devices, video and access (15 checks)</h3><p>Discovery, live view on PC, phone and walls, the status board, walls through a server restart, playback including H.265 cameras, PTZ, and who can watch what.</p></div><div class="state"><span class="chip c-todo">Not started</span><small>IT Manager, operator</small></div></div>
+      <div class="row"><div class="ph">Day 2</div><div><h3>Alerts and response (13 checks)</h3><p>NVR events, alerts on screen and WhatsApp, escalation, sirens and lights, a lockdown drill, the phone app outdoors (check-in and SOS), patrols and the shift handover.</p></div><div class="state"><span class="chip c-todo">Not started</span><small>IT, CSO, operator, guard</small></div></div>
+      <div class="row"><div class="ph">Day 3</div><div><h3>Recognition, search, reports and integrations (15 checks)</h3><p>The volunteer walk test day and night, plates, smart search, heat map, compliance report, the open API and webhooks, wall capacity, and a restore from backup.</p></div><div class="state"><span class="chip c-todo">Not started</span><small>IT Manager, CSO, volunteers</small></div></div>
+      <div class="row"><div class="ph">Sign-off</div><div><h3>Ready for go-live</h3><p>Every prerequisite, Day 1 and Day 2 check passes; recognition meets the pass mark agreed with the CSO, or stays on trial; no blocker or major defect open. Signed by the IT Manager, CSO and General Manager. <a href="https://claude.ai/artifact/5vtbaa4hgNsqggpSXeoRpV">Open the test plan</a> (ask the IT Manager for access).</p></div><div class="state"><span class="chip c-todo">Pending</span><small>IT, CSO, GM</small></div></div>
     </div>
   </section>
 
@@ -112,7 +124,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <section class="panel" aria-labelledby="decide">
       <h2 id="decide">Needs a decision</h2>
       <ul class="list">
-        <li><span class="chip c-stop">Blocking</span><div><strong>Appoint a legal reviewer</strong><span class="d">The drafted legal review needs their written opinion; the software stays locked until it is recorded.</span></div></li>
+        <li><span class="chip c-wait">Open</span><div><strong>Date for the 3-day site test</strong><span class="d">After the server is wired and NVR4's drives are in; book a 2-hour quiet window for restarts, sirens and the lockdown drill.</span></div></li>
+        <li><span class="chip c-wait">Open</span><div><strong>Recognition pass mark</strong><span class="d">Suggested: 8 of 10 daytime walks matched and no match on anyone not enrolled, before real watchlist entries go in.</span></div></li>
         <li><span class="chip c-stop">Blocking</span><div><strong>Approve a GPU server quote</strong><span class="d">Needed for server AI on non-AI cameras and the benchmark.</span></div></li>
         <li><span class="chip c-wait">Open</span><div><strong>Recognition scope</strong><span class="d">Qualify cameras one by one, and accept the GPU budget that goes with broad recognition.</span></div></li>
         <li><span class="chip c-wait">Open</span><div><strong>Fourth wall PC</strong><span class="d">Three PCs cover 4 NVRs; 7 NVRs need a fourth.</span></div></li>
