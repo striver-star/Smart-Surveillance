@@ -180,7 +180,17 @@ async function boot() {
   try { user = await api("/auth/me"); } catch (e) { return login(); }
   if (user.must_change_password) return newPassword();
   try { S.me = await api("/mobile/me"); } catch (e) { return login(e.status === 403 ? "This account can't use the phone app." : e.message); }
+  lockBanner(S.me.lockdown);
+  if (!S.lockPoll) S.lockPoll = setInterval(async () => { try { lockBanner((await api("/lockdown")).lockdown); } catch (_) { /* signed out or offline */ } }, 20000);
   show("home");
+}
+
+/* ---------- lockdown banner, on every tab ---------- */
+function lockBanner(l) {
+  let bar = document.getElementById("lockdown");
+  if (!l) { if (bar) bar.remove(); return; }
+  if (!bar) { bar = h("div", { id: "lockdown", class: "lockdown", role: "alert" }); document.body.prepend(bar); if (navigator.vibrate) navigator.vibrate([300, 150, 300]); }
+  bar.replaceChildren(h("strong", {}, "LOCKDOWN"), ` since ${t(l.since)} · ${l.reason}`);
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/m/sw.js", { scope: "/m/" }).catch(() => { /* works without it */ });
 boot();

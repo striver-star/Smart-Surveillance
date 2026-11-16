@@ -28,6 +28,10 @@
   @media (prefers-reduced-motion: reduce) { .tile.alert-critical { animation: none; } }
   #bar { position: fixed; top: 6px; right: 8px; display: flex; gap: 10px; font-size: 12px; color: var(--muted);
          background: rgba(0, 0, 0, .55); padding: 3px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+  #lock { position: fixed; top: 0; left: 0; right: 0; z-index: 3; background: var(--bad); color: #fff; text-align: center; font-weight: 800;
+          font-size: clamp(14px, 1.6vw, 26px); letter-spacing: .04em; padding: 6px 12px; animation: lockpulse 1.6s ease-in-out infinite; }
+  @keyframes lockpulse { 50% { background: #a1221a; } }
+  @media (prefers-reduced-motion: reduce) { #lock { animation: none; } }
   #offline { position: fixed; bottom: 8px; right: 8px; font-size: 12px; color: #000; background: var(--warn); padding: 3px 9px;
              border-radius: 6px; font-weight: 600; }
   #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; font-size: 20px; color: var(--muted); }
@@ -36,6 +40,7 @@
 <body>
 <div id="grid"></div>
 <div id="bar"><span id="title"></span><span id="page"></span><span id="clock"></span></div>
+<div id="lock" role="alert" hidden></div>
 <div id="offline" hidden></div>
 <div id="msg" hidden></div>
 <script src="/player.js"></script>

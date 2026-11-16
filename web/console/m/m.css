@@ -51,3 +51,7 @@ label { font-size: 13.5px; font-weight: 600; color: var(--muted); display: block
 #tabs button { flex: 1; background: none; border: 0; color: #9fb2cc; font: 600 13px system-ui, sans-serif; padding: 8px 4px; border-radius: 10px; min-height: 52px; }
 #tabs button.on { color: #fff; background: rgba(255, 255, 255, .1); }
 #tabs .count { display: inline-block; background: var(--bad); color: #fff; border-radius: 99px; padding: 0 6px; margin-left: 4px; font-size: 11px; }
+
+/* lockdown: on every tab until the CSO ends it */
+.lockdown { position: sticky; top: 0; z-index: 5; background: var(--bad); color: #fff; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+  font-size: 15px; text-align: center; } .lockdown strong { letter-spacing: .08em; margin-right: 4px; }

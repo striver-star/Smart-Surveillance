@@ -27,6 +27,11 @@ function apply(next) {
   const first = !screen;
   screen = next;
   document.getElementById("title").textContent = screen.name;
+  const lock = document.getElementById("lock");
+  if (next.lockdown) {
+    lock.textContent = `LOCKDOWN since ${new Date(next.lockdown.since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${next.lockdown.reason}`;
+    lock.hidden = false;
+  } else lock.hidden = true;
   if (first || sig !== lastLayoutSig) {
     lastLayoutSig = sig;
     if (pageIx >= screen.pages.length) pageIx = 0;

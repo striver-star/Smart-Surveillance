@@ -134,7 +134,8 @@ def armed_now(windows: list, at: datetime) -> bool:
     return False
 
 
-def match_rule(rules: list[dict], event: dict, at_local: datetime) -> dict | None:
+def match_rule(rules: list[dict], event: dict, at_local: datetime, always_armed: bool = False) -> dict | None:
+    """The first enabled rule the event matches. always_armed (lockdown) ignores the rules' armed times."""
     for r in rules:
         if not r.get("enabled", True):
             continue
@@ -143,7 +144,7 @@ def match_rule(rules: list[dict], event: dict, at_local: datetime) -> dict | Non
         if not (_any(r.get("cameras", []), event["camera_id"]) and _any(r.get("zones", []), event.get("zone"))
                 and _any(r.get("types", []), event["type"]) and _any(r.get("objects", []), event.get("object_class"))):
             continue
-        if not armed_now(r.get("armed", []), at_local):
+        if not always_armed and not armed_now(r.get("armed", []), at_local):
             continue
         return r
     return None
@@ -206,12 +207,17 @@ def add_timeline(conn, alert_id, kind: str, text: str = "", username: str | None
 def on_event(event: dict) -> str | None:
     """Called after an event is stored. Returns the new alert id, or None."""
     at_local = event["occurred_at"].astimezone(tz())
-    rule = match_rule(load_rules(), event, at_local)
+    from .lockdown import state as lockdown_state
+    locked = lockdown_state() is not None
+    rule = match_rule(load_rules(), event, at_local, always_armed=locked)
     if rule is None:
         return None
     severity = rule.get("raise_to") or event["severity"]
     if SEVERITY_RANK[severity] < SEVERITY_RANK[event["severity"]]:
         severity = event["severity"]
+    locked_up = locked and event["type"] not in DEVICE_TYPES and severity != "critical"
+    if locked_up:
+        severity = "critical"
     with connect() as conn:
         if rule.get("cooldown_s"):
             existing = conn.execute(
@@ -235,7 +241,9 @@ def on_event(event: dict) -> str | None:
         if not alert_id:
             return None
         alert_id = alert_id[0]
-        add_timeline(conn, alert_id, "raised", f"Raised by rule '{rule['name']}'")
+        add_timeline(conn, alert_id, "raised", f"Raised by rule '{rule['name']}'" + (" (armed by the lockdown)" if locked and not armed_now(rule.get("armed", []), at_local) else ""))
+        if locked_up:
+            add_timeline(conn, alert_id, "lockdown", "Raised to critical: the site is in lockdown")
     alert = get_alert(alert_id)
     broker.publish({"kind": "new", "alert": alert})
     if rule.get("ptz_presets"):

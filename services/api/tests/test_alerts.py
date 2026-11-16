@@ -65,3 +65,16 @@ def test_device_transitions():
     back = {**cam_off}
     assert [e["type"] for e in transitions(stored_down, back, "nvr4")] == ["nvr_online", "camera_offline", "camera_online"]
     assert transitions(stored_down, down, "nvr4") == [], "still down: no repeat"
+
+
+def test_lockdown_arms_every_enabled_rule():
+    from datetime import datetime
+    from app.alerts import match_rule
+    night_only = [{"name": "Fence at night", "enabled": True, "min_severity": "info", "cameras": [], "zones": [], "types": [],
+                   "objects": [], "armed": [["18:00", "06:00"]]},
+                  {"name": "Off", "enabled": False, "min_severity": "info", "cameras": [], "zones": [], "types": [], "objects": [], "armed": []}]
+    ev = {"severity": "warning", "camera_id": "nvr1-ch01", "zone": None, "type": "linedetection", "object_class": None}
+    noon = datetime(2026, 11, 16, 12, 0)
+    assert match_rule(night_only, ev, noon) is None
+    assert match_rule(night_only, ev, noon, always_armed=True)["name"] == "Fence at night"
+    assert match_rule(night_only[1:], ev, noon, always_armed=True) is None          # disabled rules stay off

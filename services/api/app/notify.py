@@ -26,8 +26,7 @@ from .auth import require
 log = logging.getLogger("notify")
 router = APIRouter(prefix="/notify")
 
-TOPICS = {"daily", "weekly", "monthly", "critical", "device", "system", "test"}
-PUSH_TOPICS = {"critical", "device", "system"}
+PUSH_TOPICS = {"critical", "device", "system", "lockdown"}
 
 
 @dataclass
@@ -64,7 +63,7 @@ def mask(address: str) -> str:
     return "…" + digits[-4:] if digits else ""
 
 
-TOPICS = {"daily", "weekly", "monthly", "test", "critical", "device", "system", "escalation"}
+TOPICS = {"daily", "weekly", "monthly", "test", "critical", "device", "system", "escalation", "lockdown"}
 _recipients_state: dict = {"good": None, "problem": "", "warnings": []}
 
 
@@ -255,7 +254,7 @@ def dispatch(topic: str, title: str, text: str, attachment: Attachment | None, r
         if not delivered and not (r.whatsapp and wa.configured) and not (r.email and email.configured):
             attempts.append(Attempt("none", "failed", r.name, "", "no WhatsApp number or e-mail configured"))
     if topic in PUSH_TOPICS and push.configured:
-        attempts.append(push.publish(title, text, "high" if topic == "critical" else "default"))
+        attempts.append(push.publish(title, text, "high" if topic in ("critical", "lockdown") else "default"))
     return attempts
 
 

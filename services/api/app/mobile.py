@@ -62,7 +62,13 @@ def me(user: dict = Depends(require(*PEOPLE))) -> dict:
                               "AND v.at > now() - interval '12 hours' ORDER BY v.at DESC LIMIT 20", (u[0] if u else -1,)).fetchall()
     return {"username": user["username"], "name": user.get("display_name") or user["username"], "role": user["role"],
             "supervisor": user["role"] in ("admin", "cso", "operator"),
-            "check_ins": [{"checkpoint": n, "at": at} for n, at in visits], "last_report": u[1] if u else None}
+            "check_ins": [{"checkpoint": n, "at": at} for n, at in visits], "last_report": u[1] if u else None,
+            "lockdown": _lockdown()}
+
+
+def _lockdown() -> dict | None:
+    from .lockdown import public, state
+    return public(state())
 
 
 @router.post("/checkin")

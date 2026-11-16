@@ -262,13 +262,74 @@ function viewShell(page) {
       h("header", { class: "top" },
         h("button", { class: "btn small menu-btn", "aria-label": "Menu", html: I.menu, onclick: () => shell.classList.toggle("open") }),
         h("h1", {}, page.title), page.preview ? h("span", { class: "badge preview" }, "Preview") : null,
-        h("div", { class: "spacer" }), statusPills, alertsAllowed() ? soundButton() : null, clock),
+        h("div", { class: "spacer" }), statusPills, ["admin", "cso", "operator"].includes(u.role) ? h("button", { class: "btn small lock-btn", id: "lock-btn", title: "Put the whole site in lockdown", onclick: () => startLockdown() }, "Lockdown") : null,
+        alertsAllowed() ? soundButton() : null, clock),
+      h("div", { id: "lockdown-bar", class: "lockdown-bar", role: "alert", hidden: true }),
       content));
   nav.addEventListener("click", () => shell.classList.remove("open"));
   loadStatusPills(statusPills);
+  refreshLockdown();
+  const lp = setInterval(refreshLockdown, 30000); state.cleanup.push(() => clearInterval(lp));
   startAlertStream();
   Promise.resolve(page.view(content)).catch(e => content.replaceChildren(h("div", { class: "error" }, `Couldn't load this page: ${e.message}`)));
   return shell;
+}
+
+/* ---------------- master lockdown ---------------- */
+async function refreshLockdown() {
+  try { drawLockdown((await api("/lockdown")).lockdown); } catch (_) { /* next poll */ }
+}
+function drawLockdown(l) {
+  state.lockdown = l;
+  const bar = document.getElementById("lockdown-bar"), btn = document.getElementById("lock-btn");
+  if (btn) btn.hidden = !!l;
+  if (!bar) return;
+  if (!l) { bar.hidden = true; bar.replaceChildren(); return; }
+  const canEnd = ["admin", "cso"].includes(state.user.role);
+  bar.replaceChildren(h("strong", {}, "LOCKDOWN"),
+    h("span", {}, ` since ${new Date(l.since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${l.by} · ${l.reason}`),
+    h("span", { class: "muted-on-red" }, " · every rule armed, every alert critical"),
+    canEnd ? h("button", { class: "btn small", onclick: endLockdown }, "End lockdown") : null);
+  bar.hidden = false;
+}
+function startLockdown() {
+  const reason = h("textarea", { class: "input", id: "lock-reason", rows: 3, placeholder: "What is happening, for example: armed men seen at the east fence" });
+  const err = h("div", { class: "error", hidden: true });
+  modal("Put the site in lockdown?", h("div", {},
+    h("p", { style: "margin-top:0" }, "Every alert rule is armed at once, every new alert is critical, the lockdown lights and sirens switch on, and everyone subscribed to “lockdown” is messaged. Only the CSO or an administrator can end it."),
+    h("div", { class: "field" }, h("label", { for: "lock-reason" }, "Reason (sent with the messages)"), reason), err),
+    sc => [h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"),
+      h("button", { class: "btn danger-solid", onclick: async () => {
+        if (reason.value.trim().length < 3) { err.textContent = "Say briefly what is happening."; err.hidden = false; return; }
+        try { const r = await api("/lockdown", { method: "POST", body: { reason: reason.value.trim() } }); sc.remove(); drawLockdown(r.lockdown); toast("Lockdown started. Messages are going out."); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Start lockdown")]);
+}
+function endLockdown() {
+  const note = h("input", { class: "input", id: "lock-note", placeholder: "Optional: how it ended, for example: police on site, all clear" });
+  const err = h("div", { class: "error", hidden: true });
+  modal("End the lockdown?", h("div", {},
+    h("p", { style: "margin-top:0" }, "Alert rules go back to their normal times, the lockdown lights and sirens switch off, and everyone subscribed to “lockdown” is told."),
+    h("div", { class: "field" }, h("label", { for: "lock-note" }, "Note"), note), err),
+    sc => [h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        try { const r = await api("/lockdown/end", { method: "POST", body: { note: note.value.trim() } }); sc.remove(); drawLockdown(null); toast(`Lockdown ended after ${r.minutes} min.`); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "End lockdown")]);
+}
+async function lockdownSettings() {
+  const [cfg, outs, st] = await Promise.all([api("/lockdown/config"), api("/outputs").catch(() => []), api("/lockdown")]);
+  const chosen = new Set(cfg.outputs.map(x => x.toLowerCase()));
+  const boxes = outs.map(o => h("label", { class: "check" }, h("input", { type: "checkbox", value: o.name, checked: chosen.has(o.name.toLowerCase()) }), ` ${o.name}`));
+  const last = st.last && st.last.ended_at ? h("p", { class: "muted", style: "margin:10px 0 0;font-size:12.5px" },
+    `Last lockdown: ${fmtTime(st.last.since)} by ${st.last.by_name} (${st.last.reason}); ended ${fmtTime(st.last.ended_at)} by ${st.last.ended_by}.`,
+    st.last.start_result ? ` Start: ${[...(st.last.start_result.outputs || []), st.last.start_result.messages].join("; ")}.` : "") : null;
+  return card("Lockdown", null,
+    h("p", { class: "muted", style: "margin-top:0" }, "The Lockdown button at the top arms every rule and makes every alert critical until the CSO ends it. Choose the outputs to switch on for the whole lockdown, and subscribe people to “lockdown” in config/recipients.json so they are messaged."),
+    outs.length ? h("div", { style: "display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:10px" }, boxes) : h("p", { class: "muted" }, "No sirens or lights added yet (Live view › Sirens and lights)."),
+    outs.length ? h("button", { class: "btn", onclick: async () => {
+      try { await api("/lockdown/config", { method: "PUT", body: { outputs: boxes.map(b => b.querySelector("input")).filter(i => i.checked).map(i => i.value) } }); toast("Lockdown outputs saved"); }
+      catch (ex) { toast(ex.message); } } }, "Save") : null, last);
 }
 
 async function loadStatusPills(box) {
@@ -1853,6 +1914,7 @@ function startAlertStream() {
   const es = state.sse = new EventSource("/api/alerts/stream");
   es.addEventListener("alert", ev => {
     const msg = JSON.parse(ev.data);
+    if (msg.kind === "lockdown") { drawLockdown(msg.lockdown); if (msg.lockdown) playAlertSound("critical"); return; }
     if (msg.kind === "new") { popAlert(msg.alert); playAlertSound(msg.alert.severity); }
     refreshAlertCount();
     window.dispatchEvent(new CustomEvent("hss-alert", { detail: msg }));
@@ -2058,7 +2120,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),
@@ -2351,6 +2413,7 @@ async function viewSettings(c) {
       } }, "Change password")),
     card("Two-factor sign-in", me.totp_enabled ? h("span", { class: "badge ok" }, "on") : h("span", { class: "badge warn" }, "off"), twoFactorBox(me))));
   if (["admin", "cso"].includes(me.role)) sections.push(await rulesEditor());
+  if (["admin", "cso"].includes(me.role)) sections.push(await lockdownSettings());
   if (["admin", "cso"].includes(me.role)) {
     const sh = await api("/logbook/shift");
     const inp = h("input", { class: "input", id: "shifts-in", value: sh.shifts.map(x => `${x[0]} ${x[1]}-${x[2]}`).join(", ") });

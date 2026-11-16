@@ -222,4 +222,12 @@ def play(sid: int, k: str) -> dict:
     return {"name": s["name"], "tiles": s["tiles"], "cols": cols, "rows": rows, "dwell_s": s["dwell_s"], "labels": s["labels"],
             "pages": [[{"path": p, "label": labels.get(p, p), "alert": alerts.get(p), "configured": p in available} for p in page]
                       for page in pages],
-            "version": s["updated_at"].isoformat(), "refresh_s": 10}
+            "version": s["updated_at"].isoformat(), "refresh_s": 10, "lockdown": _lockdown()}
+
+
+def _lockdown() -> dict | None:
+    from .lockdown import public, state
+    try:
+        return public(state())
+    except Exception:
+        return None

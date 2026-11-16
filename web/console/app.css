@@ -356,3 +356,14 @@ textarea.input { resize: vertical; font: inherit; }
 .fa-chart .fa-axis { fill: var(--muted); font-size: 11px; }
 .lg.fa-l-false { background: var(--bad); } .lg.fa-l-real { background: var(--accent); } .lg.fa-l-other { background: var(--faint); }
 tr.fa-noisy td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+
+/* master lockdown */
+.lock-btn { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); font-weight: 700; }
+.btn.danger-solid { background: var(--bad); border-color: var(--bad); color: #fff; }
+.lockdown-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 10px 24px; background: var(--bad); color: #fff; font-size: 14px;
+  position: sticky; top: 61px; z-index: 4; }
+.lockdown-bar[hidden] { display: none; }
+.lockdown-bar strong { letter-spacing: .08em; }
+.lockdown-bar .muted-on-red { opacity: .85; }
+.lockdown-bar .btn { margin-left: auto; background: #fff; color: #b42318; border-color: #fff; }
+.check { font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }

@@ -44,6 +44,10 @@ Unacknowledged critical alerts escalate to the CSO and management after the time
 | Missed patrol | Call the guard assigned to that round |
 | Zone entered (vehicle or guard) | Check who it is on the linked camera |
 
+## Lockdown
+
+For a serious threat (intruders, armed robbery, unrest at the gate) press the red **Lockdown** button at the top and say what is happening. Every alert rule is armed, every alert becomes critical, the lockdown lights and sirens come on, and the CSO, management and IT are messaged. Then follow the emergency plan and call the police. Only the CSO or an administrator can end it.
+
 ## Good practice
 
 - What you watch, live or recorded, is recorded in the viewing log with your name. Watch cameras for security work only.

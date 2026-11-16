@@ -47,6 +47,10 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 **Phone app** (`https://<server>/m/`): guards check in at checkpoints with the phone's GPS and hold **SOS** for 2 seconds to raise a critical alert with their position. Supervisors also see open alerts there and can acknowledge and close them. Keep the Traccar Client app for guards who must be tracked all shift: the phone app only knows where a guard is when they check in.
 
+## Lockdown
+
+Operators can start a lockdown with the red **Lockdown** button; you or an administrator end it with **End lockdown** on the red banner. In Settings › **Lockdown** choose the floodlights and sirens to switch on; add `lockdown` to the subscriptions of everyone who must be told in config/recipients.json (ask IT). Rehearse it once with the control room. Details: docs/lockdown.md.
+
 ## Viewing log
 
 **Viewing log** shows who watched which camera, live or recorded, when and from where; search by camera, person or dates and export CSV. On an alert, **Who watched** opens it for that camera. Video can't be opened without signing in, so the log is complete for the console and the phone app (wall screens aren't logged per person). Check it after any incident where footage may have leaked.
