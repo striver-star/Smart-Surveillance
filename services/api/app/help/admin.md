@@ -37,7 +37,7 @@ Video needs a sign-in (admin, CSO or operator) or a wall screen key; every live 
 
 ## Access control devices
 
-Add Hikvision access controllers and door stations in **Doors** › Access devices with a dedicated device user. Check the first real device's event codes against docs/access-control.md. For training without devices: `tools/simulators/hik-access-sim.py`.
+Add Hikvision access controllers and door stations in **Doors** › Access devices with a dedicated device user. ZKTeco panels and terminals work the other way round: set the device's Cloud Server (ADMS) to this server's address, port 8088; it then appears under **ZKTeco devices calling in**, where you **Add** it (HSS ignores it until then, and only listens to it from that address). If a ZKTeco device's address changes, it shows there again with **Accept new address**. Check the first real device of each make against docs/access-control.md. For training without devices: `tools/simulators/hik-access-sim.py` and `tools/simulators/zk-push-sim.py`.
 
 ## API and webhooks
 

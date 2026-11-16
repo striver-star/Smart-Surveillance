@@ -2384,12 +2384,13 @@ async function viewDoors(c) {
           door.lock_in_lockdown ? h("span", { class: "badge", title: "Locked during a lockdown" }, "lockdown") : null),
         h("div", { class: "toolbar", style: "gap:6px" },
           door.remote_open ? h("button", { class: "btn small primary", onclick: () => doorCommand(door, "open", load) }, "Open") : null,
-          d.can_manage ? h("button", { class: "btn small", onclick: () => doorCommand(door, "stay_locked", load) }, "Keep locked") : null,
+          d.can_manage ? h("button", { class: "btn small", title: door.vendor === "zkteco" ? "ZKTeco: locks it now; valid cards still open it" : "", onclick: () => doorCommand(door, "stay_locked", load) }, door.vendor === "zkteco" ? "Lock now" : "Keep locked") : null,
           d.can_manage ? h("button", { class: "btn small", onclick: () => doorCommand(door, "stay_open", load) }, "Keep open") : null,
           d.can_manage && door.mode && door.mode !== "normal" ? h("button", { class: "btn small", onclick: () => doorCommand(door, "normal", load) }, "Normal") : null,
           door.camera_id ? h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(door.camera_id)}` }, "Recording") : null)))) :
-        h("div", { class: "empty" }, "No doors yet. An administrator adds Hikvision access controllers and door stations below."),
-      state.user.role === "admin" ? devicesCard(d.devices) : null);
+        h("div", { class: "empty" }, "No doors yet. An administrator adds Hikvision or ZKTeco access devices below."),
+      state.user.role === "admin" ? devicesCard(d.devices) : null,
+      state.user.role === "admin" ? zkCard(d.zk_waiting || []) : null);
     loadEvents(d.doors);
   };
   const loadEvents = async doors => {
@@ -2397,12 +2398,12 @@ async function viewDoors(c) {
     const rows = await api(`/access/events?${q}`);
     const doorSel = h("select", { class: "input", style: "width:auto", onchange: e => { evFilter.door = e.target.value; loadEvents(doors); } }, h("option", { value: "" }, "All doors"), doors.map(x => h("option", { value: x.id, selected: String(x.id) === evFilter.door }, x.name)));
     const kindSel = h("select", { class: "input", style: "width:auto", onchange: e => { evFilter.kind = e.target.value; loadEvents(doors); } },
-      [["", "Everything"], ["granted", "Granted"], ["denied", "Refused"], ["forced", "Forced"], ["held_open", "Held open"], ["remote", "Console commands"], ["call", "Intercom calls"]].map(([v, l]) => h("option", { value: v, selected: v === evFilter.kind }, l)));
+      [["", "Everything"], ["granted", "Granted"], ["denied", "Refused"], ["forced", "Forced"], ["duress", "Duress"], ["held_open", "Held open"], ["remote", "Console commands"], ["call", "Intercom calls"]].map(([v, l]) => h("option", { value: v, selected: v === evFilter.kind }, l)));
     const who = h("input", { class: "input", style: "width:180px", placeholder: "Person", value: evFilter.person, onchange: e => { evFilter.person = e.target.value.trim(); loadEvents(doors); } });
     evBox.replaceChildren(card("Who came through", h("div", { class: "toolbar", style: "gap:8px" }, doorSel, kindSel, who),
       rows.length ? h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, ["Time", "Door", "What", "Person", "How", ""].map(t => h("th", {}, t)))),
         h("tbody", {}, rows.map(r => h("tr", {}, h("td", { style: "white-space:nowrap" }, fmtTime(r.at)), h("td", {}, r.door || r.device),
-          h("td", {}, h("span", { class: `badge ${["forced", "held_open"].includes(r.kind) ? "bad" : r.kind === "denied" ? "warn" : r.kind === "granted" ? "ok" : ""}` }, r.what)),
+          h("td", {}, h("span", { class: `badge ${["forced", "held_open", "duress"].includes(r.kind) ? "bad" : r.kind === "denied" ? "warn" : r.kind === "granted" ? "ok" : ""}` }, r.what)),
           h("td", {}, r.person || (r.by ? `console: ${r.by}` : "—"), r.employee_no ? h("div", { class: "faint", style: "font-size:11.5px" }, r.employee_no) : null),
           h("td", { class: "faint", style: "font-size:12px" }, [r.verify, r.card].filter(Boolean).join(" · ") || "—"),
           h("td", {}, r.camera_id ? h("a", { class: "btn small", href: `#/playback?cam=${encodeURIComponent(r.camera_id)}&t=${encodeURIComponent(new Date(new Date(r.at) - 10000).toISOString())}` }, "Play") : null)))))) :
@@ -2412,9 +2413,9 @@ async function viewDoors(c) {
     const f = { name: h("input", { class: "input", id: "ad-name", placeholder: "e.g. Main gate controller" }), kind: h("select", { class: "input", id: "ad-kind" }, h("option", { value: "controller" }, "Access controller or face/card terminal"), h("option", { value: "doorstation" }, "Video intercom door station")),
       address: h("input", { class: "input", id: "ad-addr", placeholder: "10.1.5.20" }), user: h("input", { class: "input", id: "ad-user", placeholder: "A dedicated device user" }), pass: h("input", { class: "input", id: "ad-pass", type: "password", autocomplete: "new-password" }) };
     const err = h("div", { class: "error", hidden: true });
-    return card("Access devices", h("span", { class: "muted", style: "font-size:12.5px" }, "Hikvision DS-K controllers and terminals, DS-KV/KD door stations (ISAPI)"),
+    return card("Access devices", h("span", { class: "muted", style: "font-size:12.5px" }, "Hikvision DS-K controllers and terminals, DS-KV/KD door stations (ISAPI). ZKTeco devices: see below"),
       devs.length ? h("div", { class: "list", style: "margin-bottom:12px" }, devs.map(v => h("div", { class: "item" }, h("span", { class: `dot ${v.online ? "ok" : v.online === false ? "bad" : ""}` }),
-        h("div", { class: "grow" }, h("div", { class: "title" }, v.name, " ", h("span", { class: "faint", style: "font-weight:400" }, v.kind === "doorstation" ? "door station" : "access controller")),
+        h("div", { class: "grow" }, h("div", { class: "title" }, v.name, " ", h("span", { class: "faint", style: "font-weight:400" }, v.vendor === "zkteco" ? `ZKTeco · ${v.serial}` : v.kind === "doorstation" ? "door station" : "access controller")),
           h("div", { class: "faint", style: "font-size:12px" }, `${v.address} · ${(v.info || {}).model || ""}${v.last_error ? ` · ${v.last_error}` : ""}`)),
         h("button", { class: "btn small danger", onclick: async () => { if (!confirm(`Remove ${v.name} and its doors?`)) return; await api(`/access/devices/${v.id}`, { method: "DELETE" }); load(); } }, "Remove")))) : null,
       h("div", { class: "rec-form" }, h("div", { class: "field" }, h("label", { for: "ad-name" }, "Name"), f.name), h("div", { class: "field" }, h("label", { for: "ad-kind" }, "Kind"), f.kind),
@@ -2426,6 +2427,26 @@ async function viewDoors(c) {
             toast(`Added: ${r.info.model || "device"}, ${r.doors} door${r.doors > 1 ? "s" : ""}`); load(); }
           catch (ex) { err.textContent = ex.message; err.hidden = false; }
         } }, "Add device"))), err);
+  };
+  const zkCard = list => {
+    const add = w => {
+      const nm = h("input", { class: "input", id: "zk-name", placeholder: "e.g. Staff entrance panel" });
+      const n = h("select", { class: "input", id: "zk-doors" }, [1, 2, 4].map(x => h("option", { value: x }, x === 1 ? "1 door (or a terminal)" : `${x} doors`)));
+      const err = h("div", { class: "error", hidden: true });
+      modal(`Add ZKTeco device ${w.serial}`, h("div", {}, err, h("p", { class: "muted" }, `Calling in from ${w.ip}. HSS will only listen to it from this address.`),
+        h("div", { class: "field" }, h("label", { for: "zk-name" }, "Name"), nm), h("div", { class: "field" }, h("label", { for: "zk-doors" }, "Doors"), n)),
+        sc => [h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: async () => {
+          try { await api("/access/zkteco/devices", { method: "POST", body: { serial: w.serial, name: nm.value.trim(), doors: Number(n.value) } }); sc.remove(); toast("Added"); load(); }
+          catch (ex) { err.textContent = ex.message; err.hidden = false; } } }, "Add")]);
+    };
+    return card("ZKTeco devices calling in", h("span", { class: "muted", style: "font-size:12.5px" }, "Set the device's Cloud Server (ADMS) to this server, port 8088. It appears here; nothing it sends is kept until it's added."),
+      list.length ? h("div", { class: "list" }, list.map(w => h("div", { class: "item" }, h("span", { class: "dot" }),
+        h("div", { class: "grow" }, h("div", { class: "title" }, w.serial, w.device ? ` · ${w.device}` : ""),
+          h("div", { class: "faint", style: "font-size:12px" }, w.device ? `Added at ${w.moved_from}, now calling from ${w.ip} (ignored until accepted)` : `From ${w.ip} · last call ${ago(w.last_seen)}`)),
+        w.device ? h("button", { class: "btn small primary", onclick: async () => { if (!confirm(`Accept ${w.ip} as the new address of ${w.device}?`)) return; try { await api(`/access/zkteco/devices/${w.device_id}/accept-address`, { method: "POST" }); load(); } catch (ex) { toast(ex.message); } } }, "Accept new address")
+          : h("button", { class: "btn small primary", onclick: () => add(w) }, "Add"),
+        h("button", { class: "btn small", onclick: async () => { await api(`/access/zkteco/waiting/${encodeURIComponent(w.serial)}`, { method: "DELETE" }); load(); } }, "Dismiss")))) :
+        h("div", { class: "empty" }, "None calling in."));
   };
   c.append(box, evBox);
   await load();

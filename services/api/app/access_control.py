@@ -1,4 +1,4 @@
-"""Access control and video intercom (release 2.0): Hikvision access controllers, face and card terminals
+"""Access control and video intercom (release 2.0): Hikvision (and ZKTeco, see zkteco.py) access controllers, face and card terminals
 (DS-K series) and video intercom door stations (DS-KV / DS-KD), over ISAPI.
 
 - Devices are added in the console (Doors); the login is kept encrypted (vault.py); doors are found from the
@@ -13,6 +13,9 @@
 - Door commands (/ISAPI/AccessControl/RemoteControl/door/<n>): open (operators and up, on doors allowed for it,
   with a reason), stay_locked, stay_open and normal (CSO and administrators). All audited.
 - Lockdown: doors marked "lock in lockdown" are kept locked for the whole lockdown and set back to normal after.
+
+ZKTeco access panels and terminals (zkteco.py) use the same doors, events, alerts and commands: they call in to
+HSS over ZKTeco's push protocol instead of being polled.
 
 Event codes differ a little between models and firmware: the mapping (EVENT_KINDS) is checked on the first real
 devices; unknown codes are stored as "other" with their numbers, never dropped.
@@ -52,7 +55,7 @@ EVENT_KINDS = {
 }
 KIND_TEXT = {"granted": "Access granted", "denied": "Access refused", "door_unlocked": "Door unlocked", "door_locked": "Door locked",
              "exit_button": "Exit button", "door_open": "Door opened", "door_closed": "Door closed", "forced": "Door forced open",
-             "held_open": "Door held open", "remote": "Remote command", "call": "Intercom call", "other": "Other event"}
+             "held_open": "Door held open", "duress": "Duress code used", "remote": "Remote command", "call": "Intercom call", "other": "Other event"}
 COMMANDS = {"open": "open", "normal": "close", "stay_open": "alwaysOpen", "stay_locked": "alwaysClose"}
 
 
@@ -145,7 +148,7 @@ class Device:
 
 # ------------------------------------------------------------------ storage helpers
 
-DEV_COLS = "id, name, kind, address, scheme, username, secret, enabled, info, online, last_seen, last_error, cursor_at, call_status, created_at"
+DEV_COLS = "id, name, kind, address, scheme, username, secret, enabled, info, online, last_seen, last_error, cursor_at, call_status, created_at, vendor, serial"
 DOOR_COLS = "id, device_id, door_no, name, camera_id, remote_open, lock_in_lockdown, lock_state, contact_state, mode, status_at"
 
 
@@ -164,8 +167,9 @@ def _devices(enabled_only: bool = False) -> list[dict]:
 
 def _doors(device_id: int | None = None) -> list[dict]:
     with connect() as conn:
-        sql = f"SELECT {DOOR_COLS} FROM doors" + (" WHERE device_id = %s" if device_id else "") + " ORDER BY device_id, door_no"
-        return [_door(r) for r in conn.execute(sql, (device_id,) if device_id else ()).fetchall()]
+        sql = (f"SELECT {', '.join('d.' + c.strip() for c in DOOR_COLS.split(','))}, v.vendor FROM doors d JOIN access_devices v ON v.id = d.device_id"
+               + (" WHERE d.device_id = %s" if device_id else "") + " ORDER BY d.device_id, d.door_no")
+        return [{**_door(r[:-1]), "vendor": r[-1]} for r in conn.execute(sql, (device_id,) if device_id else ()).fetchall()]
 
 
 def _event_camera(door: dict | None, dev: dict) -> str:
@@ -211,7 +215,7 @@ def poll_device(dev: dict, transport: httpx.BaseTransport | None = None, now: da
             since = (dev["cursor_at"] or now - timedelta(minutes=10)) - timedelta(seconds=5)
             newest = dev["cursor_at"]
             for e in d.events(since, now + timedelta(seconds=5)):
-                store_event(dev, doors, e)
+                store_event(dev, doors, hik_event(e))
                 try:
                     t = datetime.fromisoformat(e["time"])
                     newest = max(newest, t) if newest else t
@@ -244,23 +248,37 @@ def poll_device(dev: dict, transport: httpx.BaseTransport | None = None, now: da
         d.close()
 
 
-def store_event(dev: dict, doors: dict[int, dict], e: dict) -> None:
-    kind = classify(e.get("major"), e.get("minor"))
-    door = doors.get(int(e.get("doorNo") or 0))
+def hik_event(e: dict) -> dict:
+    """A Hikvision AcsEvent item -> the common event form store_event takes (pure, tested)."""
     try:
         at = datetime.fromisoformat(e["time"])
     except (KeyError, ValueError):
         at = datetime.now(timezone.utc)
+    return {"kind": classify(e.get("major"), e.get("minor")), "serial_no": e.get("serialNo"), "at": at, "door_no": int(e.get("doorNo") or 0),
+            "person": e.get("name") or "", "employee_no": e.get("employeeNoString") or "", "card": e.get("cardNo") or "",
+            "verify": e.get("currentVerifyMode") or "", "major": e.get("major"), "minor": e.get("minor")}
+
+
+def store_event(dev: dict, doors: dict[int, dict], n: dict, alert: bool = True) -> None:
+    """Store one access event (common form, from hik_event or zkteco) and raise HSS events from it (not for old
+    records a device sends late, e.g. after being offline: alert=False)."""
+    kind, at = n["kind"], n["at"]
+    door = doors.get(int(n.get("door_no") or 0))
     with connect() as conn:
         r = conn.execute("INSERT INTO access_events (device_id, door_id, serial_no, at, kind, major, minor, person, employee_no, card, verify_mode) "
                          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (device_id, serial_no) WHERE serial_no IS NOT NULL DO NOTHING RETURNING id",
-                         (dev["id"], door["id"] if door else None, e.get("serialNo"), at, kind, e.get("major"), e.get("minor"), (e.get("name") or "")[:80],
-                          (e.get("employeeNoString") or "")[:40], mask_card(e.get("cardNo", "")), (e.get("currentVerifyMode") or "")[:30])).fetchone()
+                         (dev["id"], door["id"] if door else None, n.get("serial_no"), at, kind, n.get("major"), n.get("minor"), (n.get("person") or "")[:80],
+                          (n.get("employee_no") or "")[:40], mask_card(n.get("card") or ""), (n.get("verify") or "")[:30])).fetchone()
     if not r:
         return                                     # seen before
     where = (door or {}).get("name") or dev["name"]
-    raw = {"device": dev["id"], "door": (door or {}).get("id"), "access_event": r[0], "major": e.get("major"), "minor": e.get("minor")}
-    if kind == "forced":
+    raw = {"device": dev["id"], "door": (door or {}).get("id"), "access_event": r[0], "major": n.get("major"), "minor": n.get("minor")}
+    if not alert:
+        eid = None
+    elif kind == "duress":
+        who = f" by {n.get('person') or n.get('employee_no')}" if (n.get("person") or n.get("employee_no")) else ""
+        eid = raise_event("access_duress", "critical", dev, door, f"Duress code used at {where}{who}: someone may be forcing them to open the door.", raw, at)
+    elif kind == "forced":
         eid = raise_event("door_forced", "critical", dev, door, f"{where} was forced open (opened without a valid card, face or exit button).", raw, at)
     elif kind == "held_open":
         eid = raise_event("door_held_open", "warning", dev, door, f"{where} has been held open too long.", raw, at)
@@ -270,7 +288,7 @@ def store_event(dev: dict, doors: dict[int, dict], e: dict) -> None:
         eid = None
         if repeated_denials(times, at):
             _denials[door["id"]] = []
-            who = f" ({e.get('name')})" if e.get("name") else ""
+            who = f" ({n.get('person')})" if n.get("person") else ""
             eid = raise_event("access_denied_repeated", "warning", dev, door, f"Access refused 3 times in 2 minutes at {where}{who}.", raw, at)
     else:
         eid = None
@@ -295,9 +313,13 @@ def _publish(msg: dict) -> None:
 
 
 def poll_once() -> None:
+    from . import zkteco
     for dev in _devices(enabled_only=True):
         try:
-            poll_device(dev)
+            if dev["vendor"] == "zkteco":
+                zkteco.check_offline(dev)            # ZKTeco devices call in (zkteco.py); nothing to poll
+            else:
+                poll_device(dev)
         except Exception:
             log.exception("%s: poll failed", dev["name"])
 
@@ -320,18 +342,23 @@ def command(door_id: int, cmd: str, by: str, reason: str = "") -> dict:
             raise HTTPException(status_code=404, detail="no such door")
         door = _door(r)
         dev = _dev(conn.execute(f"SELECT {DEV_COLS} FROM access_devices WHERE id = %s", (door["device_id"],)).fetchone())
-    d = Device(dev)
-    try:
-        d.command(door["door_no"], cmd)
-    except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail=f"The door's device didn't answer ({exc.__class__.__name__}).") from exc
-    finally:
-        d.close()
+    if dev["vendor"] == "zkteco":
+        from . import zkteco
+        zkteco.send_command(dev, door, cmd)
+    else:
+        d = Device(dev)
+        try:
+            d.command(door["door_no"], cmd)
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=502, detail=f"The door's device didn't answer ({exc.__class__.__name__}).") from exc
+        finally:
+            d.close()
     with connect() as conn:
         conn.execute("INSERT INTO access_events (device_id, door_id, at, kind, by_user, verify_mode) VALUES (%s, %s, now(), 'remote', %s, %s)",
                      (dev["id"], door_id, by, f"{cmd}: {reason}"[:30] if reason else cmd))
-        if cmd != "open":
-            conn.execute("UPDATE doors SET mode = %s, status_at = now() WHERE id = %s", (cmd, door_id))
+        if cmd != "open":                          # ZKTeco can't refuse valid cards remotely: "keep locked" just locks it now
+            mode = "normal" if dev["vendor"] == "zkteco" and cmd == "stay_locked" else cmd
+            conn.execute("UPDATE doors SET mode = %s, status_at = now() WHERE id = %s", (mode, door_id))
     _publish({"kind": "door", "door_id": door_id})
     return door
 
@@ -343,6 +370,8 @@ def lockdown_doors(on: bool, by: str) -> list[str]:
         try:
             command(door["id"], "stay_locked" if on else "normal", by, "lockdown")
             done.append(f"{door['name']} {'locked' if on else 'back to normal'}")
+            if on and door.get("vendor") == "zkteco":
+                done[-1] += " (ZKTeco: valid cards still open it)"
         except HTTPException as exc:
             done.append(f"{door['name']} failed: {exc.detail}")
     return done
@@ -376,7 +405,7 @@ def add_device(body: DeviceIn, request: Request, user: dict = Depends(require("a
     finally:
         d.close()
     with connect() as conn:
-        if conn.execute("SELECT 1 FROM access_devices WHERE address = %s", (body.address,)).fetchone():
+        if conn.execute("SELECT 1 FROM access_devices WHERE address = %s AND vendor = 'hikvision'", (body.address,)).fetchone():
             raise HTTPException(status_code=409, detail=f"{body.address} is already added.")
         did = conn.execute("INSERT INTO access_devices (name, kind, address, scheme, username, secret, info, online, last_seen, cursor_at) "
                            "VALUES (%s, %s, %s, %s, %s, %s, %s, true, now(), now()) RETURNING id",
@@ -486,8 +515,9 @@ def overview(user: dict = Depends(require(*WATCH))) -> dict:
     from .access import allowed
     devs = _devices()
     doors = [x for x in _doors() if not x["camera_id"] or allowed(user, x["camera_id"])]
+    from .zkteco import waiting
     return {"devices": [{k: v for k, v in d.items() if k not in ("secret", "username")} for d in devs], "doors": doors,
-            "can_manage": user["role"] in MANAGE}
+            "can_manage": user["role"] in MANAGE, "zk_waiting": waiting() if user["role"] == "admin" else []}
 
 
 @router.get("/events")

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from . import access_control, alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
+from . import access_control, zkteco, alerts, anomaly, auth, publicapi, webhooks, clips, console, control, discovery, recognition, search, devices, events, eventsetup, evidence, geo, help, insights, legal, lockdown, logbook, mobile, notify, nvrs, outputs, playback, ptz, screens, system, viewing, wall
 from .reports import service as reports
 from .db import connect, migrate
 
@@ -64,6 +64,8 @@ app.include_router(anomaly.router)
 app.include_router(webhooks.router)
 app.include_router(publicapi.router)
 app.include_router(access_control.router)
+app.include_router(zkteco.router)
+app.include_router(zkteco.push)
 app.mount("/v1", publicapi.v1)
 app.include_router(alerts.router)
 app.include_router(devices.router)

@@ -55,7 +55,7 @@ A **Face match** or **Plate match** alert shows the enrolled photo (or listed pl
 
 ## Doors and intercom
 
-**Doors** shows each door's state and who came through. **Open** a door from the console only after checking on camera who is there, and give the reason. When a door station rings, a pop-up shows its camera: talk on the indoor station or the app, then **Open door** or **Reject call**. A **Door forced open** alert is critical: look at the camera at once.
+**Doors** shows each door's state and who came through. **Open** a door from the console only after checking on camera who is there, and give the reason. When a door station rings, a pop-up shows its camera: talk on the indoor station or the app, then **Open door** or **Reject call**. A **Door forced open** or **Duress code used** alert is critical: look at the camera at once. Duress means a staff member may be being forced to open the door: don't call them, follow the CSO's duress procedure.
 
 ## Lockdown
 

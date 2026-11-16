@@ -74,3 +74,15 @@
 		file_server
 	}
 }
+
+# ZKTeco access devices call in here over plain HTTP (their push protocol; see services/api/app/zkteco.py).
+# Only the /iclock/ paths, and the API only listens to devices an administrator has added. Keep port 8088
+# reachable from the security VLAN only (firewall), never from the internet.
+:8088 {
+	handle /iclock/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		respond 404
+	}
+}

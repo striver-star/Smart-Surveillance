@@ -65,7 +65,7 @@ Operators can start a lockdown with the red **Lockdown** button; you or an admin
 
 ## Doors
 
-In **Doors** › Settings choose, for each door, its camera, whether operators may open it from the console, and whether it stays locked in a lockdown. Only you and administrators can keep a door locked or open. Who came through keeps 90 days of access events with names. Details: docs/access-control.md.
+In **Doors** › Settings choose, for each door, its camera, whether operators may open it from the console, and whether it stays locked in a lockdown. Only you and administrators can keep a door locked or open. ZKTeco doors can't be kept locked from HSS: **Lock now** locks them, but valid cards still open them, including in a lockdown. A **Duress code used** alert (critical) means someone entered their duress PIN or finger at a ZKTeco door. Who came through keeps 90 days of access events with names. Details: docs/access-control.md.
 
 ## Viewing log
 

@@ -227,6 +227,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8088:8088"     # ZKTeco access devices call in here (security VLAN only)
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./web/wall-test:/srv/wall-test:ro

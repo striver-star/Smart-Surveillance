@@ -289,6 +289,7 @@ def apply_retention() -> dict:
             (days("HSS_RECOGNITION_DAYS", 30),)).fetchall()
         rows = list(rows) + list(rec)
         conn.execute("DELETE FROM access_events WHERE at < now() - %s * interval '1 day'", (days("HSS_ACCESS_DAYS", 90),))
+        conn.execute("DELETE FROM zk_commands WHERE queued_at < now() - interval '30 days'")
         views = conn.execute("DELETE FROM view_log WHERE started_at < now() - %s * interval '1 day'", (days("HSS_VIEW_LOG_DAYS", 365),)).rowcount
     files = 0
     for ref in [r for (r,) in rows if r]:
