@@ -45,6 +45,10 @@ Unacknowledged critical alerts escalate to the CSO and management after the time
 | Missed patrol | Call the guard assigned to that round |
 | Zone entered (vehicle or guard) | Check who it is on the linked camera |
 
+## Unusual activity alerts
+
+**Unusual activity** means a camera that is normally quiet at this hour has had several events; look at it live and in Playback. **Unusually quiet** means a normally busy camera has had no events for 3 hours: check that it isn't blocked, turned or offline.
+
 ## Face and plate matches
 
 A **Face match** or **Plate match** alert shows the enrolled photo (or listed plate) beside the camera picture. A match is a lead, not proof: compare them carefully, then press **Confirm: same person** or **Not a match**. Never act on a match you haven't confirmed. Your verdicts are recorded and used to tune the system.

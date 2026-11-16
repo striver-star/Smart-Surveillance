@@ -55,6 +55,10 @@ Daily, weekly and monthly reports go to WhatsApp subscribers automatically. **Re
 
 **Incident heat map** shows where (on the site plan) and when (day and hour) alerts happen. Use *Real incidents* to plan patrol routes, patrol times and lighting; click a camera to see its busiest hours. Place every camera on the site plan so the map is complete.
 
+## Unusual activity
+
+**Unusual activity** learns each camera's usual events hour by hour and raises a warning when a normally quiet camera suddenly has activity, or a busy camera goes silent (blocked or turned). Cameras need 14 days of history. Set the sensitivity there; see docs/anomaly-detection.md.
+
 ## Lockdown
 
 Operators can start a lockdown with the red **Lockdown** button; you or an administrator end it with **End lockdown** on the red banner. In Settings › **Lockdown** choose the floodlights and sirens to switch on; add `lockdown` to the subscriptions of everyone who must be told in config/recipients.json (ask IT). Rehearse it once with the control room. Details: docs/lockdown.md.
