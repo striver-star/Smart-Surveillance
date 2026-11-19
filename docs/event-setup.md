@@ -18,7 +18,26 @@ reads every NVR's event linkage and shows, per camera:
 - **Events, 7 days** and **Last event**: what actually arrived. A camera that sends events but shows
   "none yet" for a week is worth a look (detection off, wrong area, camera offline).
 
-Plain motion is not listed; HSS ignores it (`HSS_EDGE_IGNORE`).
+Plain motion is not listed; HSS ignores it (`HSS_EDGE_IGNORE`), except from cameras chosen for
+person/vehicle motion (below).
+
+## Person/vehicle motion (cameras without line crossing or intrusion)
+
+Value-series cameras such as the DS-2CD1043G2-LIU, DS-2CD1143G2-LIU and DS-2CD1047G2H-LIUF have no line
+crossing or intrusion, but their **Motion Detection 2.0** can be limited to people and vehicles. For those:
+
+1. On the camera or NVR: Event › Basic Event › Motion Detection › the channel: draw the area, set
+   **Target: Human** (and Vehicle if wanted), set the arming schedule, and under Linkage tick
+   **Notify Surveillance Center**.
+2. In HSS: Event setup › the camera's row › **Person/vehicle motion: on** (administrators and the CSO;
+   audited). The edge service picks it up within a minute.
+3. Walk test it: the camera appears with "Motion, human".
+
+HSS then forwards that camera's motion only when the camera says the target was a person or vehicle, as a
+**warning** event of type Motion with the object (so alert rules can match it); motion without a target is
+still dropped. If the walk test shows nothing, the camera's firmware may not report the target with its
+motion events: update its firmware, or leave it for the server AI. Plain motion from all other cameras stays
+ignored.
 
 The NVR user needs *Remote Parameters Settings* (read). The check only reads; it changes nothing on
 the NVR.

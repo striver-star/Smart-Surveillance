@@ -133,7 +133,7 @@ def test_fleet_starts_and_stops_watchers(monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     import edge.main as m
     started = []
-    monkeypatch.setattr(m, "event_loop", lambda nvr, platform, stop, ignore, pool: started.append((nvr.alias, stop)))
+    monkeypatch.setattr(m, "event_loop", lambda nvr, platform, stop, ignore, pool, smart=None: started.append((nvr.alias, stop)))
     fleet = m.Fleet(platform=None, stop=threading.Event(), ignore=set(), pool=ThreadPoolExecutor(1))
     a = {"address": "10.1.3.4", "alias": "nvr4", "username": "u", "password": "p"}
     b = {"address": "10.1.4.4", "alias": "yard", "username": "u", "password": "p"}
@@ -146,3 +146,19 @@ def test_fleet_starts_and_stops_watchers(monkeypatch):
     assert started[1][1].is_set() and not started[0][1].is_set() and not started[2][1].is_set()
     fleet.apply([b], "console")
     assert [n.alias for n in fleet.current()] == ["yard"] and started[0][1].is_set()
+
+
+def test_smart_motion_only_from_chosen_cameras_with_a_target():
+    from edge.hikvision import accept
+    ignore = {"vmd", "motiondetection"}
+    human = parse_notification(alert_xml("VMD", ch=13, target="human"))
+    plain = parse_notification(alert_xml("VMD", ch=13))
+    leaves = parse_notification(alert_xml("VMD", ch=13, target="other"))
+    assert accept(human, "nvr5-ch13", ignore, {"nvr5-ch13"})
+    assert human.platform == ("motion", "warning") and human.object_class == "human"
+    assert not accept(human, "nvr5-ch13", ignore, set())                  # camera not chosen: still dropped
+    assert not accept(plain, "nvr5-ch13", ignore, {"nvr5-ch13"})          # no target from the camera: dropped
+    assert not accept(leaves, "nvr5-ch13", ignore, {"nvr5-ch13"})
+    assert accept(parse_notification(alert_xml("linedetection")), "nvr4-ch03", ignore, set())
+    assert not accept(parse_notification(alert_xml("linedetection", ch=0)), "nvr4-ch00", ignore, set())
+    assert plain.platform == ("motion", "info")

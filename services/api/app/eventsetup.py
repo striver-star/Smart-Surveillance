@@ -4,18 +4,26 @@ For each NVR added in the console, read which camera events notify the surveilla
 "Notify Surveillance Center" linkage Hikvision needs before it sends an event to outside software),
 and show, per camera, the events received in the last 7 days. The walk test lists cameras as their
 first event arrives after a start time.
+
+Smart motion: plain motion events are dropped (HSS_EDGE_IGNORE), but cameras chosen here also send motion when
+the camera says the target was a person or vehicle (Hikvision Motion Detection 2.0 on value-series cameras such
+as the DS-2CD1xx3G2-LIU and DS-2CD1047G2H-LIUF, which have no line crossing or intrusion).
 """
 from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg.types.json import Jsonb
+from pydantic import BaseModel, Field
 
 from . import vault
-from .auth import require
+from .auth import audit, client_ip, require
 from .db import connect
+from .events import check_worker_token
 from .isapi import DeviceError, read_event_triggers
 
 router = APIRouter(prefix="/event-setup", tags=["event setup"])
@@ -100,3 +108,43 @@ def walk(since: datetime, _: dict = Depends(require("admin", "cso", "operator"))
                                    (since, list(NOT_ACTIVITY))).fetchall())
     return [{"camera_id": c, "type": t, "object": o, "occurred_at": oa, "received_at": ra, "alert_id": str(a) if a else None,
              "alert_severity": s, "count": counts.get(c, 1)} for c, t, o, oa, ra, a, s in rows]
+
+
+# ------------------------------------------------------------------ smart motion (person/vehicle motion)
+
+KEY = "smart_motion_cameras"
+
+
+def smart_motion() -> list[str]:
+    with connect() as conn:
+        r = conn.execute("SELECT value FROM settings WHERE key = %s", (KEY,)).fetchone()
+    return list(r[0]) if r else []
+
+
+class SmartMotionIn(BaseModel):
+    cameras: list[str] = Field(default_factory=list, max_length=640)
+
+
+@router.get("/smart-motion")
+def get_smart_motion(_: dict = Depends(require("admin", "cso"))) -> dict:
+    return {"cameras": smart_motion()}
+
+
+@router.put("/smart-motion")
+def put_smart_motion(body: SmartMotionIn, request: Request, user: dict = Depends(require("admin", "cso"))) -> dict:
+    cams = sorted({c.strip() for c in body.cameras if c.strip()})
+    bad = [c for c in cams if not re.fullmatch(r"[a-z][a-z0-9]{1,19}-ch\d{2,3}", c)]
+    if bad:
+        raise HTTPException(status_code=422, detail=f"camera ids look like nvr4-ch22: {', '.join(bad[:5])}")
+    before = set(smart_motion())
+    with connect() as conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", (KEY, Jsonb(cams)))
+    audit("smart_motion_changed", user_id=user["id"], username=user["username"], ip=client_ip(request),
+          added=sorted(set(cams) - before), removed=sorted(before - set(cams)))
+    return {"cameras": cams, "takes_effect": "within a minute"}
+
+
+@router.get("/smart-motion/edge", dependencies=[Depends(check_worker_token)])
+def smart_motion_for_edge() -> list[str]:
+    """The edge service's list. Only the worker token can read this."""
+    return smart_motion()

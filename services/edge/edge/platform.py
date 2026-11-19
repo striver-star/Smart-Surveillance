@@ -104,6 +104,18 @@ class Platform:
             log.warning("NVR list unavailable: %s", exc.__class__.__name__)
             return None
 
+    def smart_motion(self) -> list[str] | None:
+        """Cameras chosen in the console to send person/vehicle motion, or None if the API can't be asked."""
+        try:
+            r = self.http.get("/event-setup/smart-motion/edge")
+            if r.status_code == 404:          # an older API
+                return []
+            r.raise_for_status()
+            return [str(c) for c in r.json()]
+        except (httpx.HTTPError, ValueError) as exc:
+            log.warning("smart motion list unavailable: %s", exc.__class__.__name__)
+            return None
+
     # ---- clips
     def next_clip(self) -> dict | None:
         try:

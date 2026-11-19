@@ -11,7 +11,9 @@ Environment:
   HSS_API_URL         platform API (default http://api:8000)
   HSS_WORKER_TOKEN    the same token the AI workers use
   HSS_TZ              local time zone (default Africa/Lagos); NVR playback uses local time
-  HSS_EDGE_IGNORE     Hikvision event types not to forward (default "vmd,motiondetection": plain motion is noise)
+  HSS_EDGE_IGNORE     Hikvision event types not to forward (default "vmd,motiondetection": plain motion is noise);
+                      cameras chosen for smart motion in the console (Event setup) still send motion when the
+                      camera says it was a person or vehicle
   HSS_EDGE_HEALTH_S   seconds between health checks (default 60)
   HSS_EDGE_QUEUE      offline queue folder (default /data/queue)
   HSS_NVR_RTSP_PORT   fallback NVR RTSP port for clips (default 554)
@@ -37,7 +39,8 @@ from .platform import Platform
 log = logging.getLogger("edge")
 
 
-def event_loop(nvr: Nvr, platform: Platform, stop: threading.Event, ignore: set[str], pool: ThreadPoolExecutor) -> None:
+def event_loop(nvr: Nvr, platform: Platform, stop: threading.Event, ignore: set[str], pool: ThreadPoolExecutor,
+               smart_motion=lambda: set()) -> None:
     def handle(ev: dict) -> None:
         ch = ev.pop("_channel")
         if not ev.get("snapshot_jpeg_b64"):
@@ -50,7 +53,7 @@ def event_loop(nvr: Nvr, platform: Platform, stop: threading.Event, ignore: set[
     backoff = 2
     while not stop.is_set():
         try:
-            nvr.stream_events(lambda ev: pool.submit(handle, ev), stop, ignore=ignore)
+            nvr.stream_events(lambda ev: pool.submit(handle, ev), stop, ignore=ignore, smart_motion=smart_motion)
             backoff = 2
         except (httpx.HTTPError, OSError) as exc:
             log.warning("%s: event stream ended (%s); reconnecting in %ds", nvr.address, exc.__class__.__name__, backoff)
@@ -81,6 +84,7 @@ class Fleet:
         self.running: dict[tuple, tuple[Nvr, threading.Event, dict]] = {}
         self.lock = threading.Lock()
         self.source = ""
+        self.smart_motion: set[str] = set()          # cameras whose person/vehicle motion is forwarded
 
     def current(self) -> list[Nvr]:
         with self.lock:
@@ -99,13 +103,22 @@ class Fleet:
                 nvr = Nvr(spec["address"], spec["username"], spec["password"], scheme=spec.get("scheme", "http"),
                           rtsp_port=int(spec.get("rtsp_port", 554)), alias_name=spec.get("alias"))
                 own_stop = threading.Event()
-                threading.Thread(target=event_loop, args=(nvr, self.platform, _either(self.stop, own_stop), self.ignore, self.pool),
+                threading.Thread(target=event_loop, args=(nvr, self.platform, _either(self.stop, own_stop), self.ignore, self.pool,
+                                                         lambda: self.smart_motion),
                                  daemon=True, name=f"events-{nvr.alias}").start()
                 self.running[key] = (nvr, own_stop, spec)
                 log.info("watching %s (%s)", nvr.address, nvr.alias)
         if source != self.source and not source.startswith("unchanged"):
             log.info("NVR list from %s: %d NVR(s)", source, len(want))
             self.source = source
+
+    def set_smart_motion(self, cams: list[str] | None) -> None:
+        if cams is None:                             # API not answering: keep the list we have
+            return
+        new = set(cams)
+        if new != self.smart_motion:
+            log.info("smart motion (person/vehicle) from: %s", ", ".join(sorted(new)) or "no cameras")
+            self.smart_motion = new
 
     def specs(self) -> list[dict] | None:
         with self.lock:
@@ -196,6 +209,7 @@ def main() -> None:
     pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="snap")
     fleet = Fleet(platform, stop, ignore, pool)
     fleet.apply(*choose_specs(platform.nvr_list(), fallback, None))
+    fleet.set_smart_motion(platform.smart_motion())
     if not fleet.current():
         log.warning("no NVRs to watch yet: add one in the console (Devices, Add NVR); checking again every minute")
     threads = [threading.Thread(target=health_loop, args=(fleet, platform, stop, float(os.environ.get("HSS_EDGE_HEALTH_S", "60"))), daemon=True),
@@ -206,6 +220,7 @@ def main() -> None:
     refresh = float(os.environ.get("HSS_EDGE_REFRESH_S", "60"))
     while not stop.wait(refresh):
         fleet.apply(*choose_specs(platform.nvr_list(), fallback, fleet.specs()))
+        fleet.set_smart_motion(platform.smart_motion())
     pool.shutdown(wait=False)
 
 

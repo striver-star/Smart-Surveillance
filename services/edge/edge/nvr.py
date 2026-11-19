@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from .hikvision import Debouncer, MultipartSplitter, notifications
+from .hikvision import accept, Debouncer, MultipartSplitter, notifications
 
 log = logging.getLogger("edge.nvr")
 
@@ -98,7 +98,7 @@ class Nvr:
             return None
 
     # ------------------------------------------------------------ event stream
-    def stream_events(self, on_event, stop, *, ignore: set[str], quiet_s: float = 10.0) -> None:
+    def stream_events(self, on_event, stop, *, ignore: set[str], quiet_s: float = 10.0, smart_motion=lambda: set()) -> None:
         """Read alertStream until it ends or `stop` is set; call on_event(platform_event) for each new activity."""
         debounce = Debouncer(quiet_s)
         with self.http.stream("GET", "/ISAPI/Event/notification/alertStream", timeout=httpx.Timeout(10, read=90)) as r:
@@ -110,7 +110,7 @@ class Nvr:
                 if stop.is_set():
                     return
                 for n in notifications(split.feed(chunk)):
-                    if n.raw_type in ignore or n.channel == 0 or not debounce.should_raise(n):
+                    if not accept(n, f"{self.alias}-ch{n.channel:02d}", ignore, smart_motion()) or not debounce.should_raise(n):
                         continue
                     on_event(self.to_event(n))
 

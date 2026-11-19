@@ -44,6 +44,20 @@ TYPE_MAP = {
     "recordexception": ("recording_fault", "warning"),
     "videomismatch": ("video_mismatch", "info"),
 }
+MOTION = ("vmd", "motiondetection")
+
+
+def accept(n, camera_id: str, ignore: set[str], smart_motion: set[str]) -> bool:
+    """Whether to forward a notification (pure, tested). Ignored types (plain motion by default) are dropped,
+    except motion from a camera chosen for smart motion when the camera says the target was a person or vehicle
+    (Hikvision "Motion Detection 2.0" with human/vehicle filtering, on value-series cameras without smart events)."""
+    if n.channel == 0:
+        return False
+    if n.raw_type not in ignore:
+        return True
+    return n.raw_type in MOTION and camera_id in smart_motion and n.object_class in ("human", "vehicle")
+
+
 OBJECT_WORDS = {"human": "human", "person": "human", "people": "human", "vehicle": "vehicle", "car": "vehicle"}
 
 
@@ -75,6 +89,8 @@ class Notification:
 
     @property
     def platform(self) -> tuple[str, str]:
+        if self.raw_type in MOTION and self.object_class:
+            return ("motion", "warning")                 # smart motion: a person or vehicle, worth an alert
         return TYPE_MAP.get(self.raw_type, (f"other_{self.raw_type}"[:50], "info"))
 
 
