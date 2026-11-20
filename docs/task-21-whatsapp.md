@@ -12,7 +12,7 @@ enough to be the default.
 | WhatsApp gateway (whatsapp-web.js, Apache 2.0, headless Chromium) | `services/whatsapp-gateway/` (compose service `whatsapp`, profile `notify`) |
 | Push server (ntfy, Apache 2.0) | compose service `ntfy`, profile `notify`, port 8090 |
 | Notification service: recipients, WhatsApp first, e-mail fallback, push, delivery log, gateway watch, daily test | `services/api/app/notify.py`, migration `003_notifications.sql` |
-| Recipients and what they receive | `config/recipients.json` (copy from `config/recipients.example.json`; not in git) |
+| Recipients and what they receive | Console › **WhatsApp & alerts** › **Recipients** (administrators; kept in the database, audited). An old `config/recipients.json` is imported once, then no longer read |
 
 Baileys, the other common WhatsApp library, was not used: it depends on `libsignal`, which is
 GPL-3.0. Every package in the gateway is MIT, ISC, Apache 2.0, BSD or similar, except
@@ -39,22 +39,19 @@ for the notification logic and 2 for the gateway. **2026-11-12: the dedicated nu
      `HSS_SMTP_PASSWORD`, `HSS_SMTP_FROM`), for example the company mail server or a mailbox's SMTP.
      These are optional: leave them out to run on WhatsApp and push only (the trial does this
      until e-mail is set up). Without e-mail, the push app is the only warning when WhatsApp drops.
-2. Create the recipients file with the real numbers (international format, `+234...`):
-   ```bash
-   cp config/recipients.example.json config/recipients.json && nano config/recipients.json
-   ```
-3. Start everything, including the gateway and push server:
+2. Start everything, including the gateway and push server:
    ```bash
    docker compose --profile ai --profile notify up -d --build
    ```
-4. Link the dedicated phone: run `docker compose logs -f whatsapp`, wait for the QR code, then on
-   the phone open WhatsApp → Linked devices → Link a device and scan it. The log then shows
-   `state: ready`. The link is kept in the `wa-data` volume, so this is done once.
-5. Send a test report:
-   ```bash
-   ADMIN=$(grep ^HSS_ADMIN_TOKEN .env | cut -d= -f2)
-   curl -sk -X POST https://localhost/api/notify/test -H "Authorization: Bearer $ADMIN" | python3 -m json.tool
-   ```
+3. Link the dedicated phone: console › **WhatsApp & alerts** › **WhatsApp number** shows the QR code
+   (it refreshes by itself). On the phone: WhatsApp → Linked devices → Link a device, scan it; the
+   page turns to "Linked and ready". The link is kept in the `wa-data` volume, so this is done once.
+   **Unlink / change phone** there moves the sending to another phone; **Restart WhatsApp** clears a
+   stuck session. (`docker compose logs -f whatsapp` still shows the code in the terminal too.)
+4. Add the recipients: **Recipients** › **Add recipient**: name, WhatsApp number with the country code
+   (`+234...`), e-mail (optional fallback) and what they receive. **Send test** on each row checks
+   their number.
+5. Send a test report: **Delivery test** › **Send test report** on the same page.
    Each recipient subscribed to `test` should get a WhatsApp message with a one-page PDF. When two
    recipients share a phone number, that phone gets one copy and the log shows the second as
    `skipped`. The dedicated (sending) number must not be in the recipients list.

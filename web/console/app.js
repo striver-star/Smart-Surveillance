@@ -344,7 +344,7 @@ async function lockdownSettings() {
     `Last lockdown: ${fmtTime(st.last.since)} by ${st.last.by_name} (${st.last.reason}); ended ${fmtTime(st.last.ended_at)} by ${st.last.ended_by}.`,
     st.last.start_result ? ` Start: ${[...(st.last.start_result.outputs || []), st.last.start_result.messages].join("; ")}.` : "") : null;
   return card("Lockdown", null,
-    h("p", { class: "muted", style: "margin-top:0" }, "The Lockdown button at the top arms every rule and makes every alert critical until the CSO ends it. Choose the outputs to switch on for the whole lockdown, and subscribe people to “lockdown” in config/recipients.json so they are messaged."),
+    h("p", { class: "muted", style: "margin-top:0" }, "The Lockdown button at the top arms every rule and makes every alert critical until the CSO ends it. Choose the outputs to switch on for the whole lockdown, and tick “lockdown” for the people to message (WhatsApp & alerts › Recipients)."),
     outs.length ? h("div", { style: "display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:10px" }, boxes) : h("p", { class: "muted" }, "No sirens or lights added yet (Live view › Sirens and lights)."),
     outs.length ? h("button", { class: "btn", onclick: async () => {
       try { await api("/lockdown/config", { method: "PUT", body: { outputs: boxes.map(b => b.querySelector("input")).filter(i => i.checked).map(i => i.value) } }); toast("Lockdown outputs saved"); }
@@ -1652,40 +1652,131 @@ function screenForm(sc, paths, dev) {
   drawList(); syncSource();
 }
 
-/* ---------------- notifications ---------------- */
+/* ---------------- notifications: WhatsApp link, recipients, deliveries ---------------- */
+const WA_TEXT = { ready: "Linked and ready", qr: "Waiting to be linked", starting: "Starting", restarting: "Restarting", disconnected: "Disconnected",
+  unlinked: "Unlinked", auth_failure: "Link refused", stuck: "Stuck", error: "Error", unreachable: "Gateway not running", "not configured": "Not set up" };
 async function viewNotify(c) {
   const st = await api("/notify/status?days=7");
   const isAdmin = state.user.role === "admin";
-  const deliveries = isAdmin ? await api("/notify/deliveries?limit=30") : [];
+  const [deliveries, recs] = isAdmin ? await Promise.all([api("/notify/deliveries?limit=30"), api("/notify/recipients")]) : [[], null];
   const wa = st.whatsapp.status;
   const totals = {};
   for (const d of st.deliveries) totals[d.status] = (totals[d.status] || 0) + d.count;
-  const rc = st.recipients_check || {};
-  if (rc.error) c.append(h("div", { class: "error" }, h("strong", {}, "config/recipients.json has a mistake: "), rc.error,
-    rc.using_last_good ? " Messages still go to the last good list below until it's fixed." : " No recipients can be used until it's fixed."));
-  if (rc.warnings && rc.warnings.length) c.append(h("div", { class: "note" }, h("strong", {}, "Check config/recipients.json: "), rc.warnings.join("; ")));
+  const topics = st.topics || {};
   c.append(h("div", { class: "grid kpis" },
-      kpi("WhatsApp gateway", h("span", { style: `color:${wa === "ready" ? "var(--ok)" : "var(--warn)"}` }, wa), st.whatsapp.me ? `Linked number ends …${String(st.whatsapp.me).slice(-4)}` : ""),
+      kpi("WhatsApp", h("span", { style: `color:${wa === "ready" ? "var(--ok)" : "var(--warn)"}` }, WA_TEXT[wa] || wa), st.whatsapp.me ? `Sending from …${String(st.whatsapp.me).slice(-4)}` : "No number linked"),
       kpi("Sent, last 7 days", (totals.sent || 0) + (totals.delivered || 0) + (totals.read || 0), `${totals.read || 0} read · ${totals.failed || 0} failed`),
-      kpi("Fallbacks", h("span", {}, st.email_configured ? "E-mail on" : "E-mail off", h("small", {}, st.push_configured ? " · push on" : " · push off")), "Used when WhatsApp fails")),
-    h("div", { class: "grid cols-2" },
-      card("Recipients", null, h("div", { class: "table-wrap" }, h("table", {},
-        h("thead", {}, h("tr", {}, ["Name", "Role", "WhatsApp", "Receives"].map(t => h("th", {}, t)))),
-        h("tbody", {}, st.recipients.map(r => h("tr", {}, h("td", { style: "font-weight:600" }, r.name), h("td", {}, r.role),
-          h("td", { class: "mono" }, r.whatsapp || "—"), h("td", {}, r.subscriptions.map(s => h("span", { class: "badge", style: "margin:1px" }, s))))))))),
-      card("Delivery test", null,
-        h("p", { class: "muted", style: "margin-top:0" }, "Sends the one-page test report to everyone subscribed to “test”."),
-        isAdmin ? h("button", { class: "btn primary", onclick: async e => {
+      kpi("Fallbacks", h("span", {}, st.email_configured ? "E-mail on" : "E-mail off", h("small", {}, st.push_configured ? " · push on" : " · push off")), "Used when WhatsApp fails")));
+  if (isAdmin) c.append(waLinkCard(st.whatsapp));
+  c.append(isAdmin ? recipientsCard(recs, topics) : card("Recipients", null, h("div", { class: "table-wrap" }, h("table", {},
+    h("thead", {}, h("tr", {}, ["Name", "Role", "WhatsApp", "Receives"].map(t => h("th", {}, t)))),
+    h("tbody", {}, st.recipients.filter(r => r.enabled !== false).map(r => h("tr", {}, h("td", { style: "font-weight:600" }, r.name), h("td", {}, r.role),
+      h("td", { class: "mono" }, r.whatsapp || "—"), h("td", {}, r.subscriptions.map(s => h("span", { class: "badge", style: "margin:1px" }, s))))))))));
+  c.append(card("Delivery test", null,
+    h("p", { class: "muted", style: "margin-top:0" }, "Sends the one-page test report to everyone who receives “Delivery tests”."),
+    isAdmin ? h("button", { class: "btn primary", onclick: async e => {
+      e.target.disabled = true;
+      try { const r = await api("/notify/test", { method: "POST", body: {} }); toast(`Test sent: ${(r.attempts || []).filter(a => a.status === "sent").length} delivered`); }
+      catch (ex) { toast(ex.message); } finally { e.target.disabled = false; }
+    } }, "Send test report") : h("span", { class: "faint" }, "Only administrators can send tests.")));
+  if (isAdmin) c.append(card("Recent deliveries", null, deliveries.length ? h("div", { class: "table-wrap" }, h("table", {},
+    h("thead", {}, h("tr", {}, ["Time", "Topic", "Recipient", "Channel", "To", "Status"].map(t => h("th", {}, t)))),
+    h("tbody", {}, deliveries.map(d => h("tr", {}, h("td", {}, fmtTime(d.created_at)), h("td", {}, d.topic), h("td", {}, d.recipient),
+      h("td", {}, d.channel, d.is_fallback ? h("span", { class: "badge warn", style: "margin-left:6px" }, "fallback") : null), h("td", { class: "mono" }, d.address || "—"),
+      h("td", {}, h("span", { class: `badge ${["sent", "delivered", "read"].includes(d.status) ? "ok" : d.status === "skipped" ? "" : "bad"}`, title: d.detail || "" }, d.status)))))))
+    : h("div", { class: "empty" }, "No deliveries yet.")));
+}
+
+/* The dedicated WhatsApp number: link with the QR code, unlink to change phones, restart when stuck. */
+function waLinkCard(w) {
+  const box = h("div", {});
+  let timer = null;
+  const draw = async () => {
+    let s = w;
+    try { s = (await api("/notify/status?days=1")).whatsapp; } catch (_) {}
+    const status = s.status;
+    const parts = [h("div", { class: "toolbar", style: "gap:8px" }, h("span", { class: `dot ${status === "ready" ? "ok" : "warn"}` }),
+      h("strong", {}, WA_TEXT[status] || status), s.me ? h("span", { class: "muted" }, `· sending from +${s.me}`) : null,
+      s.last_error && status !== "ready" ? h("span", { class: "faint", style: "font-size:12px" }, `· ${s.last_error}`) : null)];
+    if (status === "qr") {
+      try {
+        const q = await api("/notify/whatsapp/qr");
+        if (q.svg) parts.push(h("div", { class: "wa-link" },
+          h("img", { class: "wa-qr", src: `data:image/svg+xml;base64,${btoa(q.svg)}`, alt: "WhatsApp link code" }),
+          h("ol", {}, h("li", {}, "On the dedicated site phone, open WhatsApp."), h("li", {}, "Settings (or ⋮) › Linked devices › Link a device."),
+            h("li", {}, "Scan this code. It changes every 20 seconds or so; this page keeps it up to date."),
+            h("li", {}, "When it says “Linked and ready”, use Send test on a recipient below."))));
+      } catch (ex) { parts.push(h("div", { class: "error" }, ex.message)); }
+    } else if (["starting", "restarting", "unlinked"].includes(status)) {
+      parts.push(h("p", { class: "muted" }, "Getting a link code ready, this takes up to a minute…"));
+    }
+    const btns = [];
+    if (status === "ready") btns.push(h("button", { class: "btn small danger", onclick: async () => {
+      if (!confirm("Unlink this WhatsApp number? No messages can be sent until a phone is linked again.")) return;
+      try { await api("/notify/whatsapp/unlink", { method: "POST", body: {} }); toast("Unlinked; a new link code follows"); draw(); } catch (ex) { toast(ex.message); }
+    } }, "Unlink / change phone"));
+    if (["stuck", "error", "auth_failure", "disconnected"].includes(status) || status === "qr") btns.push(h("button", { class: "btn small", onclick: async () => {
+      try { await api("/notify/whatsapp/restart", { method: "POST", body: {} }); toast("Restarting the WhatsApp session"); setTimeout(draw, 3000); } catch (ex) { toast(ex.message); }
+    } }, "Restart WhatsApp"));
+    if (btns.length) parts.push(h("div", { class: "toolbar", style: "gap:6px;margin-top:8px" }, btns));
+    box.replaceChildren(...parts);
+    clearTimeout(timer);
+    if (status !== "ready" && document.body.contains(box)) timer = setTimeout(draw, status === "qr" ? 5000 : 4000);
+  };
+  state.cleanup.push(() => clearTimeout(timer));
+  setTimeout(draw, 0);
+  return card("WhatsApp number", h("span", { class: "muted", style: "font-size:12.5px" }, "The dedicated site phone that sends alerts and reports"), box);
+}
+
+function recipientsCard(d, topics) {
+  const list = h("div", {});
+  const draw = rs => list.replaceChildren(rs.length ? h("div", { class: "table-wrap" }, h("table", {},
+    h("thead", {}, h("tr", {}, ["Name", "Role", "WhatsApp", "E-mail", "Receives", ""].map(t => h("th", {}, t)))),
+    h("tbody", {}, rs.map(r => h("tr", { class: r.enabled ? null : "muted" },
+      h("td", { style: "font-weight:600" }, r.name, r.enabled ? null : h("span", { class: "badge", style: "margin-left:6px" }, "paused")),
+      h("td", {}, r.role || "—"), h("td", { class: "mono" }, r.whatsapp || "—"), h("td", {}, r.email || "—"),
+      h("td", {}, r.subscriptions.length ? r.subscriptions.map(t => h("span", { class: "badge", style: "margin:1px", title: topics[t] || "" }, t)) : h("span", { class: "faint" }, "nothing")),
+      h("td", { style: "white-space:nowrap" },
+        h("button", { class: "btn small", onclick: () => editRecipient(r, topics, reload) }, "Edit"), " ",
+        h("button", { class: "btn small", title: "Send this person a short test message", onclick: async e => {
           e.target.disabled = true;
-          try { const r = await api("/notify/test", { method: "POST", body: {} }); toast(`Test sent: ${(r.attempts || []).filter(a => a.status === "sent").length} delivered`); }
+          try { const res = await api(`/notify/recipients/${r.id}/test`, { method: "POST", body: {} });
+            const a = res.attempts[0] || {}; toast(a.status === "sent" ? `Test sent to ${r.name} (${a.channel})` : `Not sent: ${a.detail || a.status}`); }
           catch (ex) { toast(ex.message); } finally { e.target.disabled = false; }
-        } }, "Send test report") : h("span", { class: "faint" }, "Only administrators can send tests."))),
-    isAdmin ? card("Recent deliveries", null, deliveries.length ? h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["Time", "Topic", "Recipient", "Channel", "To", "Status"].map(t => h("th", {}, t)))),
-      h("tbody", {}, deliveries.map(d => h("tr", {}, h("td", {}, fmtTime(d.created_at)), h("td", {}, d.topic), h("td", {}, d.recipient),
-        h("td", {}, d.channel, d.is_fallback ? h("span", { class: "badge warn", style: "margin-left:6px" }, "fallback") : null), h("td", { class: "mono" }, d.address || "—"),
-        h("td", {}, h("span", { class: `badge ${["sent", "delivered", "read"].includes(d.status) ? "ok" : d.status === "skipped" ? "" : "bad"}`, title: d.detail || "" }, d.status)))))))
-      : h("div", { class: "empty" }, "No deliveries yet.")) : null);
+        } }, "Send test")))))))
+    : h("div", { class: "empty" }, "Nobody receives messages yet. Add the CSO, IT Manager and management."));
+  const reload = async () => draw((await api("/notify/recipients")).recipients);
+  draw(d.recipients);
+  return card("Recipients", h("button", { class: "btn small primary", onclick: () => editRecipient(null, topics, reload) }, "Add recipient"),
+    h("p", { class: "muted", style: "margin-top:0" }, "Who receives alerts and reports, and which ones. Changes apply to the next message."), list);
+}
+
+function editRecipient(r, topics, done) {
+  const err = h("div", { class: "error", hidden: true });
+  const f = { name: h("input", { class: "input", id: "rc-name", maxlength: 60, value: r ? r.name : "", placeholder: "e.g. Chief Security Officer" }),
+    role: h("input", { class: "input", id: "rc-role", maxlength: 40, value: r ? r.role : "", placeholder: "e.g. cso, it, management" }),
+    wa: h("input", { class: "input mono", id: "rc-wa", maxlength: 20, value: r ? r.whatsapp : "", placeholder: "+2348012345678", inputmode: "tel" }),
+    email: h("input", { class: "input", id: "rc-email", type: "email", maxlength: 120, value: r ? r.email : "", placeholder: "optional, used if WhatsApp fails" }),
+    on: h("input", { type: "checkbox", checked: r ? r.enabled : true }) };
+  const subs = Object.entries(topics).map(([t, text]) => h("label", { class: "check", style: "display:flex;gap:8px;align-items:flex-start" },
+    h("input", { type: "checkbox", value: t, checked: r ? r.subscriptions.includes(t) : ["critical", "lockdown", "test"].includes(t) }),
+    h("span", {}, h("strong", {}, t), h("span", { class: "faint" }, ` — ${text}`))));
+  modal(r ? `Recipient: ${r.name}` : "Add recipient", h("div", {}, err,
+    h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "rc-name" }, "Name"), f.name), h("div", { class: "field" }, h("label", { for: "rc-role" }, "Role"), f.role)),
+    h("div", { class: "field-row" }, h("div", { class: "field" }, h("label", { for: "rc-wa" }, "WhatsApp number (with country code)"), f.wa), h("div", { class: "field" }, h("label", { for: "rc-email" }, "E-mail"), f.email)),
+    h("div", { class: "field" }, h("label", {}, "Receives"), h("div", { style: "display:grid;gap:6px" }, subs)),
+    h("label", { class: "check" }, f.on, " Active (untick to pause messages to this person, e.g. on leave)")),
+    sc => [r ? h("button", { class: "btn danger", style: "margin-right:auto", onclick: async () => {
+        if (!confirm(`Remove ${r.name}? They'll stop receiving all messages.`)) return;
+        try { await api(`/notify/recipients/${r.id}`, { method: "DELETE" }); sc.remove(); toast("Removed"); done(); } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Remove") : null,
+      h("button", { class: "btn", onclick: () => sc.remove() }, "Cancel"),
+      h("button", { class: "btn primary", onclick: async () => {
+        const body = { name: f.name.value.trim(), role: f.role.value.trim(), whatsapp: f.wa.value.trim(), email: f.email.value.trim(), enabled: f.on.checked,
+          subscriptions: subs.map(l => l.querySelector("input")).filter(x => x.checked).map(x => x.value) };
+        try { await api(r ? `/notify/recipients/${r.id}` : "/notify/recipients", { method: r ? "PUT" : "POST", body }); sc.remove(); toast("Saved"); done(); }
+        catch (ex) { err.textContent = ex.message; err.hidden = false; }
+      } }, "Save")]);
 }
 
 /* ---------------- site map: plans, cameras, zones, guards (Phase 5) ---------------- */
@@ -2393,7 +2484,7 @@ async function viewAudit(c) {
   const rows = await api("/audit?limit=200");
   const what = { login: "Signed in", login_failed: "Failed sign-in", logout: "Signed out", password_changed: "Changed password", user_created: "Added a user",
     user_changed: "Changed a user (role, cameras or status)", alert_acknowledge: "Acknowledged an alert", alert_assign: "Assigned an alert", alert_comment: "Noted on an alert",
-    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", access_device_added: "Added an access device", access_device_deleted: "Removed an access device", door_changed: "Changed a door's settings", door_command: "Opened or locked a door from the console", intercom_reject: "Rejected an intercom call", intercom_hangup: "Ended an intercom call", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", ptz_tour_added: "Added a PTZ patrol tour", smart_motion_changed: "Changed which cameras send person/vehicle motion", ptz_tour_changed: "Changed a PTZ patrol tour", ptz_tour_deleted: "Deleted a PTZ patrol tour", ptz_tour_paused: "Paused a PTZ patrol tour", ptz_tour_resumed: "Resumed a PTZ patrol tour", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
+    alert_close: "Closed an alert", alert_reopen: "Reopened an alert", alert_rules_changed: "Changed alert rules", evidence_exported: "Exported evidence", "2fa_enabled": "Turned on two-factor", "2fa_disabled": "Turned off two-factor", branding_changed: "Changed branding", evidence_sealed: "Sealed evidence", evidence_downloaded: "Downloaded evidence", evidence_hold: "Changed a legal hold", evidence_verify_failed: "Evidence check FAILED", legal_accepted: "Accepted the face & plate legal review", legal_revoked: "Withdrew the face & plate legal review", screen_created: "Added a wall screen", screen_changed: "Changed a wall screen", screen_deleted: "Deleted a wall screen", screen_key_changed: "Changed a wall screen link", plan_added: "Added a site plan", plan_changed: "Changed a site plan", zone_added: "Added a zone", zone_changed: "Changed a zone", zone_deleted: "Deleted a zone", unit_added: "Added a guard or vehicle", unit_changed: "Changed a guard or vehicle", unit_deleted: "Removed a guard or vehicle", unit_simulated: "Simulated a position", licence_loaded: "Loaded a licence", retention_run: "Ran the retention clean-up", playback: "Played back a recording", viewing_log_exported: "Exported the viewing log", lockdown_started: "STARTED A LOCKDOWN", lockdown_ended: "Ended the lockdown", lockdown_config_changed: "Changed the lockdown outputs", compliance_settings_changed: "Changed the compliance dates", watchlist_person_added: "Added a person to a watchlist", watchlist_person_changed: "Changed a watchlist entry", watchlist_person_deleted: "Deleted a person from a watchlist", watchlist_photo_added: "Added a watchlist photo", watchlist_photo_deleted: "Deleted a watchlist photo", watchlist_photo_viewed: "Viewed a watchlist photo", watchlist_plate_added: "Added a plate to a watchlist", watchlist_plate_deleted: "Removed a plate from a watchlist", recognition_config_changed: "Changed recognition cameras or thresholds", recognition_verdict: "Gave a verdict on a match", network_scan: "Scanned the network for devices", smart_search: "Searched pictures by colour", anomaly_settings_changed: "Changed the unusual activity settings", access_device_added: "Added an access device", access_device_deleted: "Removed an access device", door_changed: "Changed a door's settings", door_command: "Opened or locked a door from the console", intercom_reject: "Rejected an intercom call", intercom_hangup: "Ended an intercom call", api_key_created: "Made an API key", api_key_revoked: "Revoked an API key", webhook_added: "Added a webhook", webhook_changed: "Changed a webhook", webhook_deleted: "Deleted a webhook", webhook_secret_changed: "Changed a webhook secret", api_alert_acknowledge: "Acknowledged an alert (API)", api_alert_close: "Closed an alert (API)", device_identify: "Identified a device (logged in once)", handover_given: "Handed over a shift", handover_taken: "Took over a shift", shifts_changed: "Changed the shift times", output_added: "Added an output", output_changed: "Changed an output", output_deleted: "Deleted an output", output_switched: "Switched an output", output_tested: "Tested an output", ptz_control: "Steered a PTZ camera", ptz_preset: "Sent a PTZ camera to a preset", ptz_preset_saved: "Saved a PTZ preset", ptz_tour_added: "Added a PTZ patrol tour", smart_motion_changed: "Changed which cameras send person/vehicle motion", recipient_added: "Added a message recipient", recipient_changed: "Changed a message recipient", recipient_deleted: "Removed a message recipient", recipient_tested: "Sent a test message", whatsapp_unlinked: "Unlinked the WhatsApp number", whatsapp_restarted: "Restarted WhatsApp", ptz_tour_changed: "Changed a PTZ patrol tour", ptz_tour_deleted: "Deleted a PTZ patrol tour", ptz_tour_paused: "Paused a PTZ patrol tour", ptz_tour_resumed: "Resumed a PTZ patrol tour", nvr_added: "Added an NVR", nvr_changed: "Changed an NVR", nvr_removed: "Removed an NVR", tier_changed: "Changed a camera tier", admin_created_cli: "Admin created on the server",
     report_generated: "Generated a report", report_downloaded: "Downloaded a report", report_sent: "Sent a report" };
   c.append(h("section", { class: "card", style: "padding:6px 8px" }, h("div", { class: "table-wrap" }, h("table", {},
     h("thead", {}, h("tr", {}, ["Time", "User", "Action", "Details", "From"].map(t => h("th", {}, t)))),

@@ -21,6 +21,13 @@ test("API needs the token and refuses to send before WhatsApp is linked", async 
       body: JSON.stringify({ to: "+2348012345678", text: "hi" }) });
     assert.equal(r.status, 503);
     assert.equal((await r.json()).status, "qr");
+    const q = await (await fetch(`${base}/qr`, { headers: { Authorization: "Bearer t" } })).json();
+    assert.equal(q.status, "qr");                       // no code captured yet in the test: no SVG
+    assert.equal(q.svg, null);
+    assert.equal((await fetch(`${base}/qr`)).status, 401);
+    require("./server").setQrForTest("2@abc,def,ghi");
+    const q2 = await (await fetch(`${base}/qr`, { headers: { Authorization: "Bearer t" } })).json();
+    assert.match(q2.svg, /^<svg/);                      // the console shows this as the link code
   } finally {
     server.close();
   }

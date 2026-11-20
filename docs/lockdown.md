@@ -11,7 +11,7 @@ the gate.
 | New alerts | Raised to **critical** (except device faults), so they sound, record a clip, and escalate like any critical alert. The alert history says "Raised to critical: the site is in lockdown". |
 | Sirens and lights | The outputs chosen for lockdown switch on and **stay on** until it ends. |
 | Screens | A red LOCKDOWN banner on every console page, on every wall screen and in the phone app. |
-| Messages | Everyone subscribed to `lockdown` in `config/recipients.json` gets WhatsApp (e-mail if that fails) and push, at the start and at the end. |
+| Messages | Everyone with **lockdown** ticked in WhatsApp & alerts › Recipients gets WhatsApp (e-mail if that fails) and push, at the start and at the end. |
 | Records | Logbook entries (incident) and audit log entries at the start and the end. |
 
 ## Who can do what
@@ -23,8 +23,8 @@ the gate.
 
 ## Setting up
 
-1. Add `"lockdown"` to the subscriptions of everyone who must be told, at least the CSO, management and the
-   IT Manager, in `config/recipients.json` (see `config/recipients.example.json`). Phones subscribed to the
+1. Tick **lockdown** for everyone who must be told, at least the CSO, management and the IT Manager,
+   in WhatsApp & alerts › Recipients. Phones subscribed to the
    HSS push topic on ntfy get it too, at high priority.
 2. Settings › Lockdown: choose the outputs.
 3. Try it once with everyone in the control room, at a quiet time, and end it straight away. The messages

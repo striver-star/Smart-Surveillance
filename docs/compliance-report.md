@@ -31,7 +31,7 @@ The report contains user names and is marked confidential.
 
 1. Settings › **Compliance** (CSO, administrators): enter the DPIA review date, the date the recognition signs
    were last checked, and the DPO. Update the signs date after each walk round.
-2. Add `"compliance"` to the subscriptions of the CSO, the DPO and management in `config/recipients.json`.
+2. Tick **compliance** for the CSO, the DPO and management in WhatsApp & alerts › Recipients.
 3. With the report schedule on (`HSS_REPORT_TIME`), it is generated on the 1st for the previous month and sent
    to "compliance" subscribers. `HSS_REPORT_KINDS` includes `compliance` by default.
 4. On demand: Reports › New report › **Compliance and privacy**, any day in the month.

@@ -45,6 +45,7 @@ services:
       HSS_REPORT_TIME: ${HSS_REPORT_TIME:-}
       HSS_REPORT_KINDS: ${HSS_REPORT_KINDS:-daily,weekly,monthly,compliance}
       HSS_REPORT_FORMATS: ${HSS_REPORT_FORMATS:-pdf}
+      # Old recipients file, imported once into the console's Recipients list (then no longer read)
       HSS_RECIPIENTS: /config/recipients.json
       HSS_GATEWAY_API: http://gateway:9997
       HSS_PROBE_DIR: /probe
@@ -197,7 +198,8 @@ services:
 
   whatsapp:
     # WhatsApp gateway (provider A). Start with: docker compose --profile notify up -d
-    # Link once: docker compose logs -f whatsapp, then scan the QR code with the dedicated phone.
+    # Link once from the console (WhatsApp & alerts › WhatsApp number shows the QR code), or with
+    # docker compose logs -f whatsapp; scan it with the dedicated phone.
     profiles: ["notify"]
     build: ./services/whatsapp-gateway
     restart: unless-stopped

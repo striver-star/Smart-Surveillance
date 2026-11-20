@@ -41,7 +41,7 @@ HSS_REPORT_FORMATS=pdf           # or pdf,docx
 
 Every day at that time the daily report (yesterday) is generated and sent to everyone subscribed
 to `daily`; on Mondays also the weekly (last Monday to Sunday) to `weekly`; on the 1st also the
-monthly (last month) to `monthly`. Subscriptions are in `config/recipients.json`. Each report runs
+monthly (last month) to `monthly`. Who receives which report is set in WhatsApp & alerts › Recipients. Each report runs
 once a day even if the API restarts.
 
 ## Files and libraries

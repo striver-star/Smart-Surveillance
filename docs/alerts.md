@@ -40,7 +40,7 @@ after 10 minutes) and **Warnings** (screen and sound). Edit them in the console 
 ## Recipients
 
 Add `escalation` to the subscriptions of whoever should receive escalations in
-`config/recipients.json` (for example the CSO and the GM). `critical` subscribers receive the
+the console's WhatsApp & alerts › Recipients (for example the CSO and the GM). `critical` subscribers receive the
 first WhatsApp message with the snapshot.
 
 ## Phones

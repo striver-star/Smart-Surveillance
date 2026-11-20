@@ -1,6 +1,7 @@
 // HSS WhatsApp gateway (provider A): sends messages and documents from the dedicated site number.
 // Built on whatsapp-web.js (Apache 2.0), which drives WhatsApp Web in a headless Chromium.
-// Linking: run `docker compose logs -f whatsapp` and scan the QR code with the dedicated phone
+// Linking: the console's WhatsApp & alerts page shows the QR code (GET /qr), as does
+// `docker compose logs -f whatsapp`; scan it with the dedicated phone
 // (WhatsApp > Linked devices > Link a device). The session is kept in /data, so this is done once.
 //
 // API (internal network only, bearer token HSS_WA_TOKEN):
@@ -8,6 +9,9 @@
 //   GET  /status                 {status, since, me, last_error}
 //   POST /send                   {to:"+234...", text, document?:{filename, mimetype, base64}} -> {id}
 //   GET  /messages/<id>          {id, ack}  ack: pending | sent | delivered | read | error
+//   GET  /qr                     {status, svg}  the current link QR code as SVG while status is "qr"
+//   POST /logout                 unlink this number (to link another phone); a new QR code follows
+//   POST /restart                restart the WhatsApp session (also clears "stuck")
 //
 // Ready watchdog: whatsapp-web.js sometimes logs "authenticated" but never "ready" (its helper code
 // fails to load into a changed WhatsApp Web build, and the error is swallowed). The gateway logs the
@@ -28,6 +32,7 @@ const ACK = { "-1": "error", 0: "pending", 1: "sent", 2: "delivered", 3: "read",
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const state = { status: "starting", since: new Date().toISOString(), me: null, last_error: null };
+let currentQr = null;   // the latest link code (raw text); shown as SVG by GET /qr, never logged as text
 const acks = new Map(); // message id -> ack name (kept for the last 5000 messages)
 
 function setState(status, extra = {}) {
@@ -61,6 +66,7 @@ function makeWatchdog({ reinjectAfterMs, restartAfterMs, maxRestarts, reinject, 
       }, restartAfterMs);
     },
     ready() { clear(); restarts = 0; },
+    reset() { clear(); restarts = 0; },
     stop: clear,
   };
 }
@@ -140,6 +146,7 @@ function makeClient() {
     },
   });
   c.on("qr", async (qr) => {
+    currentQr = qr;
     setState("qr");
     const art = await QRCode.toString(qr, { type: "terminal", small: true });
     console.log("\nLink the dedicated phone: WhatsApp > Linked devices > Link a device, then scan:\n" + art);
@@ -149,6 +156,7 @@ function makeClient() {
   c.on("change_state", (st) => log(`connection: ${st}`));
   c.on("auth_failure", (m) => setState("auth_failure", { last_error: String(m) }));
   c.on("ready", () => watchdog.ready());
+  c.on("ready", () => { currentQr = null; });
   c.on("ready", () => setState("ready", { me: c.info && c.info.wid ? c.info.wid.user : null, last_error: null }));
   c.on("disconnected", (reason) => {
     setState("disconnected", { last_error: String(reason) });
@@ -232,6 +240,24 @@ const server = http.createServer(async (req, res) => {
       const [code, body] = await send(await readBody(req));
       return json(res, code, body);
     }
+    if (req.method === "GET" && url.pathname === "/qr") {
+      if (state.status !== "qr" || !currentQr) return json(res, 200, { status: state.status, svg: null });
+      return json(res, 200, { status: state.status, svg: await QRCode.toString(currentQr, { type: "svg", margin: 2 }) });
+    }
+    if (req.method === "POST" && url.pathname === "/logout") {
+      log("unlink requested");
+      try { if (client && state.status === "ready") await client.logout(); } catch (e) { log("logout:", (e && e.message) || e); }
+      setState("unlinked", { me: null });
+      restart(3000);
+      return json(res, 200, { status: "unlinked" });
+    }
+    if (req.method === "POST" && url.pathname === "/restart") {
+      log("restart requested");
+      if (state.status === "stuck") setState("restarting");
+      watchdog.reset();
+      restart(1000);
+      return json(res, 200, { status: "restarting" });
+    }
     const m = url.pathname.match(/^\/messages\/(.+)$/);
     if (req.method === "GET" && m) {
       const id = decodeURIComponent(m[1]);
@@ -253,4 +279,5 @@ if (require.main === module) {
   }
 }
 
-module.exports = { normaliseNumber, server, state, setState, makeWatchdog, clearStaleLocks };
+const setQrForTest = (q) => { currentQr = q; };
+module.exports = { normaliseNumber, server, state, setState, makeWatchdog, clearStaleLocks, setQrForTest };
