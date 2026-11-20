@@ -98,8 +98,18 @@ What to record for a week (feeds task 16 and the GPU order):
 
 ### CPU use
 
-ONNX Runtime's default (every core per detection, idle threads spinning) and OpenCV's default (a decoding
-thread per core for every camera) made the first R720 run use about 9 cores for 10 cameras. The worker now
-uses 4 threads per detection without spinning and 1 decoding thread per stream: in the build environment
-the same load went from 272% to 77% CPU (detection 14 to 21 ms). Tune in `.env` if needed:
-`HSS_AI_THREADS` (default 4), `HSS_DECODE_THREADS` (default 1), `HSS_AI_SPIN=1` to allow spinning again.
+The first R720 run used about 9 cores for 10 cameras: ONNX Runtime's default runs one detection on every core
+with idle threads spinning, and OpenCV starts a decoding thread per core for every camera. Limiting a single
+detection to 4 threads cut CPU but made each detection slow on the R720 (31 to 120 ms), so cameras fell to
+0.8 fps. The worker now runs **several detections at a time, one thread each**, and one decoding thread per
+stream. Throughput in the build environment (4 cores, 10 cameras asking at once, yolox_nano):
+
+| Detections at a time × threads | Detections per second | CPU |
+|---|---|---|
+| 1 × 4 | 53 | 192% |
+| 2 × 2 | 104 | 296% |
+| 4 × 1 | 203 | 390% |
+
+Defaults: `HSS_AI_PARALLEL=4`, `HSS_AI_THREADS=1`, `HSS_DECODE_THREADS=1` (in `.env`; `HSS_AI_SPIN=1`
+allows spinning again). The worker only works as fast as the cameras ask (2 frames a second each), so CPU
+follows the number of cameras. On a GPU server set `HSS_AI_PARALLEL=1`.

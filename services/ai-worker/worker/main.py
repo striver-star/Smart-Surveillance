@@ -94,8 +94,32 @@ class EventSender:
                              sent["zone"], sent["camera_id"], r.json().get("latency_ms"))
 
 
-def run_camera(cam: dict, detector: Detector, sender: EventSender, stop: threading.Event, tz: ZoneInfo,
-               detector_lock: threading.Lock) -> None:
+class DetectorPool:
+    """Several copies of the model, so several cameras' frames are analysed at the same time. On a CPU-only
+    server, a few detections with a few threads each get far more done than one detection using every core.
+    HSS_AI_PARALLEL copies (default 4, with HSS_AI_THREADS=1: best on a CPU-only server; set 1 on a GPU)."""
+
+    def __init__(self, make, n: int):
+        import queue
+        self.items = [make() for _ in range(max(1, n))]
+        self.free: "queue.Queue[Detector]" = queue.Queue()
+        for d in self.items:
+            self.free.put(d)
+
+    def acquire(self):
+        pool = self
+
+        class _Use:
+            def __enter__(self):
+                self.d = pool.free.get()
+                return self.d
+
+            def __exit__(self, *exc):
+                pool.free.put(self.d)
+        return _Use()
+
+
+def run_camera(cam: dict, pool: DetectorPool, sender: EventSender, stop: threading.Event, tz: ZoneInfo) -> None:
     camera_id = cam["camera_id"]
     fps = float(cam.get("analysis_fps", 5))
     rules = ZoneRules([Zone(**z) for z in cam["zones"]])
@@ -106,7 +130,7 @@ def run_camera(cam: dict, detector: Detector, sender: EventSender, stop: threadi
         frame = reader.latest(newer_than=last_seq)
         if frame is not None:
             last_seq = frame.seq
-            with detector_lock:
+            with pool.acquire() as detector:
                 t0 = time.perf_counter()
                 detections = detector.detect(frame.image)
                 ms = (time.perf_counter() - t0) * 1000
@@ -129,17 +153,19 @@ def main() -> None:
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     with open(os.environ.get("HSS_WORKER_CONFIG", "/config/worker.json"), encoding="utf-8") as f:
         config = json.load(f)
-    detector = Detector(os.environ.get("HSS_MODEL_PATH", "/models/yolox_s.onnx"),
-                        score_threshold=float(config.get("score_threshold", 0.4)))
-    log.info("model %s input %s on %s (available: %s)", os.environ.get("HSS_MODEL_PATH"), detector.size,
-             detector.active_provider, ",".join(detector.providers))
+    parallel = int(os.environ.get("HSS_AI_PARALLEL", "4"))
+    pool = DetectorPool(lambda: Detector(os.environ.get("HSS_MODEL_PATH", "/models/yolox_s.onnx"),
+                                         score_threshold=float(config.get("score_threshold", 0.4))), parallel)
+    detector = pool.items[0]
+    log.info("model %s input %s on %s (available: %s); %d at a time, %s threads each", os.environ.get("HSS_MODEL_PATH"),
+             detector.size, detector.active_provider, ",".join(detector.providers), len(pool.items),
+             os.environ.get("HSS_AI_THREADS", "1"))
     sender = EventSender(os.environ.get("HSS_API_URL", "http://api:8000"), os.environ["HSS_WORKER_TOKEN"])
     tz = ZoneInfo(os.environ.get("HSS_TZ", "Africa/Lagos"))
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
-    lock = threading.Lock()   # one inference at a time per worker; scale out with more workers or GPUs
-    threads = [threading.Thread(target=run_camera, args=(cam, detector, sender, stop, tz, lock),
+    threads = [threading.Thread(target=run_camera, args=(cam, pool, sender, stop, tz),
                                 name=cam["camera_id"], daemon=True) for cam in config["cameras"]]
     for t in threads:
         t.start()

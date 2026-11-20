@@ -111,8 +111,10 @@ services:
       HSS_MODEL_PATH: /models/${HSS_MODEL:-yolox_s.onnx}
       HSS_WORKER_CONFIG: /config/worker.json
       HSS_TZ: ${HSS_TZ}
-      # CPU threads per detection and per camera decoder (docs/task-15-tier-s-worker.md, "CPU use")
-      HSS_AI_THREADS: ${HSS_AI_THREADS:-4}
+      # Detections at a time, CPU threads per detection, and per camera decoder (docs/task-15-tier-s-worker.md,
+      # "CPU use"). CPU-only server: 4 at a time with 1 thread each. GPU server: HSS_AI_PARALLEL=1.
+      HSS_AI_PARALLEL: ${HSS_AI_PARALLEL:-4}
+      HSS_AI_THREADS: ${HSS_AI_THREADS:-1}
       HSS_DECODE_THREADS: ${HSS_DECODE_THREADS:-1}
     volumes:
       - ./models:/models:ro

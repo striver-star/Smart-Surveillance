@@ -108,10 +108,11 @@ def postprocess(decoded: np.ndarray, ratio: float, score_threshold: float, iou_t
 
 def session_options() -> "ort.SessionOptions":
     """CPU threads for one detection. ONNX Runtime's default is every core, with idle threads spinning: with
-    several cameras that burns most of the CPU waiting. HSS_AI_THREADS (default 4) and no spinning
+    several cameras that burns most of the CPU waiting. HSS_AI_THREADS (default 1, with several detections at a
+    time: worker.main.DetectorPool) and no spinning
     (HSS_AI_SPIN=1 to allow it) keep a CPU-only server light; a GPU barely uses these threads."""
     o = ort.SessionOptions()
-    o.intra_op_num_threads = max(1, int(os.environ.get("HSS_AI_THREADS", "4")))
+    o.intra_op_num_threads = max(1, int(os.environ.get("HSS_AI_THREADS", "1")))
     o.inter_op_num_threads = 1
     if os.environ.get("HSS_AI_SPIN", "0") != "1":
         o.add_session_config_entry("session.intra_op.allow_spinning", "0")
