@@ -175,10 +175,13 @@ else warn "ufw is not active; see docs/hardening.md for the ports to allow"; fi
 
 # ------------------------------------------------------------------ done
 docker compose cp proxy:/data/caddy/pki/authorities/local/root.crt "$HERE/hss-root-ca.crt" >/dev/null 2>&1 && chown "$OWNER" "$HERE/hss-root-ca.crt" || true
+# Also served at https://<server>/wall-agent/hss-root-ca.crt so PCs and phones can download it (it is public: no secret in it)
+if [ -f "$HERE/hss-root-ca.crt" ]; then mkdir -p "$HERE/dist/wall-agent" && cp "$HERE/hss-root-ca.crt" "$HERE/dist/wall-agent/" && chown -R "$OWNER" "$HERE/dist" || true; fi
 say "Done"
 cat <<EOF
    Console:      https://${IP:-<server address>}/
-   Certificate:  $HERE/hss-root-ca.crt  (install it on each PC and phone: docs/console.md)
+   Certificate:  $HERE/hss-root-ca.crt, also at https://${IP:-<server address>}/wall-agent/hss-root-ca.crt
+                 (install it on each PC and phone: docs/console.md)
    Next:         sign in as the administrator and follow Getting started in the console
                  (site name and logo, NVRs, event setup, wall screens, WhatsApp, backups, licence).
    Upgrade:      sudo ./install.sh --upgrade

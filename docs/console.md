@@ -32,6 +32,25 @@ probe output lives elsewhere, set `HSS_PROBE_OUTPUT=/path/to/probe-output` in `.
 Administrators add NVRs there with **Add NVR**, and administrators and the CSO can override a
 camera's AI tier (docs/nvr-registry.md).
 
+## Operator PCs (Windows)
+
+Each PC trusts the server's own certificate authority once (as an administrator of the PC):
+
+1. In Edge or Chrome open `https://<server>/wall-agent/hss-root-ca.crt` (accept the one-time warning)
+   and save the file; or copy `hss-root-ca.crt` from the HSS folder on the server with a USB stick.
+2. Double-click it › **Install Certificate** › **Local Machine** › **Place all certificates in the
+   following store** › Browse › **Trusted Root Certification Authorities** › Next › Finish.
+   Or, in PowerShell run as administrator, in the folder with the file:
+   `certutil -addstore -f Root hss-root-ca.crt`
+3. Close every browser window, open `https://<server>/`: the padlock shows, no warning.
+   Firefox keeps its own list: if it still warns, Settings › Privacy & Security › Certificates ›
+   View Certificates › Authorities › Import, and tick "trust this CA to identify websites".
+4. Make it an app: in Edge, … › Apps › **Install this site as an app** (Chrome: … › Cast, save and
+   share › Install page as app). It gets its own window and a desktop/taskbar icon.
+
+Always open the console with the same address the certificate was made for (the server's IP, or
+`HSS_HOSTNAME` from `.env`); another name for the same server shows a warning.
+
 ## Phones and tablets (iPhone, iPad, Android)
 
 The console works in the phone's browser (tested on site on an iPhone, live view included, 2026-11-15).
