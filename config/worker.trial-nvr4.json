@@ -1,0 +1,386 @@
+{
+  "_trial": "Tier S trial on 10 non-AI NVR4 cameras, CPU only (docs/task-15-tier-s-worker.md, 'CPU trial'). Whole picture below the top 12% (time stamp), people and vehicles, severity info: events are recorded and listed in the walk test, but raise no alerts or messages.",
+  "score_threshold": 0.4,
+  "cameras": [
+    {
+      "camera_id": "nvr4-ch06",
+      "_name": "13 ROOMS FRONT FENCE",
+      "source": "rtsp://gateway:8554/nvr4-ch06",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch07",
+      "_name": "STREAM FENCE RIGHT",
+      "source": "rtsp://gateway:8554/nvr4-ch07",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch08",
+      "_name": "ROCK VIEW CENTER",
+      "source": "rtsp://gateway:8554/nvr4-ch08",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch14",
+      "_name": "ROCK VIEW LEFT SIDE",
+      "source": "rtsp://gateway:8554/nvr4-ch14",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch15",
+      "_name": "RIGHT WING 2ND GATE",
+      "source": "rtsp://gateway:8554/nvr4-ch15",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch01",
+      "_name": "13 ROOM OUTSIDE",
+      "source": "rtsp://gateway:8554/nvr4-ch01",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch17",
+      "_name": "SECURITY CHECK 2",
+      "source": "rtsp://gateway:8554/nvr4-ch17",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch23",
+      "_name": "SECURITY CHECK 1",
+      "source": "rtsp://gateway:8554/nvr4-ch23",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch10",
+      "_name": "INST. CORRIDOR 1",
+      "source": "rtsp://gateway:8554/nvr4-ch10",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    },
+    {
+      "camera_id": "nvr4-ch24",
+      "_name": "Butcher Point",
+      "source": "rtsp://gateway:8554/nvr4-ch24",
+      "analysis_fps": 2,
+      "zones": [
+        {
+          "name": "Trial: whole view",
+          "polygon": [
+            [
+              0,
+              0.12
+            ],
+            [
+              1,
+              0.12
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "classes": [
+            "human",
+            "vehicle"
+          ],
+          "severity": "info",
+          "min_confidence": 0.5,
+          "confirm_frames": 2,
+          "window_frames": 3,
+          "cooldown_s": 60
+        }
+      ]
+    }
+  ]
+}

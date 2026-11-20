@@ -60,3 +60,38 @@ To try the demo first (no camera needed): `./tools/fetch-models.sh --demo`, then
 - The gateway API is closed; the gateway itself still accepts any reader or publisher on the
   server network. Gateway authentication comes with Phase 2 (live viewing).
 - The NVIDIA image (`Dockerfile.gpu`) is written but not yet tested; it needs the GPU server.
+
+## CPU trial: 10 non-AI cameras on NVR4 (before the GPU)
+
+`config/worker.trial-nvr4.json` runs the worker on 10 non-AI NVR4 cameras (5 perimeter and gate, 1 outside,
+2 ColorVu, 2 indoor), 2 analysed frames per second each, people and vehicles anywhere below the time stamp.
+Events are **info**: recorded, shown on Events and in the walk test, but no alert, siren or WhatsApp.
+
+| Camera | Name | Why |
+|---|---|---|
+| nvr4-ch06 | 13 ROOMS FRONT FENCE | perimeter |
+| nvr4-ch07 | STREAM FENCE RIGHT | perimeter, 8 MP |
+| nvr4-ch08 | ROCK VIEW CENTER | perimeter, 8 MP |
+| nvr4-ch14 | ROCK VIEW LEFT SIDE | perimeter, 8 MP |
+| nvr4-ch15 | RIGHT WING 2ND GATE | gate |
+| nvr4-ch01 | 13 ROOM OUTSIDE | outdoor |
+| nvr4-ch17 | SECURITY CHECK 2 | ColorVu |
+| nvr4-ch23 | SECURITY CHECK 1 | ColorVu |
+| nvr4-ch10 | INST. CORRIDOR 1 | indoor |
+| nvr4-ch24 | Butcher Point | indoor |
+
+Model: `yolox_nano` (about 10 ms a frame on a current 4-core CPU in the build environment, `yolox_s` 74 ms;
+expect 2 to 4 times slower on the R720's E5-2640). In `.env`:
+```
+HSS_MODEL=yolox_nano.onnx
+HSS_WORKER_CONFIG_FILE=./config/worker.trial-nvr4.json
+```
+Then `./tools/fetch-models.sh` (once) and `docker compose --profile ai up -d --build ai-worker attributes`.
+
+What to record for a week (feeds task 16 and the GPU order):
+- `docker compose logs ai-worker | grep analysed`: each camera near 2.0 fps, inference ms, `connected=True`.
+- CPU of the VM (`top`): the worker should stay under about 6 cores.
+- Walk test on each camera, day and night: detected, and how far away.
+- Events, type intrusion, from these cameras: open a sample each morning and mark false ones
+  (trees, shadows, headlights, animals). The False alarms page gives the rate per camera.
+- Then try `yolox_s` on 3 of the cameras (a second config) to compare accuracy against load.
