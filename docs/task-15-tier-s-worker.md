@@ -95,3 +95,11 @@ What to record for a week (feeds task 16 and the GPU order):
 - Events, type intrusion, from these cameras: open a sample each morning and mark false ones
   (trees, shadows, headlights, animals). The False alarms page gives the rate per camera.
 - Then try `yolox_s` on 3 of the cameras (a second config) to compare accuracy against load.
+
+### CPU use
+
+ONNX Runtime's default (every core per detection, idle threads spinning) and OpenCV's default (a decoding
+thread per core for every camera) made the first R720 run use about 9 cores for 10 cameras. The worker now
+uses 4 threads per detection without spinning and 1 decoding thread per stream: in the build environment
+the same load went from 272% to 77% CPU (detection 14 to 21 ms). Tune in `.env` if needed:
+`HSS_AI_THREADS` (default 4), `HSS_DECODE_THREADS` (default 1), `HSS_AI_SPIN=1` to allow spinning again.

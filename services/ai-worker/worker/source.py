@@ -21,6 +21,11 @@ import numpy as np
 os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|timeout;5000000")
 import cv2  # noqa: E402
 
+# One decoding thread per stream (sub-streams are small; the default starts a thread per core for every
+# camera). HSS_DECODE_THREADS changes it. OpenCV's own helper threads are not needed either.
+DECODE_THREADS = max(1, int(os.environ.get("HSS_DECODE_THREADS", "1")))
+cv2.setNumThreads(1)
+
 log = logging.getLogger(__name__)
 
 
@@ -56,8 +61,10 @@ class LatestFrameReader:
         return f if f is not None and f.seq > newer_than else None
 
     def _open(self) -> "cv2.VideoCapture":
-        cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG, [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000,
-                                                         cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000])
+        params = [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000]
+        if hasattr(cv2, "CAP_PROP_N_THREADS"):
+            params += [cv2.CAP_PROP_N_THREADS, DECODE_THREADS]
+        cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG, params)
         if not cap.isOpened():
             cap.release()
             raise ConnectionError("could not open stream")

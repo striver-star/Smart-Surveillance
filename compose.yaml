@@ -111,6 +111,9 @@ services:
       HSS_MODEL_PATH: /models/${HSS_MODEL:-yolox_s.onnx}
       HSS_WORKER_CONFIG: /config/worker.json
       HSS_TZ: ${HSS_TZ}
+      # CPU threads per detection and per camera decoder (docs/task-15-tier-s-worker.md, "CPU use")
+      HSS_AI_THREADS: ${HSS_AI_THREADS:-4}
+      HSS_DECODE_THREADS: ${HSS_DECODE_THREADS:-1}
     volumes:
       - ./models:/models:ro
       - ${HSS_WORKER_CONFIG_FILE:-./config/worker.json}:/config/worker.json:ro
